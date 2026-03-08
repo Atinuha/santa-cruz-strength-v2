@@ -74,7 +74,7 @@ export default function Footer() {
                 </a>
               </li>
               <li className="text-xs text-white/30 mt-1">
-                Members: 24/7 Access &bull; Day passes: 9am–6pm
+                Members: 24/7 via app &bull; Day passes: 9am–6pm
               </li>
             </ul>
           </div>

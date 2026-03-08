@@ -19,7 +19,7 @@ export const GYM_CONFIG = {
   joinUrl: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691',
   // Hours — update these as needed
   hours: [
-    { days: 'Members', hours: '24 / 7 Access', note: 'Keycard entry' },
+    { days: 'Members', hours: '24 / 7 Access', note: 'Via mobile app' },
     { days: 'Day Passes', hours: '9:00 AM – 6:00 PM', note: 'Monday – Sunday' },
     { days: 'Staffed Hours', hours: 'Mon–Fri: 8 AM – 7 PM', note: 'Sat–Sun: 9 AM – 2 PM' },
   ],

@@ -127,9 +127,13 @@ export default function Home() {
           backgroundPosition: 'center 40%',
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/97 via-[#0A0A0A]/80 to-[#0A0A0A]/40" />
+        {/* Primary dark overlay — heavy and consistent */}
+        <div className="absolute inset-0 bg-[#0A0A0A]/80" />
+        {/* Directional gradient — darker on left (text), still dark on right (form) */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/70 via-[#0A0A0A]/30 to-[#0A0A0A]/20" />
+        {/* Subtle brand accent — barely visible */}
         <div className="absolute inset-0" style={{
-          background: 'radial-gradient(800px circle at 8% 50%, rgba(27,122,74,0.07), transparent 55%), radial-gradient(600px circle at 85% 15%, rgba(46,107,143,0.06), transparent 50%)',
+          background: 'radial-gradient(600px circle at 8% 50%, rgba(27,122,74,0.06), transparent 50%)',
         }} />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 w-full">
@@ -182,7 +186,7 @@ export default function Home() {
 
             {/* Right — Form */}
             <div ref={formRef} id="lead-form" className="animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-              <div className="bg-[#111214]/92 backdrop-blur border border-white/10 rounded-xl p-6 shadow-2xl">
+              <div className="bg-[#0D0D0D]/98 backdrop-blur border border-white/10 rounded-xl p-6 shadow-2xl">
                 <div className="mb-5">
                   <h2 className="font-display text-2xl text-white tracking-wide">BOOK A TOUR</h2>
                   <p className="text-white/45 text-sm mt-1">Tell us a bit about yourself. We\'ll reach out to schedule a visit.</p>
