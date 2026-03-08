@@ -16,6 +16,7 @@ import StaffLogin from './pages/staff/Login';
 import Dashboard from './pages/staff/Dashboard';
 import LeadDetail from './pages/staff/LeadDetail';
 import Settings from './pages/staff/Settings';
+import AcceptInvite from './pages/staff/AcceptInvite';
 
 import './App.css';
 
@@ -33,6 +34,7 @@ export default function App() {
 
           {/* Staff Auth */}
           <Route path="/staff/login" element={<StaffLogin />} />
+          <Route path="/staff/accept-invite" element={<AcceptInvite />} />
 
           {/* Protected Staff CRM */}
           <Route path="/staff/dashboard" element={

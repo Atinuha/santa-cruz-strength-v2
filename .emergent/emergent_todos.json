@@ -1,30 +1,38 @@
 [
   {
-    "content": "Update color system — black, forest green, white",
-    "status": "completed"
+    "content": "Backend: add owner role, staff permissions (no delete), invite system",
+    "status": "in_progress"
   },
   {
-    "content": "Update admin email seed to management@santacruzstrength.com",
-    "status": "completed"
+    "content": "Backend: CSV import endpoint + template download",
+    "status": "pending"
   },
   {
-    "content": "Update hours: Members 24/7, Day passes 9am-6pm",
-    "status": "completed"
+    "content": "Frontend: invite UI in Settings (send link, list pending, revoke)",
+    "status": "pending"
   },
   {
-    "content": "Overhaul brand voice and all public page copy (ICP + calm confidence tone)",
-    "status": "completed"
+    "content": "Frontend: CSV upload modal + template download in Dashboard",
+    "status": "pending"
   },
   {
-    "content": "Build Kanban CRM dashboard component",
-    "status": "completed"
+    "content": "Frontend: Quick Add modal for walk-ins (minimal fields, fast)",
+    "status": "pending"
   },
   {
-    "content": "Change 'Book a Free Visit' to 'Book a Tour' everywhere",
-    "status": "completed"
+    "content": "Frontend: Time picker for follow-up/tour scheduled in LeadDetail",
+    "status": "pending"
   },
   {
-    "content": "End-to-end testing after all updates",
-    "status": "completed"
+    "content": "Frontend: Accept Invite page (/staff/accept-invite)",
+    "status": "pending"
+  },
+  {
+    "content": "Update seed: management@ becomes owner role",
+    "status": "pending"
+  },
+  {
+    "content": "End-to-end testing",
+    "status": "pending"
   }
 ]

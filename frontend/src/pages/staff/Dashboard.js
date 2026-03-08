@@ -7,13 +7,108 @@ import KanbanBoard from '../../components/staff/KanbanBoard';
 import {
   Search, Download, Plus, LogOut, RefreshCw, Phone,
   ChevronRight, Users, TrendingUp, Calendar, Activity,
-  Loader2, LayoutGrid, List, Settings
+  Loader2, LayoutGrid, List, Settings, Zap
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
+
+// Quick Add strip for walk-ins
+function QuickAddStrip({ onAdded }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    first_name: '', last_name: '', phone: '', email: '',
+    interest_type: 'General Membership', lead_source: 'walk_in',
+    location: 'santa_cruz', notes: '', training_goals: '', start_timeline: 'ASAP', preferred_contact: 'call'
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.first_name || !form.phone) { toast.error('First name and phone required'); return; }
+    setLoading(true);
+    try {
+      await createManualLead(form);
+      toast.success(`Added: ${form.first_name} ${form.last_name}`);
+      setForm({ first_name: '', last_name: '', phone: '', email: '', interest_type: 'General Membership', lead_source: 'walk_in', location: 'santa_cruz', notes: '', training_goals: '', start_timeline: 'ASAP', preferred_contact: 'call' });
+      setOpen(false);
+      onAdded();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to add');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClass = 'bg-black/40 border border-white/12 text-white placeholder:text-white/28 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 transition-colors duration-200';
+
+  return (
+    <div className="mb-4">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 text-sm text-white/45 hover:text-white bg-white/3 hover:bg-white/6 border border-white/8 hover:border-white/15 px-4 py-2.5 rounded-lg w-full transition-colors duration-200"
+        >
+          <Zap size={14} className="text-[#1B7A4A]" />
+          <span className="font-medium">Quick Add</span>
+          <span className="text-white/28 text-xs ml-1">— walk-in, call-in, or any quick entry</span>
+        </button>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-[#111214] border border-[#1B7A4A]/20 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Zap size={14} className="text-[#1B7A4A]" />
+              <span className="text-white text-sm font-semibold">Quick Add Lead</span>
+              <span className="text-white/30 text-xs">walk-in / call-in</span>
+            </div>
+            <button type="button" onClick={() => setOpen(false)} className="text-white/35 hover:text-white text-xs px-2 py-1">
+              Cancel
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+            <input
+              required value={form.first_name}
+              onChange={(e) => setForm(p => ({...p, first_name: e.target.value}))}
+              placeholder="First Name *" className={inputClass}
+            />
+            <input
+              value={form.last_name}
+              onChange={(e) => setForm(p => ({...p, last_name: e.target.value}))}
+              placeholder="Last Name" className={inputClass}
+            />
+            <input
+              required value={form.phone}
+              onChange={(e) => setForm(p => ({...p, phone: e.target.value}))}
+              placeholder="Phone *" type="tel" className={inputClass}
+            />
+            <input
+              value={form.email}
+              onChange={(e) => setForm(p => ({...p, email: e.target.value}))}
+              placeholder="Email (optional)" type="email" className={inputClass}
+            />
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={form.notes}
+              onChange={(e) => setForm(p => ({...p, notes: e.target.value}))}
+              placeholder="Quick note (optional)"
+              className={`${inputClass} flex-1`}
+            />
+            <button
+              type="submit" disabled={loading}
+              className="btn-scs-primary px-4 py-2 rounded-md text-sm font-semibold flex items-center gap-1.5 whitespace-nowrap"
+            >
+              {loading ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+              Add
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
 
 function StatusBadge({ status }) {
   const found = LEAD_STATUSES.find((s) => s.value === status);
@@ -234,6 +329,9 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* Quick Add strip for walk-ins */}
+        <QuickAddStrip onAdded={() => fetchData(true)} />
 
         {/* Lead count */}
         <div className="mb-4">

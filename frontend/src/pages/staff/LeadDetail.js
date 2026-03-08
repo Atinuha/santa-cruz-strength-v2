@@ -42,6 +42,7 @@ export default function LeadDetail() {
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpTime, setFollowUpTime] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [statusValue, setStatusValue] = useState('');
 
@@ -52,6 +53,7 @@ export default function LeadDetail() {
       setEditNotes(res.data.notes || '');
       setStatusValue(res.data.status);
       setFollowUpDate(res.data.next_follow_up_date ? res.data.next_follow_up_date.split('T')[0] : '');
+      setFollowUpTime(res.data.next_follow_up_time || '');
     } catch {
       toast.error('Failed to load lead');
       navigate('/staff/dashboard');
@@ -93,14 +95,12 @@ export default function LeadDetail() {
   const handleSaveFollowUp = async () => {
     setSaving(true);
     try {
-      await updateLead(id, { next_follow_up_date: followUpDate || null });
-      toast.success('Follow-up date saved');
+      await updateLead(id, { next_follow_up_date: followUpDate || null, next_follow_up_time: followUpTime || null });
+      toast.success('Follow-up saved');
       await fetchLead();
     } catch {
-      toast.error('Failed to save follow-up date');
-    } finally {
-      setSaving(false);
-    }
+      toast.error('Failed to save follow-up');
+    } finally { setSaving(false); }
   };
 
   const handleAddNote = async () => {
@@ -168,7 +168,7 @@ export default function LeadDetail() {
               <TabsTrigger value="notes" className="flex-1 text-xs data-[state=active]:bg-[#1B7A4A] data-[state=active]:text-white">Notes & Actions</TabsTrigger>
               <TabsTrigger value="activity" className="flex-1 text-xs data-[state=active]:bg-[#1B7A4A] data-[state=active]:text-white">Activity</TabsTrigger>
             </TabsList>
-            <TabsContent value="profile"><ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} onSaveFollowUp={handleSaveFollowUp} /></TabsContent>
+            <TabsContent value="profile"><ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} followUpTime={followUpTime} setFollowUpTime={setFollowUpTime} onSaveFollowUp={handleSaveFollowUp} /></TabsContent>
             <TabsContent value="notes"><NotesSection editNotes={editNotes} setEditNotes={setEditNotes} onSave={handleSaveNotes} noteText={noteText} setNoteText={setNoteText} onAddNote={handleAddNote} addingNote={addingNote} inputClass={inputClass} /></TabsContent>
             <TabsContent value="activity"><ActivityTimeline log={activityLog} /></TabsContent>
           </Tabs>
@@ -177,7 +177,7 @@ export default function LeadDetail() {
         <div className="hidden lg:grid grid-cols-12 gap-6">
           {/* Left — Profile + Status */}
           <div className="col-span-4 space-y-5">
-            <ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} onSaveFollowUp={handleSaveFollowUp} />
+            <ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} followUpTime={followUpTime} setFollowUpTime={setFollowUpTime} onSaveFollowUp={handleSaveFollowUp} />
           </div>
           {/* Right — Notes + Activity */}
           <div className="col-span-8 space-y-5">
@@ -190,7 +190,7 @@ export default function LeadDetail() {
   );
 }
 
-function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollowUpDate, onSaveFollowUp }) {
+function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollowUpDate, followUpTime, setFollowUpTime, onSaveFollowUp }) {
   return (
     <div className="card-marketing p-5 space-y-4">
       {/* Name + Status */}
@@ -255,24 +255,32 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
         </Select>
       </div>
 
-      {/* Follow-up date */}
+      {/* Follow-up date + time */}
       <div>
-        <label className="block text-xs text-white/50 mb-1.5">Next Follow-up Date</label>
-        <div className="flex gap-2">
+        <label className="block text-xs text-white/50 mb-1.5">Follow-up / Tour Date & Time</label>
+        <div className="flex gap-2 mb-2">
           <input
             type="date"
             value={followUpDate}
             onChange={(e) => setFollowUpDate(e.target.value)}
-            className="flex-1 bg-black/40 border border-white/12 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+            className="flex-1 bg-black/40 border border-white/12 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/45"
             style={{ colorScheme: 'dark' }}
           />
-          <button onClick={onSaveFollowUp} className="btn-scs-primary px-3 py-2 rounded-md text-xs">
-            Save
-          </button>
+          <input
+            type="time"
+            value={followUpTime}
+            onChange={(e) => setFollowUpTime(e.target.value)}
+            className="w-28 bg-black/40 border border-white/12 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/45"
+            style={{ colorScheme: 'dark' }}
+          />
         </div>
-        {lead.next_follow_up_date && (
-          <p className="text-white/35 text-xs mt-1">
+        <button onClick={onSaveFollowUp} className="btn-scs-primary px-3 py-1.5 rounded-md text-xs w-full">
+          Save Follow-up
+        </button>
+        {(lead.next_follow_up_date) && (
+          <p className="text-white/35 text-xs mt-1.5">
             Set: {new Date(lead.next_follow_up_date).toLocaleDateString()}
+            {lead.next_follow_up_time && ` at ${lead.next_follow_up_time}`}
           </p>
         )}
       </div>

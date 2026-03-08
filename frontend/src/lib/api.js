@@ -57,4 +57,18 @@ export const createUser = (data) => api.post('/staff/users', data);
 export const updateUser = (id, data) => api.put(`/staff/users/${id}`, data);
 export const deleteUser = (id) => api.delete(`/staff/users/${id}`);
 
+// Invites
+export const getInvites = () => api.get('/staff/invites');
+export const createInvite = (data) => api.post('/staff/invites', data);
+export const revokeInvite = (id) => api.delete(`/staff/invites/${id}`);
+export const acceptInvite = (data) => api.post('/auth/accept-invite', data);
+
+// CSV
+export const importLeadsCSV = (file) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post('/staff/leads/import/csv', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+export const downloadCSVTemplate = () => api.get('/staff/leads/template/csv', { responseType: 'blob' });
+
 export default api;

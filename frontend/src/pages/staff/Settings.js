@@ -1,46 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getUsers, createUser, updateUser, deleteUser, updateMe } from '../../lib/api';
-import { ArrowLeft, Plus, Trash2, Loader2, LogOut, Shield, User } from 'lucide-react';
+import {
+  getUsers, createUser, updateUser, deleteUser, updateMe,
+  getInvites, createInvite, revokeInvite,
+  importLeadsCSV, downloadCSVTemplate
+} from '../../lib/api';
+import {
+  ArrowLeft, Plus, Trash2, Loader2, LogOut, Shield, User,
+  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
+
+const ROLE_COLORS = {
+  owner: 'bg-[#1B7A4A]/15 text-[#7FCCA6] border-[#1B7A4A]/25',
+  admin: 'bg-blue-500/15 text-blue-300 border-blue-500/20',
+  staff: 'bg-white/8 text-white/60 border-white/12',
+};
 
 export default function Settings() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+  const isAdmin = ['admin', 'owner'].includes(user?.role);
+  const isOwner = user?.role === 'owner';
+
   const [users, setUsers] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteResult, setInviteResult] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvResult, setCsvResult] = useState(null);
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', password: '', confirm_password: '' });
   const [profileSaving, setProfileSaving] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'staff', location: 'santa_cruz' });
+  const [newInvite, setNewInvite] = useState({ name: '', email: '', role: 'staff' });
 
-  const isAdmin = user?.role === 'admin';
-
-  const fetchUsers = async () => {
+  const fetchAll = async () => {
     if (!isAdmin) return;
     setLoadingUsers(true);
     try {
-      const res = await getUsers();
-      setUsers(res.data);
-    } catch {
-      toast.error('Failed to load users');
-    } finally {
-      setLoadingUsers(false);
-    }
+      const [uRes, iRes] = await Promise.all([getUsers(), getInvites()]);
+      setUsers(uRes.data);
+      setInvites(iRes.data);
+    } catch { toast.error('Failed to load staff data'); }
+    finally { setLoadingUsers(false); }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     if (profileForm.password && profileForm.password !== profileForm.confirm_password) {
-      toast.error('Passwords do not match');
-      return;
+      toast.error('Passwords do not match'); return;
     }
     setProfileSaving(true);
     try {
@@ -48,37 +66,59 @@ export default function Settings() {
       if (profileForm.password) data.password = profileForm.password;
       await updateMe(data);
       toast.success('Profile updated');
+      setProfileForm(p => ({ ...p, password: '', confirm_password: '' }));
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to update profile');
-    } finally {
-      setProfileSaving(false);
-    }
+    } finally { setProfileSaving(false); }
+  };
+
+  const handleSendInvite = async (e) => {
+    e.preventDefault();
+    setInviteLoading(true); setInviteResult(null);
+    try {
+      const res = await createInvite(newInvite);
+      setInviteResult(res.data);
+      toast.success(res.data.email_sent ? 'Invite sent via email!' : 'Invite created — copy the link below');
+      fetchAll();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to create invite');
+    } finally { setInviteLoading(false); }
+  };
+
+  const copyInviteLink = async (url) => {
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success('Link copied to clipboard');
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  const handleRevokeInvite = async (inv) => {
+    try {
+      await revokeInvite(inv.id);
+      toast.success('Invite revoked');
+      fetchAll();
+    } catch { toast.error('Failed to revoke invite'); }
   };
 
   const handleAddUser = async (e) => {
-    e.preventDefault();
-    setAddLoading(true);
+    e.preventDefault(); setAddLoading(true);
     try {
       await createUser(newUser);
       toast.success('Staff account created');
       setAddUserOpen(false);
       setNewUser({ name: '', email: '', password: '', role: 'staff', location: 'santa_cruz' });
-      fetchUsers();
+      fetchAll();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to create user');
-    } finally {
-      setAddLoading(false);
-    }
+    } finally { setAddLoading(false); }
   };
 
   const handleToggleActive = async (u) => {
     try {
       await updateUser(u.id, { is_active: !u.is_active });
       toast.success(u.is_active ? 'Account disabled' : 'Account enabled');
-      fetchUsers();
-    } catch {
-      toast.error('Failed to update account');
-    }
+      fetchAll();
+    } catch { toast.error('Failed to update account'); }
   };
 
   const handleDeleteUser = async (u) => {
@@ -86,118 +126,175 @@ export default function Settings() {
     try {
       await deleteUser(u.id);
       toast.success('User deleted');
-      fetchUsers();
+      fetchAll();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Failed to delete user'); }
+  };
+
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setCsvUploading(true); setCsvResult(null);
+    try {
+      const res = await importLeadsCSV(file);
+      setCsvResult(res.data);
+      toast.success(`Imported ${res.data.imported} leads`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to delete user');
+      toast.error(err.response?.data?.detail || 'Import failed');
+    } finally {
+      setCsvUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const inputClass = 'w-full bg-black/40 border border-white/12 text-white placeholder:text-white/35 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors duration-200';
+  const handleTemplateDownload = async () => {
+    try {
+      const res = await downloadCSVTemplate();
+      const url = URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a'); a.href = url; a.download = 'scs-leads-template.csv'; a.click();
+      URL.revokeObjectURL(url);
+    } catch { toast.error('Download failed'); }
+  };
+
+  const inputClass = 'w-full bg-black/40 border border-white/12 text-white placeholder:text-white/30 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 transition-colors duration-200';
 
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0A0A0A]/95 backdrop-blur border-b border-white/8">
+      <header className="sticky top-0 z-40 bg-[#0A0A0A]/96 backdrop-blur border-b border-white/8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/staff/dashboard')} className="text-white/50 hover:text-white flex items-center gap-1.5 text-sm transition-colors duration-200">
-              <ArrowLeft size={15} /> Dashboard
+            <button onClick={() => navigate('/staff/dashboard')} className="text-white/45 hover:text-white flex items-center gap-1.5 text-sm transition-colors duration-200">
+              <ArrowLeft size={14} /> Dashboard
             </button>
             <span className="text-white/20">/</span>
             <span className="text-white text-sm">Settings</span>
           </div>
-          <button onClick={() => { logout(); navigate('/staff/login'); }} className="text-white/40 hover:text-white/70 p-1.5 rounded">
-            <LogOut size={15} />
+          <button onClick={() => { logout(); navigate('/staff/login'); }} className="text-white/35 hover:text-white/70 p-1.5 rounded">
+            <LogOut size={14} />
           </button>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-        {/* My Profile */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-7">
+
+        {/* Profile */}
         <section className="card-marketing p-6">
           <div className="flex items-center gap-2 mb-5">
-            <User size={16} className="text-[#1B7A4A]" />
+            <User size={15} className="text-[#1B7A4A]" />
             <h2 className="font-display text-xl text-white tracking-wide">MY PROFILE</h2>
+            <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_COLORS[user?.role] || ROLE_COLORS.staff}`}>
+              {user?.role}
+            </span>
           </div>
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-white/60 mb-1.5">Full Name</label>
+                <label className="block text-xs text-white/55 mb-1.5">Full Name</label>
                 <input value={profileForm.name} onChange={(e) => setProfileForm(p => ({...p, name: e.target.value}))} className={inputClass} />
               </div>
               <div>
-                <label className="block text-xs text-white/60 mb-1.5">Email</label>
+                <label className="block text-xs text-white/55 mb-1.5">Email</label>
                 <input type="email" value={profileForm.email} onChange={(e) => setProfileForm(p => ({...p, email: e.target.value}))} className={inputClass} />
               </div>
               <div>
-                <label className="block text-xs text-white/60 mb-1.5">New Password (leave blank to keep current)</label>
+                <label className="block text-xs text-white/55 mb-1.5">New Password (leave blank to keep)</label>
                 <input type="password" value={profileForm.password} onChange={(e) => setProfileForm(p => ({...p, password: e.target.value}))} className={inputClass} placeholder="••••••••" />
               </div>
               <div>
-                <label className="block text-xs text-white/60 mb-1.5">Confirm New Password</label>
+                <label className="block text-xs text-white/55 mb-1.5">Confirm New Password</label>
                 <input type="password" value={profileForm.confirm_password} onChange={(e) => setProfileForm(p => ({...p, confirm_password: e.target.value}))} className={inputClass} placeholder="••••••••" />
               </div>
             </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-white/30 text-xs">Role: <span className="text-white/50">{user?.role}</span></span>
+            <div className="flex justify-end">
               <button type="submit" disabled={profileSaving} data-testid="crm-settings-update-profile-button"
                 className="btn-scs-primary px-5 py-2.5 rounded-md text-sm font-semibold flex items-center gap-2">
-                {profileSaving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : 'Save Changes'}
+                {profileSaving ? <><Loader2 size={13} className="animate-spin" /> Saving...</> : 'Save Changes'}
               </button>
             </div>
           </form>
         </section>
 
-        {/* Staff Management (Admin only) */}
+        {/* CSV Import / Export */}
+        <section className="card-marketing p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Upload size={15} className="text-[#1B7A4A]" />
+            <h2 className="font-display text-xl text-white tracking-wide">IMPORT / EXPORT LEADS</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            {/* Template download */}
+            <div className="bg-white/3 border border-white/8 rounded-lg p-4">
+              <p className="text-white text-sm font-semibold mb-1">CSV Template</p>
+              <p className="text-white/40 text-xs mb-3">Download the template to see the exact format for importing leads.</p>
+              <button onClick={handleTemplateDownload}
+                className="btn-scs-secondary px-3 py-2 rounded-md text-xs flex items-center gap-1.5 font-medium">
+                <Download size={13} /> Download Template
+              </button>
+            </div>
+
+            {/* Upload */}
+            <div className="bg-white/3 border border-white/8 rounded-lg p-4">
+              <p className="text-white text-sm font-semibold mb-1">Import Leads</p>
+              <p className="text-white/40 text-xs mb-3">Upload a CSV file. Duplicate emails are automatically skipped.</p>
+              <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" id="csv-upload" />
+              <label htmlFor="csv-upload"
+                className={`btn-scs-primary px-3 py-2 rounded-md text-xs flex items-center gap-1.5 font-medium cursor-pointer w-fit ${
+                  csvUploading ? 'opacity-60 cursor-not-allowed' : ''
+                }`}>
+                {csvUploading ? <><Loader2 size={13} className="animate-spin" /> Importing...</> : <><Upload size={13} /> Upload CSV</>}
+              </label>
+            </div>
+          </div>
+
+          {csvResult && (
+            <div className={`p-4 rounded-lg border text-sm ${
+              csvResult.errors?.length > 0 ? 'bg-yellow-500/8 border-yellow-500/20' : 'bg-[#1B7A4A]/8 border-[#1B7A4A]/20'
+            }`}>
+              <p className="text-white font-medium mb-1">Import complete</p>
+              <div className="space-y-0.5 text-xs">
+                <p className="text-white/60">✓ Imported: <span className="text-white font-medium">{csvResult.imported}</span></p>
+                <p className="text-white/60">• Skipped (duplicates/invalid): <span className="text-white/80">{csvResult.skipped}</span></p>
+                {csvResult.errors?.slice(0, 3).map((err, i) => (
+                  <p key={i} className="text-yellow-400/70">{err}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Invite Staff */}
         {isAdmin && (
           <section className="card-marketing p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <Shield size={16} className="text-[#1B7A4A]" />
-                <h2 className="font-display text-xl text-white tracking-wide">STAFF ACCOUNTS</h2>
+                <Mail size={15} className="text-[#1B7A4A]" />
+                <h2 className="font-display text-xl text-white tracking-wide">INVITE STAFF</h2>
               </div>
-              <button onClick={() => setAddUserOpen(true)} className="btn-scs-primary px-3 py-2 rounded-md text-xs flex items-center gap-1.5">
-                <Plus size={13} /> Add Staff
+              <button onClick={() => { setInviteOpen(true); setInviteResult(null); }}
+                className="btn-scs-primary px-3 py-2 rounded-md text-xs flex items-center gap-1.5">
+                <Plus size={13} /> Send Invite
               </button>
             </div>
 
-            {loadingUsers ? (
-              <div className="flex justify-center py-8">
-                <div className="w-6 h-6 border-2 border-[#1B7A4A] border-t-transparent rounded-full animate-spin" />
-              </div>
+            {invites.length === 0 ? (
+              <p className="text-white/30 text-sm">No pending invites.</p>
             ) : (
               <div className="space-y-2">
-                {users.map((u) => (
-                  <div key={u.id} className="flex items-center justify-between p-3 bg-white/3 border border-white/8 rounded-lg">
-                    <div>
-                      <p className="text-white text-sm font-medium">{u.name}</p>
-                      <p className="text-white/40 text-xs">{u.email} · {u.role}</p>
+                {invites.map((inv) => (
+                  <div key={inv.id} className="flex items-center justify-between p-3 bg-white/3 border border-white/8 rounded-lg">
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-medium">{inv.name}</p>
+                      <p className="text-white/40 text-xs">{inv.email} · {inv.role} · Invited by {inv.created_by_name}</p>
+                      <p className="text-white/25 text-xs">Expires {new Date(inv.expires_at).toLocaleDateString()}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded border ${
-                        u.is_active
-                          ? 'bg-green-600/10 text-green-400 border-green-600/20'
-                          : 'bg-gray-600/10 text-gray-400 border-gray-600/20'
-                      }`}>
-                        {u.is_active ? 'Active' : 'Disabled'}
-                      </span>
-                      {u.id !== user.id && (
-                        <>
-                          <button
-                            onClick={() => handleToggleActive(u)}
-                            className="text-white/40 hover:text-white text-xs btn-scs-secondary px-2 py-1 rounded"
-                          >
-                            {u.is_active ? 'Disable' : 'Enable'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u)}
-                            data-testid="crm-settings-delete-account-button"
-                            className="text-red-400/60 hover:text-red-400 p-1 rounded transition-colors duration-200"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </>
-                      )}
+                    <div className="flex items-center gap-2 ml-3">
+                      <button onClick={() => copyInviteLink(`${window.location.origin}/staff/accept-invite?token=${inv.token}`)}
+                        className="text-white/40 hover:text-white p-1.5 rounded transition-colors duration-200" title="Copy invite link">
+                        <Copy size={13} />
+                      </button>
+                      <button onClick={() => handleRevokeInvite(inv)}
+                        className="text-red-400/50 hover:text-red-400 p-1.5 rounded transition-colors duration-200" title="Revoke">
+                        <X size={13} />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -206,52 +303,176 @@ export default function Settings() {
           </section>
         )}
 
+        {/* Staff Accounts */}
+        {isAdmin && (
+          <section className="card-marketing p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <Shield size={15} className="text-[#1B7A4A]" />
+                <h2 className="font-display text-xl text-white tracking-wide">STAFF ACCOUNTS</h2>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={fetchAll} className="btn-scs-secondary px-3 py-2 rounded-md text-xs">
+                  <RefreshCw size={12} />
+                </button>
+                <button onClick={() => setAddUserOpen(true)} className="btn-scs-primary px-3 py-2 rounded-md text-xs flex items-center gap-1.5">
+                  <Plus size={13} /> Add Directly
+                </button>
+              </div>
+            </div>
+
+            {loadingUsers ? (
+              <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-[#1B7A4A] border-t-transparent rounded-full animate-spin" /></div>
+            ) : (
+              <div className="space-y-2">
+                {users.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between p-3 bg-white/3 border border-white/8 rounded-lg">
+                    <div>
+                      <p className="text-white text-sm font-medium">{u.name} {u.id === user.id && <span className="text-[#7FCCA6]/70 text-xs">(you)</span>}</p>
+                      <p className="text-white/40 text-xs">{u.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_COLORS[u.role] || ROLE_COLORS.staff}`}>{u.role}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded border ${
+                        u.is_active ? 'bg-green-600/10 text-green-400 border-green-600/20' : 'bg-gray-600/10 text-gray-400 border-gray-600/20'
+                      }`}>{u.is_active ? 'Active' : 'Disabled'}</span>
+                      {u.id !== user.id && u.role !== 'owner' && (
+                        <>
+                          <button onClick={() => handleToggleActive(u)}
+                            className="text-white/35 hover:text-white text-xs btn-scs-secondary px-2 py-1 rounded">
+                            {u.is_active ? 'Disable' : 'Enable'}
+                          </button>
+                          <button onClick={() => handleDeleteUser(u)} data-testid="crm-settings-delete-account-button"
+                            className="text-red-400/50 hover:text-red-400 p-1.5 rounded transition-colors duration-200">
+                            <Trash2 size={13} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 p-3 bg-white/3 rounded-lg border border-white/6">
+              <p className="text-white/40 text-xs">
+                <strong className="text-white/55">Role permissions:</strong>{' '}
+                <span className="text-[#7FCCA6]/70">Owner</span> — full access including delete.{' '}
+                <span className="text-blue-300/70">Admin</span> — manage staff, delete leads.{' '}
+                <span className="text-white/50">Staff</span> — view leads, update status, add notes. Cannot delete.
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* Email Config Note */}
-        <section className="card-marketing p-6 border-yellow-500/20">
+        <section className="card-marketing p-6 border-yellow-500/15">
           <h2 className="font-display text-lg text-white tracking-wide mb-3">EMAIL NOTIFICATIONS</h2>
-          <p className="text-white/55 text-sm leading-relaxed">
-            Email notifications are currently configured via environment variables. Contact your system administrator to configure SMTP settings for live email delivery to:
+          <p className="text-white/45 text-sm leading-relaxed">
+            Email notifications and invite emails require SMTP configuration. Contact your system admin to set:
           </p>
-          <ul className="mt-3 space-y-1 text-white/40 text-xs">
-            <li>SMTP_HOST — Email server hostname</li>
-            <li>SMTP_USER — Authentication username</li>
-            <li>SMTP_PASSWORD — Authentication password</li>
-            <li>NOTIFICATION_EMAIL — Where lead alerts are sent</li>
-            <li>FROM_EMAIL — Sender address</li>
+          <ul className="mt-3 space-y-1 text-white/35 text-xs font-mono">
+            <li>SMTP_HOST — e.g. smtp.gmail.com</li>
+            <li>SMTP_USER — sending email address</li>
+            <li>SMTP_PASSWORD — app password or SMTP password</li>
+            <li>NOTIFICATION_EMAIL — where new lead alerts go</li>
+            <li>FROM_EMAIL — display sender address</li>
           </ul>
+          <p className="text-white/25 text-xs mt-3">Until configured, invite links can be copied and shared manually.</p>
         </section>
+
       </div>
 
-      {/* Add User Dialog */}
+      {/* Send Invite Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) { setInviteResult(null); setNewInvite({ name: '', email: '', role: 'staff' }); } }}>
+        <DialogContent className="bg-[#111214] border-white/12 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display tracking-wide text-lg">INVITE STAFF MEMBER</DialogTitle>
+          </DialogHeader>
+          {inviteResult ? (
+            <div className="mt-2 space-y-4">
+              <div className={`p-3 rounded-lg border ${
+                inviteResult.email_sent ? 'bg-[#1B7A4A]/10 border-[#1B7A4A]/25' : 'bg-yellow-500/8 border-yellow-500/20'
+              }`}>
+                <p className="text-white text-sm font-medium mb-1">
+                  {inviteResult.email_sent ? '✓ Invite email sent!' : 'Invite created — email not configured'}
+                </p>
+                <p className="text-white/45 text-xs">Share this link with your staff member:</p>
+              </div>
+              <div className="relative">
+                <input readOnly value={inviteResult.invite_url}
+                  className="w-full bg-black/40 border border-white/12 text-white/70 text-xs rounded-md px-3 py-2.5 pr-10 font-mono" />
+                <button onClick={() => copyInviteLink(inviteResult.invite_url)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors duration-200">
+                  {copied ? <Check size={14} className="text-[#7FCCA6]" /> : <Copy size={14} />}
+                </button>
+              </div>
+              <p className="text-white/30 text-xs">Expires in 7 days. One-time use.</p>
+              <button onClick={() => { setInviteOpen(false); setInviteResult(null); setNewInvite({ name: '', email: '', role: 'staff' }); }}
+                className="w-full btn-scs-secondary py-2.5 rounded-md text-sm">Done</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSendInvite} className="space-y-3 mt-2">
+              <div>
+                <label className="block text-xs text-white/55 mb-1">Their Name *</label>
+                <input required value={newInvite.name} onChange={(e) => setNewInvite(p => ({...p, name: e.target.value}))}
+                  placeholder="Jane Smith" className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs text-white/55 mb-1">Their Email *</label>
+                <input required type="email" value={newInvite.email} onChange={(e) => setNewInvite(p => ({...p, email: e.target.value}))}
+                  placeholder="jane@example.com" className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs text-white/55 mb-1">Role</label>
+                <select value={newInvite.role} onChange={(e) => setNewInvite(p => ({...p, role: e.target.value}))}
+                  className={inputClass + ' appearance-none'} style={{backgroundColor:'rgba(0,0,0,0.5)'}}>
+                  <option value="staff" style={{background:'#1A1A1A'}}>Staff — view + notes (no delete)</option>
+                  {isOwner && <option value="admin" style={{background:'#1A1A1A'}}>Admin — full access</option>}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setInviteOpen(false)} className="flex-1 btn-scs-secondary py-2.5 rounded-md text-sm">Cancel</button>
+                <button type="submit" disabled={inviteLoading} className="flex-1 btn-scs-primary py-2.5 rounded-md text-sm flex items-center justify-center gap-2">
+                  {inviteLoading ? <><Loader2 size={13} className="animate-spin" /> Sending...</> : <><Mail size={13} /> Send Invite</>}
+                </button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add User Directly */}
       <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
         <DialogContent className="bg-[#111214] border-white/12 text-white max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-display tracking-wide text-lg">ADD STAFF ACCOUNT</DialogTitle>
+            <DialogTitle className="font-display tracking-wide text-lg">ADD STAFF (DIRECT)</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddUser} className="space-y-3 mt-2">
             <div>
-              <label className="block text-xs text-white/60 mb-1">Full Name *</label>
+              <label className="block text-xs text-white/55 mb-1">Full Name *</label>
               <input required value={newUser.name} onChange={(e) => setNewUser(p => ({...p, name: e.target.value}))} className={inputClass} placeholder="Jane Smith" />
             </div>
             <div>
-              <label className="block text-xs text-white/60 mb-1">Email *</label>
+              <label className="block text-xs text-white/55 mb-1">Email *</label>
               <input required type="email" value={newUser.email} onChange={(e) => setNewUser(p => ({...p, email: e.target.value}))} className={inputClass} placeholder="jane@santacruzstrength.com" />
             </div>
             <div>
-              <label className="block text-xs text-white/60 mb-1">Password *</label>
+              <label className="block text-xs text-white/55 mb-1">Password *</label>
               <input required type="password" value={newUser.password} onChange={(e) => setNewUser(p => ({...p, password: e.target.value}))} className={inputClass} placeholder="••••••••" />
             </div>
             <div>
-              <label className="block text-xs text-white/60 mb-1">Role</label>
-              <select value={newUser.role} onChange={(e) => setNewUser(p => ({...p, role: e.target.value}))} className={inputClass + ' appearance-none'} style={{backgroundColor:'rgba(0,0,0,0.5)'}}>
+              <label className="block text-xs text-white/55 mb-1">Role</label>
+              <select value={newUser.role} onChange={(e) => setNewUser(p => ({...p, role: e.target.value}))}
+                className={inputClass + ' appearance-none'} style={{backgroundColor:'rgba(0,0,0,0.5)'}}>
                 <option value="staff" style={{background:'#1A1A1A'}}>Staff</option>
-                <option value="admin" style={{background:'#1A1A1A'}}>Admin</option>
+                {isOwner && <option value="admin" style={{background:'#1A1A1A'}}>Admin</option>}
               </select>
             </div>
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-1">
               <button type="button" onClick={() => setAddUserOpen(false)} className="flex-1 btn-scs-secondary py-2.5 rounded-md text-sm">Cancel</button>
               <button type="submit" disabled={addLoading} className="flex-1 btn-scs-primary py-2.5 rounded-md text-sm flex items-center justify-center gap-2">
-                {addLoading ? <><Loader2 size={14} className="animate-spin" /> Creating...</> : 'Create Account'}
+                {addLoading ? <><Loader2 size={13} className="animate-spin" /> Creating...</> : 'Create Account'}
               </button>
             </div>
           </form>

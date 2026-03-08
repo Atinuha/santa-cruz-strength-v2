@@ -38,6 +38,8 @@ export const LEAD_SOURCES = [
   { value: 'book_a_tour', label: 'Book a Tour' },
   { value: 'contact_page', label: 'Contact Page' },
   { value: 'personal_training_inquiry', label: 'Personal Training Inquiry' },
+  { value: 'walk_in', label: 'Walk-In' },
+  { value: 'csv_import', label: 'CSV Import' },
   { value: 'manual_entry', label: 'Manual Entry' },
 ];
 
