@@ -7,7 +7,7 @@ import KanbanBoard from '../../components/staff/KanbanBoard';
 import {
   Search, Download, Plus, LogOut, RefreshCw, Phone,
   ChevronRight, Users, TrendingUp, Calendar, Activity,
-  Loader2, LayoutGrid, List, Settings, Zap, ArrowLeft
+  Loader2, LayoutGrid, List, Settings, Zap, ArrowLeft, BookOpen
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -238,6 +238,9 @@ export default function Dashboard() {
             </Link>
             <Link to="/staff/settings" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Settings">
               <Settings size={14} />
+            </Link>
+            <Link to="/staff/blog" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Blog Manager">
+              <BookOpen size={14} />
             </Link>
             <span className="text-white/58 text-xs hidden sm:block max-w-[80px] truncate">{user?.name}</span>
             <button onClick={() => { logout(); navigate('/staff/login'); }}

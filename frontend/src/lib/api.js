@@ -63,7 +63,16 @@ export const createInvite = (data) => api.post('/staff/invites', data);
 export const revokeInvite = (id) => api.delete(`/staff/invites/${id}`);
 export const acceptInvite = (data) => api.post('/auth/accept-invite', data);
 
-// Staffed Hours
+// Blog (Public)
+export const getBlogPosts = (params) => api.get('/blog', { params });
+export const getBlogPost = (slug) => api.get(`/blog/post/${slug}`);
+
+// Blog (Staff)
+export const getStaffBlogPosts = () => api.get('/staff/blog');
+export const getStaffBlogPost = (id) => api.get(`/staff/blog/${id}`);
+export const createBlogPost = (data) => api.post('/staff/blog', data);
+export const updateBlogPost = (id, data) => api.put(`/staff/blog/${id}`, data);
+export const deleteBlogPost = (id) => api.delete(`/staff/blog/${id}`);
 export const getStaffedHours = () => api.get('/staff/settings/staffed-hours');
 export const updateStaffedHours = (hours) => api.put('/staff/settings/staffed-hours', hours);
 

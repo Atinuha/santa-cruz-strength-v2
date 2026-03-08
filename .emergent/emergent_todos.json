@@ -1,34 +1,30 @@
 [
   {
-    "content": "Get Resend email integration playbook",
-    "status": "in_progress"
+    "content": "Backend: blog model, CRUD endpoints, seed 7 posts",
+    "status": "completed"
   },
   {
-    "content": "Use 4 real gym photos throughout the site",
-    "status": "pending"
+    "content": "Frontend: /blog listing page (card grid, categories)",
+    "status": "completed"
   },
   {
-    "content": "Backend: email endpoints, auto-confirm to leads, reply-to management@",
-    "status": "pending"
+    "content": "Frontend: /blog/:slug article page (full content, SEO)",
+    "status": "completed"
   },
   {
-    "content": "Backend: blog CRUD endpoints + seed 7 posts",
-    "status": "pending"
+    "content": "Frontend: /staff/blog management page (create/edit/delete/publish)",
+    "status": "completed"
   },
   {
-    "content": "Frontend: Blog listing + article pages (/blog, /blog/:slug)",
-    "status": "pending"
+    "content": "Update Navbar + Footer with Blog link",
+    "status": "completed"
   },
   {
-    "content": "Frontend: Blog management in CRM (owner/admin)",
-    "status": "pending"
-  },
-  {
-    "content": "Frontend: Add Blog to navbar/footer",
-    "status": "pending"
+    "content": "Update App.js routes",
+    "status": "completed"
   },
   {
     "content": "End-to-end testing",
-    "status": "pending"
+    "status": "in_progress"
   }
 ]

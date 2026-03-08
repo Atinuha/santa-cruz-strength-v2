@@ -10,6 +10,8 @@ import Join from './pages/Join';
 import PersonalTraining from './pages/PersonalTraining';
 import Contact from './pages/Contact';
 import ThankYou from './pages/ThankYou';
+import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
 
 // Staff CRM Pages
 import StaffLogin from './pages/staff/Login';
@@ -17,6 +19,7 @@ import Dashboard from './pages/staff/Dashboard';
 import LeadDetail from './pages/staff/LeadDetail';
 import Settings from './pages/staff/Settings';
 import AcceptInvite from './pages/staff/AcceptInvite';
+import BlogManager from './pages/staff/BlogManager';
 
 import './App.css';
 
@@ -31,6 +34,8 @@ export default function App() {
           <Route path="/personal-training" element={<PersonalTraining />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/thank-you" element={<ThankYou />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
 
           {/* Staff Auth */}
           <Route path="/staff/login" element={<StaffLogin />} />
@@ -45,6 +50,9 @@ export default function App() {
           } />
           <Route path="/staff/settings" element={
             <ProtectedRoute><Settings /></ProtectedRoute>
+          } />
+          <Route path="/staff/blog" element={
+            <ProtectedRoute><BlogManager /></ProtectedRoute>
           } />
 
           {/* Fallback */}

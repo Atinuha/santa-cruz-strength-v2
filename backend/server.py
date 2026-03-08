@@ -742,7 +742,460 @@ async def update_staffed_hours(hours: dict, user=Depends(require_owner)):
     )
     return {'message': 'Staffed hours updated', 'hours': hours}
 
+# --------------- Blog Models ---------------
+
+class BlogPostCreate(BaseModel):
+    title: str
+    slug: Optional[str] = None
+    excerpt: str
+    content: str
+    category: str = 'Training Tips'
+    tags: Optional[List[str]] = []
+    cover_image: Optional[str] = ''
+    published: bool = False
+    seo_title: Optional[str] = ''
+    seo_description: Optional[str] = ''
+    author: Optional[str] = ''
+
+class BlogPostUpdate(BaseModel):
+    title: Optional[str] = None
+    slug: Optional[str] = None
+    excerpt: Optional[str] = None
+    content: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+    cover_image: Optional[str] = None
+    published: Optional[bool] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    author: Optional[str] = None
+
+def slugify(text: str) -> str:
+    import re
+    text = text.lower().strip()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[\s_-]+', '-', text)
+    text = re.sub(r'^-+|-+$', '', text)
+    return text
+
+# --------------- Blog Routes (Public) ---------------
+
+@api_router.get('/blog')
+async def list_blog_posts(
+    category: Optional[str] = None,
+    limit: int = Query(20, le=50),
+    skip: int = 0
+):
+    query = {'published': True}
+    if category: query['category'] = category
+    total = await db.blog.count_documents(query)
+    posts = await db.blog.find(query, {'_id': 0, 'content': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
+    return {'posts': posts, 'total': total}
+
+@api_router.get('/blog/:slug')
+async def get_blog_post_by_slug_param(slug: str):
+    post = await db.blog.find_one({'slug': slug, 'published': True}, {'_id': 0})
+    if not post:
+        raise HTTPException(status_code=404, detail='Post not found')
+    return post
+
+@api_router.get('/blog/post/{slug}')
+async def get_blog_post(slug: str):
+    post = await db.blog.find_one({'slug': slug, 'published': True}, {'_id': 0})
+    if not post:
+        raise HTTPException(status_code=404, detail='Post not found')
+    return post
+
+# --------------- Blog Routes (Staff) ---------------
+
+@api_router.get('/staff/blog')
+async def list_all_blog_posts(user=Depends(require_admin)):
+    posts = await db.blog.find({}, {'_id': 0, 'content': 0}).sort('created_at', -1).to_list(200)
+    return posts
+
+@api_router.get('/staff/blog/{post_id}')
+async def get_blog_post_staff(post_id: str, user=Depends(require_admin)):
+    post = await db.blog.find_one({'id': post_id}, {'_id': 0})
+    if not post:
+        raise HTTPException(status_code=404, detail='Post not found')
+    return post
+
+@api_router.post('/staff/blog')
+async def create_blog_post(data: BlogPostCreate, user=Depends(require_admin)):
+    post_id = str(uuid.uuid4())
+    now = now_utc()
+    slug = data.slug or slugify(data.title)
+    # Ensure unique slug
+    existing = await db.blog.find_one({'slug': slug})
+    if existing:
+        slug = f'{slug}-{post_id[:6]}'
+    doc = {
+        'id': post_id,
+        'title': data.title,
+        'slug': slug,
+        'excerpt': data.excerpt,
+        'content': data.content,
+        'category': data.category,
+        'tags': data.tags or [],
+        'cover_image': data.cover_image or '',
+        'published': data.published,
+        'seo_title': data.seo_title or data.title,
+        'seo_description': data.seo_description or data.excerpt,
+        'author': data.author or user['name'],
+        'created_at': now.isoformat(),
+        'updated_at': now.isoformat(),
+    }
+    await db.blog.insert_one(doc)
+    return {k: v for k, v in doc.items() if k != 'content'}
+
+@api_router.put('/staff/blog/{post_id}')
+async def update_blog_post(post_id: str, data: BlogPostUpdate, user=Depends(require_admin)):
+    post = await db.blog.find_one({'id': post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail='Post not found')
+    update = {'updated_at': now_utc().isoformat()}
+    for field in ['title', 'slug', 'excerpt', 'content', 'category', 'tags', 'cover_image', 'published', 'seo_title', 'seo_description', 'author']:
+        val = getattr(data, field)
+        if val is not None:
+            update[field] = val
+    if 'title' in update and not data.slug:
+        update['slug'] = slugify(update['title'])
+    await db.blog.update_one({'id': post_id}, {'$set': update})
+    updated = await db.blog.find_one({'id': post_id}, {'_id': 0})
+    return updated
+
+@api_router.delete('/staff/blog/{post_id}')
+async def delete_blog_post(post_id: str, user=Depends(require_admin)):
+    result = await db.blog.delete_one({'id': post_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail='Post not found')
+    return {'message': 'Post deleted'}
+
 # --------------- Startup ---------------
+
+async def seed_blog_posts():
+    now = now_utc()
+    posts = [
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Why Surfers in Santa Cruz Should Lift Weights',
+            'slug': 'why-surfers-in-santa-cruz-should-lift-weights',
+            'excerpt': 'Surfing demands explosive power, rotational strength, and injury resilience. Here\'s why every Santa Cruz surfer should be spending time in the weight room.',
+            'content': '''<p>If you surf in Santa Cruz, you already understand athletic effort. Early mornings, cold water, and a lineup that demands respect. What you might not realize is that your time in the gym — specifically lifting weights — could be the biggest performance leap available to you right now.</p>
+
+<h2>Strength Training and Surfing: The Connection</h2>
+
+<p>Surfing is not a low-impact sport. It demands explosive hip extension for pop-ups, rotational power for turns, shoulder stability for paddle-outs, and the core strength to hold position on unpredictable wave faces.</p>
+
+<p>Most surf-specific injuries — rotator cuff issues, lower back pain, knee problems — are rooted in muscular imbalances that strength training directly addresses. When you train compound movements like squats, deadlifts, rows, and overhead pressing, you build the structural resilience that keeps you surfing longer into life.</p>
+
+<h2>The Specific Lifts That Carry Over to Surfing</h2>
+
+<ul>
+<li><strong>Deadlifts</strong> — Build posterior chain strength (hamstrings, glutes, lower back) that powers your pop-up and keeps your spine stable in the barrel.</li>
+<li><strong>Romanian Deadlifts</strong> — Train the hip hinge pattern under load, improving your ability to generate force from the hips on critical turns.</li>
+<li><strong>Barbell Rows</strong> — Strengthen the back muscles that do most of the work during paddle sessions. Better paddling equals more waves.</li>
+<li><strong>Front Squats</strong> — Develop quad strength and thoracic mobility — both essential for low, powerful stance positions.</li>
+<li><strong>Turkish Get-Ups</strong> — One of the best exercises for the total-body stability and shoulder integrity surfers need.</li>
+</ul>
+
+<h2>How Often Should Surfers Lift?</h2>
+
+<p>Two to three sessions per week is enough to see meaningful results without interfering with your time in the water. The key is consistency and progressive overload — adding small amounts of weight over time as your strength develops.</p>
+
+<p>At Santa Cruz Strength, we work with surfers, climbers, trail runners, and other outdoor athletes who want their gym time to directly support their performance. If you\'re curious how to structure a program around your surf schedule, come in and talk to a coach.</p>
+
+<h2>You Don\'t Have to Choose Between the Gym and the Water</h2>
+
+<p>Strength training isn\'t a replacement for surfing. It\'s the foundation that makes everything else better. Local athletes who commit to a year of consistent lifting tell us the same thing: their surfing improved, their injuries decreased, and they feel more capable in every area of life.</p>
+
+<p>That\'s what strength is for.</p>''',
+            'category': 'Outdoor Athletes',
+            'tags': ['surfing', 'strength training', 'Santa Cruz', 'performance'],
+            'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/jba9w56u_images.jpeg',
+            'published': True,
+            'seo_title': 'Why Surfers in Santa Cruz Should Lift Weights | Santa Cruz Strength',
+            'seo_description': 'Surfing demands explosive power, rotational strength, and injury resilience. Learn why every Santa Cruz surfer benefits from strength training.',
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'How Many Days a Week Should You Lift? (The Real Answer)',
+            'slug': 'how-many-days-a-week-should-you-lift',
+            'excerpt': 'It\'s one of the most common questions we get. The answer depends on your goals, recovery capacity, and schedule — but there\'s a clear range that works for most people.',
+            'content': '''<p>This is one of the questions we hear most often from new members and people considering joining. The internet gives wildly different answers — some say 6 days a week, others say 2 is enough. The truth is somewhere in the middle, and it depends on you.</p>
+
+<h2>The Short Answer</h2>
+
+<p><strong>For most people: 3 days per week.</strong></p>
+
+<p>Three well-programmed sessions per week is enough to build real strength, add muscle, improve body composition, and maintain your results long-term. This holds true for beginners, intermediate lifters, and even many advanced athletes.</p>
+
+<h2>Why 3 Days Works</h2>
+
+<p>Muscle tissue repairs and grows during rest — not during the training session itself. Three sessions spaced throughout the week gives you enough stimulus to drive adaptation while allowing adequate recovery between sessions.</p>
+
+<p>A typical 3-day program at Santa Cruz Strength might look like:</p>
+<ul>
+<li><strong>Monday</strong> — Lower body focus (squat pattern + deadlift variation)</li>
+<li><strong>Wednesday</strong> — Upper body focus (push + pull)</li>
+<li><strong>Friday</strong> — Full body or sport-specific work</li>
+</ul>
+
+<h2>When to Train 4-5 Days</h2>
+
+<p>More advanced lifters with specific goals — powerlifting competition prep, building a particular muscle group, sport performance peaking — can benefit from 4 to 5 sessions per week. At this level, programming becomes more specialized and recovery management matters significantly more.</p>
+
+<h2>When 2 Days Is Enough</h2>
+
+<p>Two days of focused, heavy lifting is enough to maintain strength and provide measurable health benefits. If you\'re a busy professional, parent, or athlete whose primary sport is outside the gym, two sessions can absolutely move the needle.</p>
+
+<p>Something is always better than nothing. We would rather have you lift twice a week for five years than attempt six days a week for three weeks before burning out.</p>
+
+<h2>The Most Important Variable</h2>
+
+<p>Consistency over time beats frequency in the short term. The best program is the one you can actually do week after week, month after month. Start with three days. Get consistent. Build from there.</p>
+
+<p>If you\'re not sure where to start, our coaches at Santa Cruz Strength are happy to help you build a realistic schedule that works with your life.</p>''',
+            'category': 'Strength Science',
+            'tags': ['training frequency', 'beginners', 'programming', 'FAQ'],
+            'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/gum0tx3j_l.jpg',
+            'published': True,
+            'seo_title': 'How Many Days a Week Should You Lift? | Santa Cruz Strength',
+            'seo_description': 'The honest answer on training frequency: how many days per week you should lift based on your goals, schedule, and recovery capacity.',
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Is Strength Training Good for Beginners? (Yes — Here\'s Why)',
+            'slug': 'is-strength-training-good-for-beginners',
+            'excerpt': 'You don\'t need to be in shape to start lifting. You start lifting to get in shape. Here\'s what beginners actually experience in their first months of strength training.',
+            'content': '''<p>One of the most common concerns we hear from people who walk into Santa Cruz Strength for the first time: "I\'m not fit enough to be here yet."</p>
+
+<p>That\'s exactly backwards. You\'re not supposed to come in already fit. You come in to get fit. That\'s what the gym is for.</p>
+
+<h2>What Actually Happens When Beginners Lift</h2>
+
+<p>Beginners respond to strength training faster than almost anyone else. This isn\'t motivation — it\'s physiology. When your body encounters a new stimulus (lifting weights), it adapts aggressively. In the first 3 to 6 months of consistent training, beginners often:</p>
+
+<ul>
+<li>Increase strength by 20–40% on major lifts</li>
+<li>Improve body composition even without dietary changes</li>
+<li>Build bone density that protects against injury</li>
+<li>Improve insulin sensitivity and metabolic health</li>
+<li>Sleep better and report improved mental clarity</li>
+</ul>
+
+<h2>You Don\'t Need Special Fitness First</h2>
+
+<p>You don\'t need to be able to run a mile. You don\'t need to lose weight before you come in. You don\'t need to have lifted before. Every coach at Santa Cruz Strength has worked with people at every starting point — from never having touched a barbell to returning after years away from training.</p>
+
+<p>Good coaching means meeting you exactly where you are.</p>
+
+<h2>What Beginners Should Focus On</h2>
+
+<p>In the first 3 months, the priority is:</p>
+
+<ol>
+<li><strong>Learning movement patterns</strong> — squat, hinge, push, pull, carry</li>
+<li><strong>Building the habit</strong> — consistent attendance matters more than perfect programming</li>
+<li><strong>Staying patient</strong> — the results are real but they compound over months, not weeks</li>
+</ol>
+
+<h2>The Santa Cruz Strength Environment</h2>
+
+<p>We built this gym for serious training — but serious doesn\'t mean exclusive. It means focused, respectful, and honest. Beginners are welcome here because everyone who trains seriously was once a beginner.</p>
+
+<p>If you\'re curious about starting, come in and talk to us. No pressure, no sales tactics. Just a conversation about where you are and where you want to go.</p>''',
+            'category': 'Getting Started',
+            'tags': ['beginners', 'strength training', 'getting started', 'FAQ'],
+            'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/aw0t70q8_348s.jpg',
+            'published': True,
+            'seo_title': 'Is Strength Training Good for Beginners? | Santa Cruz Strength',
+            'seo_description': 'You don\'t need to be in shape to start lifting. Learn what beginners actually experience in their first months of strength training at Santa Cruz Strength.',
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Why Climbers, Trail Runners, and Cyclists Should Lift Heavy',
+            'slug': 'strength-training-for-outdoor-athletes-santa-cruz',
+            'excerpt': 'Santa Cruz is full of world-class outdoor athletes who train hard in their sport — and often neglect the weight room. Here\'s why that\'s a missed opportunity.',
+            'content': '''<p>Santa Cruz has one of the most diverse outdoor athletic communities in California. On any given day, you\'ll find people climbing at Castle Rock, running the fire roads above Wilder Ranch, or grinding up Empire Grade on a road bike. What these athletes often have in common: they\'re incredibly fit in their sport and significantly undertrained everywhere else.</p>
+
+<h2>Why Sport-Specific Fitness Isn\'t Enough</h2>
+
+<p>Running makes you a better runner — but only to a point. Past a certain threshold, additional running volume produces diminishing returns and increasing injury risk. The athletes who break through plateaus and stay healthy long-term are the ones who address their structural weaknesses in the weight room.</p>
+
+<h2>For Climbers</h2>
+
+<p>Climbing develops pulling strength impressively but creates significant imbalances — overdeveloped pulling muscles, underdeveloped pushing muscles, and often tight hip flexors. Dedicated pressing work, hip mobility training, and posterior chain strengthening directly address the injury patterns that take climbers out of commission. Finger injuries, shoulder impingements, and elbow tendinitis are frequently rooted in these imbalances.</p>
+
+<h2>For Trail Runners</h2>
+
+<p>Running doesn\'t build the single-leg strength needed to run efficiently. Unilateral exercises — Bulgarian split squats, single-leg Romanian deadlifts, step-ups — build the specific strength that improves running economy and protects knees and hips on technical descents. Two sessions per week of strength work has been shown repeatedly to improve running performance without adding significant training load.</p>
+
+<h2>For Cyclists</h2>
+
+<p>Cycling is almost entirely quad-dominant. Cyclists who lift discover two things quickly: their glutes were significantly underdeveloped, and their power on climbs improves when they address it. Heavy deadlifts and hip thrusts build the posterior chain that makes the difference in the final kilometers of a hard effort.</p>
+
+<h2>How We Train Outdoor Athletes at Santa Cruz Strength</h2>
+
+<p>Our approach for athletes is simple: build strength that carries over to your sport without compromising your sport-specific training. We program around your schedule, respect your primary training volume, and focus on the movements that give you the most return.</p>
+
+<p>If you\'re a climber, runner, or cyclist curious about how strength training would fit into your life, come in for a free tour and conversation. We train athletes from across the Santa Cruz community.</p>''',
+            'category': 'Outdoor Athletes',
+            'tags': ['climbing', 'trail running', 'cycling', 'outdoor athletes', 'Santa Cruz'],
+            'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/jba9w56u_images.jpeg',
+            'published': True,
+            'seo_title': 'Strength Training for Santa Cruz Outdoor Athletes | Santa Cruz Strength',
+            'seo_description': 'Why climbers, trail runners, and cyclists in Santa Cruz should add strength training to their routine — and how to do it without sacrificing sport performance.',
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Can You Lose Weight by Lifting Weights?',
+            'slug': 'can-you-lose-weight-by-lifting-weights',
+            'excerpt': 'The short answer is yes — but the mechanism is different from what most people expect. Here\'s what actually happens to your body when you start a consistent strength training program.',
+            'content': '''<p>This question comes up constantly, and the honest answer surprises a lot of people: yes, lifting weights is one of the most effective things you can do for long-term body composition — but not necessarily for the reasons you think.</p>
+
+<h2>Why Cardio Alone Often Disappoints</h2>
+
+<p>Many people approach fat loss by adding cardio: longer runs, more classes, more time on the bike. This works to a degree, but it has a ceiling. The body adapts to cardio volume efficiently, caloric burn per session decreases over time, and muscle mass — which drives metabolic rate — is often lost in the process.</p>
+
+<h2>How Lifting Changes the Equation</h2>
+
+<p>Muscle tissue is metabolically expensive. The more of it you have, the more calories your body burns at rest. When you add muscle through consistent strength training, you raise your resting metabolic rate — meaning you burn more calories even when you\'re not exercising.</p>
+
+<p>This is why many people who start lifting report that their body composition changes noticeably even without changing what they eat. They gain muscle, lose fat, and their clothes fit differently — even if the number on the scale doesn\'t move dramatically.</p>
+
+<h2>Strength Training + Diet: The Real Formula</h2>
+
+<p>If weight loss is a goal, the most effective approach combines:</p>
+<ol>
+<li>Consistent strength training (2–4 sessions per week)</li>
+<li>Adequate protein intake (enough to support muscle retention and growth)</li>
+<li>A modest caloric deficit (not aggressive restriction)</li>
+</ol>
+
+<p>This combination preserves muscle while losing fat — which produces dramatically better long-term results than calorie restriction alone.</p>
+
+<h2>What Santa Cruz Strength Members Experience</h2>
+
+<p>We have members who came in specifically for weight loss and discovered that the scale became far less important once they started getting stronger. Performance goals — lifting more, moving better, having more energy — replaced the single focus on body weight. And ironically, their bodies changed more significantly than they expected.</p>
+
+<p>Strength training doesn\'t just change how you look. It changes how you live.</p>''',
+            'category': 'Strength Science',
+            'tags': ['weight loss', 'body composition', 'strength training', 'FAQ'],
+            'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/gum0tx3j_l.jpg',
+            'published': True,
+            'seo_title': 'Can You Lose Weight by Lifting Weights? | Santa Cruz Strength',
+            'seo_description': 'Yes — and here\'s why strength training is one of the most effective tools for long-term body composition change.',
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'The Best Gym in Santa Cruz for Serious Athletes',
+            'slug': 'best-gym-santa-cruz-serious-athletes',
+            'excerpt': 'What makes a gym right for athletes who train with intention? After years of building Santa Cruz Strength, here\'s what we believe separates a serious training environment from everything else.',
+            'content': '''<p>Santa Cruz has no shortage of fitness options. Big-box gyms, boutique studios, CrossFit affiliates, yoga centers, and everything in between. We built Santa Cruz Strength because we believed something was missing — a dedicated strength training environment for people who take their training seriously without taking themselves too seriously.</p>
+
+<h2>What "Serious" Actually Means</h2>
+
+<p>Serious doesn\'t mean competitive. It doesn\'t mean you have to be a powerlifter or an athlete chasing a PR. Serious means you show up consistently, you put in the work, and you\'re there to improve — not to be seen, not to socialize, not to go through the motions.</p>
+
+<p>Our members include competitive powerlifters, professional surfers, UCSC researchers who train before work, parents who get their session in during school hours, and people in their 60s who came to us wanting to build strength for the next chapter of their lives. What they have in common is intentionality.</p>
+
+<h2>The Equipment</h2>
+
+<p>At 151 Harvey West Blvd, we have what serious training requires:</p>
+<ul>
+<li>Power racks and squat stands for heavy barbell work</li>
+<li>Bumper and iron plates across every rack</li>
+<li>Specialty bars including safety squat bar, hex bar, and cambered bar</li>
+<li>Dumbbells scaled for heavy work</li>
+<li>Dedicated lifting platforms</li>
+<li>Conditioning equipment that doesn\'t crowd the strength floor</li>
+</ul>
+
+<p>We invest in equipment that athletes actually need, not in amenities designed to impress during a tour.</p>
+
+<h2>The Culture</h2>
+
+<p>The culture at Santa Cruz Strength is what differentiates us most. Members re-rack their weights. People nod at each other, spot when asked, and offer advice when it\'s welcome and stay quiet when it\'s not. There\'s no judgment about what you\'re lifting, where you started, or what your goals are.</p>
+
+<h2>Location</h2>
+
+<p>We\'re in Harvey West Business Park — a working part of Santa Cruz that feels right for a gym like this. Not downtown, not a strip mall. A real space in a real neighborhood, easy to get to, with parking.</p>
+
+<p>If this sounds like what you\'ve been looking for, come in and see it. We offer free tours for anyone considering membership. No pressure, just an honest look at the space and a conversation about whether it\'s the right fit.</p>''',
+            'category': 'Gym Culture',
+            'tags': ['best gym Santa Cruz', 'strength gym', 'Santa Cruz', 'local'],
+            'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/timf8d48_images12.jpeg',
+            'published': True,
+            'seo_title': 'Best Gym in Santa Cruz for Serious Athletes | Santa Cruz Strength',
+            'seo_description': 'What makes Santa Cruz Strength different from every other gym in Santa Cruz. Real equipment, real culture, and a community built around intentional training.',
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'How Long Should a Workout Be? What Actually Matters',
+            'slug': 'how-long-should-a-workout-be',
+            'excerpt': 'More time in the gym doesn\'t automatically mean more progress. Here\'s what the research says — and what we see with members at Santa Cruz Strength.',
+            'content': '''<p>There\'s a persistent belief that longer workouts produce better results. People who spend 90 minutes in the gym feel they worked harder than people who were in and out in 45. This isn\'t necessarily true — and in many cases it\'s backwards.</p>
+
+<h2>The Research on Workout Duration</h2>
+
+<p>Studies on strength training consistently show that the quality and intensity of training matters far more than duration. A focused 45-minute session with appropriate load, rest periods, and exercise selection produces equivalent or superior results to a 90-minute session filled with extra volume, long conversations between sets, and unfocused effort.</p>
+
+<h2>What a Well-Structured Session Looks Like</h2>
+
+<p>For most strength training goals, a well-designed session fits in 45 to 75 minutes:</p>
+<ul>
+<li><strong>5–10 minutes:</strong> Warm-up and movement prep</li>
+<li><strong>25–40 minutes:</strong> Primary strength work (2–4 main lifts)</li>
+<li><strong>10–20 minutes:</strong> Accessory work or conditioning</li>
+<li><strong>5 minutes:</strong> Cool-down</li>
+</ul>
+
+<h2>When Sessions Creep Too Long</h2>
+
+<p>Sessions that stretch past 75–90 minutes often indicate one of several things: too much volume (more sets and exercises than necessary), insufficient rest management, or time being lost to non-training activities. None of these improve outcomes.</p>
+
+<p>Cortisol — the stress hormone — rises meaningfully after about 60 minutes of intense training. Extended sessions can actually compromise the hormonal environment for recovery and muscle growth.</p>
+
+<h2>The Practical Reality</h2>
+
+<p>For most people — especially those with jobs, families, and other commitments — the ideal workout is the one that gets done consistently. A 45-minute session three times per week that you actually complete will produce far better results over a year than an aspirational 2-hour program that you abandon after three weeks.</p>
+
+<p>Build the habit. Keep sessions focused. Progress will follow.</p>
+
+<p>At Santa Cruz Strength, our coaches help members design programs that fit their real schedules. If you\'re wondering how to train effectively without spending your entire day in the gym, come in and talk to us.</p>''',
+            'category': 'Strength Science',
+            'tags': ['workout length', 'training tips', 'programming', 'FAQ'],
+            'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/aw0t70q8_348s.jpg',
+            'published': True,
+            'seo_title': 'How Long Should a Workout Be? | Santa Cruz Strength',
+            'seo_description': 'More time in the gym doesn\'t mean more progress. Here\'s what actually matters when it comes to workout duration for strength training.',
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        },
+    ]
+    for post in posts:
+        await db.blog.insert_one(post)
+    logger.info(f'[SEED] Seeded {len(posts)} blog posts')
 
 @app.on_event('startup')
 async def startup():
@@ -756,6 +1209,14 @@ async def startup():
     await db.users.create_index('email', unique=True)
     await db.invites.create_index('token', unique=True)
     await db.invites.create_index('email')
+    await db.blog.create_index('id', unique=True)
+    await db.blog.create_index('slug', unique=True)
+    await db.blog.create_index([('published', 1), ('created_at', -1)])
+    await db.blog.create_index('category')
+    # Seed blog posts if none exist
+    blog_count = await db.blog.count_documents({})
+    if blog_count == 0:
+        await seed_blog_posts()
     # Seed default owner if none exists
     owner_exists = await db.users.find_one({'role': 'owner'})
     if not owner_exists:

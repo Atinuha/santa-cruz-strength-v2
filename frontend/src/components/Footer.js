@@ -42,6 +42,7 @@ export default function Footer() {
                 { to: '/', label: 'Home' },
                 { to: '/join', label: 'Membership' },
                 { to: '/personal-training', label: 'Personal Training' },
+                { to: '/blog', label: 'Blog' },
                 { to: '/contact', label: 'Contact' },
               ].map((link) => (
                 <li key={link.to}>
