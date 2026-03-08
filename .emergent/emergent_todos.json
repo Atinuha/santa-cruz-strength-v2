@@ -1,38 +1,30 @@
 [
   {
-    "content": "Get design guidelines from design_agent",
+    "content": "Update color system — black, forest green, white",
     "status": "completed"
   },
   {
-    "content": "Fetch gym images from Unsplash",
+    "content": "Update admin email seed to management@santacruzstrength.com",
     "status": "completed"
   },
   {
-    "content": "Install backend dependencies (bcrypt, PyJWT, etc.)",
+    "content": "Update hours: Members 24/7, Day passes 9am-6pm",
     "status": "completed"
   },
   {
-    "content": "Install frontend dependencies (tailwind, react-router, etc.)",
+    "content": "Overhaul brand voice and all public page copy (ICP + calm confidence tone)",
     "status": "completed"
   },
   {
-    "content": "Build backend: auth, leads CRUD, CRM endpoints, email notifications",
+    "content": "Build Kanban CRM dashboard component",
     "status": "completed"
   },
   {
-    "content": "Build public marketing site: Home, Join, PT, Contact, Thank You pages",
+    "content": "Change 'Book a Free Visit' to 'Book a Tour' everywhere",
     "status": "completed"
   },
   {
-    "content": "Build staff CRM: Login, Dashboard, Lead Detail, Settings pages",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: All user stories covered in development",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: End-to-end testing using Testing Agent",
-    "status": "completed"
+    "content": "End-to-end testing after all updates",
+    "status": "in_progress"
   }
 ]

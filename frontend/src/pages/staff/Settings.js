@@ -116,7 +116,7 @@ export default function Settings() {
         {/* My Profile */}
         <section className="card-marketing p-6">
           <div className="flex items-center gap-2 mb-5">
-            <User size={16} className="text-[#D32F2F]" />
+            <User size={16} className="text-[#1B7A4A]" />
             <h2 className="font-display text-xl text-white tracking-wide">MY PROFILE</h2>
           </div>
           <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -153,7 +153,7 @@ export default function Settings() {
           <section className="card-marketing p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <Shield size={16} className="text-[#D32F2F]" />
+                <Shield size={16} className="text-[#1B7A4A]" />
                 <h2 className="font-display text-xl text-white tracking-wide">STAFF ACCOUNTS</h2>
               </div>
               <button onClick={() => setAddUserOpen(true)} className="btn-scs-primary px-3 py-2 rounded-md text-xs flex items-center gap-1.5">
@@ -163,7 +163,7 @@ export default function Settings() {
 
             {loadingUsers ? (
               <div className="flex justify-center py-8">
-                <div className="w-6 h-6 border-2 border-[#D32F2F] border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-[#1B7A4A] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
               <div className="space-y-2">

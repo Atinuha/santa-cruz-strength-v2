@@ -123,7 +123,7 @@ export default function LeadDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#D32F2F] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#1B7A4A] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -164,9 +164,9 @@ export default function LeadDetail() {
         <div className="block lg:hidden">
           <Tabs defaultValue="profile">
             <TabsList className="bg-white/5 border border-white/10 mb-5 w-full">
-              <TabsTrigger value="profile" className="flex-1 text-xs data-[state=active]:bg-[#D32F2F] data-[state=active]:text-white">Profile</TabsTrigger>
-              <TabsTrigger value="notes" className="flex-1 text-xs data-[state=active]:bg-[#D32F2F] data-[state=active]:text-white">Notes & Actions</TabsTrigger>
-              <TabsTrigger value="activity" className="flex-1 text-xs data-[state=active]:bg-[#D32F2F] data-[state=active]:text-white">Activity</TabsTrigger>
+              <TabsTrigger value="profile" className="flex-1 text-xs data-[state=active]:bg-[#1B7A4A] data-[state=active]:text-white">Profile</TabsTrigger>
+              <TabsTrigger value="notes" className="flex-1 text-xs data-[state=active]:bg-[#1B7A4A] data-[state=active]:text-white">Notes & Actions</TabsTrigger>
+              <TabsTrigger value="activity" className="flex-1 text-xs data-[state=active]:bg-[#1B7A4A] data-[state=active]:text-white">Activity</TabsTrigger>
             </TabsList>
             <TabsContent value="profile"><ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} onSaveFollowUp={handleSaveFollowUp} /></TabsContent>
             <TabsContent value="notes"><NotesSection editNotes={editNotes} setEditNotes={setEditNotes} onSave={handleSaveNotes} noteText={noteText} setNoteText={setNoteText} onAddNote={handleAddNote} addingNote={addingNote} inputClass={inputClass} /></TabsContent>
@@ -206,10 +206,10 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
       {/* Contact */}
       <div className="space-y-2.5">
         <a href={`tel:${lead.phone}`} className="flex items-center gap-2.5 text-sm text-white/70 hover:text-white transition-colors duration-200">
-          <Phone size={14} className="text-[#D32F2F]" />{lead.phone}
+          <Phone size={14} className="text-[#1B7A4A]" />{lead.phone}
         </a>
         <a href={`mailto:${lead.email}`} className="flex items-center gap-2.5 text-sm text-white/70 hover:text-white transition-colors duration-200">
-          <Mail size={14} className="text-[#D32F2F]" />{lead.email}
+          <Mail size={14} className="text-[#1B7A4A]" />{lead.email}
         </a>
       </div>
 
@@ -350,7 +350,7 @@ function ActivityTimeline({ log }) {
           {log.map((entry, i) => (
             <div key={i} className="flex gap-3">
               <div className="flex flex-col items-center">
-                <div className="w-2 h-2 rounded-full bg-[#D32F2F] mt-1 shrink-0" />
+                <div className="w-2 h-2 rounded-full bg-[#1B7A4A] mt-1 shrink-0" />
                 {i < log.length - 1 && <div className="w-0.5 flex-1 bg-white/10 my-1" />}
               </div>
               <div className="pb-3">

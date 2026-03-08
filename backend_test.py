@@ -11,7 +11,7 @@ class SantaCruzStrengthAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.admin_credentials = {
-            "email": "admin@santacruzstrength.com",
+            "email": "management@santacruzstrength.com",
             "password": "SCS@admin2024!"
         }
         self.created_lead_id = None

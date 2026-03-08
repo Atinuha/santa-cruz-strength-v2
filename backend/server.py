@@ -637,9 +637,9 @@ async def startup():
         admin_id = str(uuid.uuid4())
         await db.users.insert_one({
             'id': admin_id,
-            'email': 'admin@santacruzstrength.com',
+            'email': 'management@santacruzstrength.com',
             'password_hash': hash_password('SCS@admin2024!'),
-            'name': 'Admin',
+            'name': 'Management',
             'role': 'admin',
             'location': 'santa_cruz',
             'is_active': True,

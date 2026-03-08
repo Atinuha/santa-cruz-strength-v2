@@ -9,8 +9,8 @@ export default function Navbar() {
 
   const navLinks = [
     { to: '/', label: 'Home' },
-    { to: '/join', label: 'Join' },
-    { to: '/personal-training', label: 'Personal Training' },
+    { to: '/join', label: 'Membership' },
+    { to: '/personal-training', label: 'Training' },
     { to: '/contact', label: 'Contact' },
   ];
 
@@ -21,9 +21,9 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-[#D32F2F] rounded flex items-center justify-center transition-colors duration-200 group-hover:bg-[#B71C1C]">
-              <span className="font-display text-white text-sm font-bold tracking-wider">S</span>
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 bg-[#1B7A4A] rounded flex items-center justify-center transition-colors duration-200 group-hover:bg-[#145F3A]">
+              <span className="font-display text-white text-sm tracking-wider">S</span>
             </div>
             <div className="hidden sm:block">
               <span className="font-display text-white text-xl tracking-wider">SANTA CRUZ STRENGTH</span>
@@ -42,7 +42,7 @@ export default function Navbar() {
                 className={`text-sm font-medium transition-colors duration-200 ${
                   isActive(link.to)
                     ? 'text-white'
-                    : 'text-white/60 hover:text-white'
+                    : 'text-white/55 hover:text-white'
                 }`}
               >
                 {link.label}
@@ -54,9 +54,9 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <a
               href={GYM_CONFIG.phoneHref}
-              className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors duration-200"
+              className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors duration-200"
             >
-              <Phone size={14} />
+              <Phone size={13} />
               <span>{GYM_CONFIG.phone}</span>
             </a>
             <a
@@ -84,7 +84,7 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden bg-[#111214] border-t border-white/8 animate-fade-in">
-          <div className="px-4 py-4 space-y-2">
+          <div className="px-4 py-4 space-y-1">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
@@ -93,27 +93,19 @@ export default function Navbar() {
                 className={`block py-2.5 px-3 rounded-md text-sm font-medium transition-colors duration-200 ${
                   isActive(link.to)
                     ? 'bg-white/8 text-white'
-                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                    : 'text-white/65 hover:text-white hover:bg-white/5'
                 }`}
               >
                 {link.label}
               </Link>
             ))}
             <div className="pt-3 border-t border-white/8 flex flex-col gap-2">
-              <a
-                href={GYM_CONFIG.phoneHref}
-                className="flex items-center gap-2 py-2.5 px-3 text-sm text-white/70"
-                data-testid="contact-click-to-call-button"
-              >
-                <Phone size={14} />
-                {GYM_CONFIG.phone}
+              <a href={GYM_CONFIG.phoneHref} className="flex items-center gap-2 py-2.5 px-3 text-sm text-white/60"
+                data-testid="contact-click-to-call-button">
+                <Phone size={14} />{GYM_CONFIG.phone}
               </a>
-              <a
-                href={GYM_CONFIG.joinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-scs-primary px-4 py-2.5 rounded-md text-sm font-semibold text-center"
-              >
+              <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+                className="btn-scs-primary px-4 py-2.5 rounded-md text-sm font-semibold text-center">
                 Join Now
               </a>
             </div>

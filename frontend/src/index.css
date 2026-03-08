@@ -25,11 +25,12 @@
   --input: 0 0% 16%;
   --ring: 0 0% 92%;
   --radius: 0.75rem;
-  --scs-red: 0 72% 51%;
-  --scs-red-hex: #D32F2F;
-  --scs-red-hover: #B71C1C;
-  --scs-coastal: 192 28% 58%;
-  --scs-coastal-hex: #6EA8B7;
+  /* SCS Brand Colors — Forest Green + Coastal */
+  --scs-green: #1B7A4A;
+  --scs-green-hover: #145F3A;
+  --scs-green-muted: rgba(27,122,74,0.15);
+  --scs-coastal: #2E6B8F;
+  --scs-coastal-hex: #2E6B8F;
   --ink: #0A0A0A;
   --charcoal: #1A1A1A;
   --elevated: #111214;
@@ -54,16 +55,16 @@ body {
   font-family: 'Bebas Neue', Impact, system-ui;
 }
 
-/* SCS Brand Buttons */
+/* SCS Brand Buttons — Green */
 .btn-scs-primary {
-  background-color: var(--scs-red-hex);
+  background-color: var(--scs-green);
   color: white;
   font-weight: 600;
   transition: background-color 200ms, transform 150ms;
 }
 
 .btn-scs-primary:hover {
-  background-color: var(--scs-red-hover);
+  background-color: var(--scs-green-hover);
 }
 
 .btn-scs-primary:active {
@@ -105,11 +106,20 @@ body {
   box-shadow: 0 10px 24px rgba(0,0,0,0.45);
 }
 
-/* Red accent line */
+/* Green accent line */
+.green-accent-line {
+  width: 3rem;
+  height: 3px;
+  background-color: var(--scs-green);
+  display: block;
+  margin-bottom: 1rem;
+}
+
+/* Legacy alias */
 .red-accent-line {
   width: 3rem;
   height: 3px;
-  background-color: var(--scs-red-hex);
+  background-color: var(--scs-green);
   display: block;
   margin-bottom: 1rem;
 }
@@ -125,19 +135,6 @@ body {
 
 .section-charcoal {
   background-color: var(--charcoal);
-}
-
-/* Image overlays */
-.img-overlay {
-  position: relative;
-}
-
-.img-overlay::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.65);
-  border-radius: inherit;
 }
 
 /* Scrollbar */
@@ -168,6 +165,28 @@ body {
 
 .crm-table tr:hover td {
   background-color: rgba(255,255,255,0.03);
+}
+
+/* Kanban */
+.kanban-column {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 0.75rem;
+  min-height: 200px;
+}
+
+.kanban-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 0.625rem;
+  transition: background-color 200ms, border-color 200ms, transform 200ms;
+  cursor: pointer;
+}
+
+.kanban-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.16);
+  transform: translateY(-1px);
 }
 
 /* Animation utilities */
@@ -206,15 +225,6 @@ body {
 *:focus-visible {
   outline: 2px solid rgba(255,255,255,0.7);
   outline-offset: 2px;
-}
-
-/* Mobile touch targets */
-button, a, input, select, textarea {
-  min-height: 44px;
-}
-
-button, a {
-  min-height: auto;
 }
 
 /* Remove default list styles */

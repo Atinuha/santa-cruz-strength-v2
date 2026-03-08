@@ -1,106 +1,108 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LeadForm from '../components/LeadForm';
 import { GYM_CONFIG } from '../config';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '../components/ui/accordion';
 import { Badge } from '../components/ui/badge';
 import {
   Dumbbell, Users, Target, MapPin, Phone, Star, ChevronRight,
-  Zap, Shield, Heart, Award, ArrowRight, Clock
+  Shield, ArrowRight, Clock, Mountain, Waves, Bike
 } from 'lucide-react';
 
-const HERO_IMG = 'https://images.unsplash.com/photo-1585484764802-387ea30e8432?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1600';
+const HERO_IMG = 'https://images.unsplash.com/photo-1563387061879-ba036b025216?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1800';
 const GYM_IMG = 'https://images.unsplash.com/photo-1738321791421-232f9ee2c487?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200';
-const DUMBBELL_IMG = 'https://images.unsplash.com/photo-1694579421795-321d349bacf0?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=800';
-const COASTAL_IMG = 'https://images.unsplash.com/photo-1760445565562-296b5afdcae2?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1600';
+const DUMBBELL_IMG = 'https://images.unsplash.com/photo-1595905492198-262c337b9567?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=800';
+const COASTAL_IMG = 'https://images.unsplash.com/photo-1770670588301-2769fd50a060?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1800';
+const SURFER_IMG = 'https://images.unsplash.com/photo-1619303642113-fe8576da3f5b?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=900';
 
 const BENEFITS = [
   {
-    icon: <Dumbbell size={24} className="text-[#D32F2F]" />,
+    icon: <Dumbbell size={22} className="text-[#1B7A4A]" />,
     title: 'Serious Equipment',
-    desc: 'Power racks, specialty bars, dumbbells up to 150lbs, platforms, and more. Built for athletes who train hard.',
+    desc: 'Competition-grade power racks, specialty bars, platforms, and free weights. Built for athletes who train with intention.',
   },
   {
-    icon: <Users size={24} className="text-[#D32F2F]" />,
-    title: 'Real Community',
-    desc: 'Surfers, climbers, runners, powerlifters — people who take their training seriously and support each other.',
+    icon: <Users size={22} className="text-[#1B7A4A]" />,
+    title: 'Intentional Community',
+    desc: 'Surfers, climbers, trail runners, tech workers, and lifters. People who train seriously and respect the space.',
   },
   {
-    icon: <Target size={24} className="text-[#D32F2F]" />,
+    icon: <Target size={22} className="text-[#1B7A4A]" />,
     title: 'Expert Coaching',
-    desc: 'Coaching that meets you where you are. Whether you\'re a beginner or a competitive lifter, we\'ll help you get stronger.',
+    desc: 'Coaching grounded in fundamentals. Whether you\'re building your first program or training for competition — we can help.',
   },
   {
-    icon: <Shield size={24} className="text-[#D32F2F]" />,
-    title: 'No BS Culture',
-    desc: 'No judgment, no posturing. Just work. A gym culture built on respect, effort, and genuine improvement.',
+    icon: <Shield size={22} className="text-[#1B7A4A]" />,
+    title: 'Members 24/7',
+    desc: 'Train when it fits your life. Early morning before the surf, late night after work. Full access, always.',
   },
 ];
 
 const WHO_FOR = [
-  { label: 'Powerlifters', icon: '🏋️' },
-  { label: 'Strength Athletes', icon: '💪' },
-  { label: 'Surfers', icon: '🏄' },
-  { label: 'Climbers', icon: '🧗' },
-  { label: 'Cyclists', icon: '🚴' },
-  { label: 'Runners', icon: '🏃' },
-  { label: 'Beginners', icon: '🌱' },
-  { label: 'CrossFit Refugees', icon: '⚡' },
+  { label: 'Surfers', icon: <Waves size={14} /> },
+  { label: 'Climbers', icon: <Mountain size={14} /> },
+  { label: 'Trail Runners', icon: '\uD83C\uDFC3' },
+  { label: 'Mountain Bikers', icon: <Bike size={14} /> },
+  { label: 'Powerlifters', icon: '\uD83C\uDFCB\uFE0F' },
+  { label: 'Tech Workers', icon: '\uD83D\uDCBB' },
+  { label: 'Beginners', icon: '\uD83C\uDF31' },
+  { label: 'Returning Athletes', icon: '\u26A1' },
 ];
 
 const TESTIMONIALS = [
   {
     name: 'Marcus T.',
-    detail: 'Member since 2022 · Powerlifter',
-    text: 'Best gym in Santa Cruz, full stop. The equipment is legit, the coaching is real, and the people here actually train. Switched from a commercial gym and never looked back.',
+    detail: 'Member since 2022 · Trail runner',
+    text: 'I\'ve been to gyms all over the Bay Area. Santa Cruz Strength is different. No ego, serious equipment, and coaches who actually know what they\'re talking about. This is the only gym I\'ve stayed at for more than a year.',
   },
   {
     name: 'Keiko R.',
-    detail: 'Member · Trail Runner + Lifter',
-    text: 'I was intimidated at first but everyone here is genuinely supportive. My strength has improved more in 6 months here than in 2 years anywhere else.',
+    detail: 'Member · Surfer + Lifter',
+    text: 'I started lifting to improve my surfing. Six months in and I\'m stronger than I\'ve ever been. The programming is smart and the environment is exactly what I needed — focused without being intimidating.',
   },
   {
     name: 'Jake M.',
-    detail: 'Member · Competitive Surfer',
-    text: 'Training here is the foundation of my surf performance. The programming is smart and the coaches actually care about your goals.',
+    detail: 'Member · Engineer, Santa Cruz',
+    text: 'After years of commercial gym chaos, this place feels like a reset. Clean equipment, respectful members, and coaching that doesn\'t waste your time. Best decision I made this year.',
   },
 ];
 
 const FAQ_ITEMS = [
   {
     q: 'Do I need experience to join?',
-    a: 'No. We welcome beginners and experienced lifters alike. Our coaching staff will help you get started safely and effectively, regardless of your current fitness level.',
+    a: 'No. We work with every level from first-time lifters to experienced competitors. Our coaches will help you build a solid foundation from the start.',
   },
   {
-    q: 'Are there long-term contracts?',
-    a: 'We offer flexible membership options. Ask us about month-to-month and commitment plans when you visit or reach out to a coach.',
+    q: 'What are the membership options?',
+    a: 'We offer flexible month-to-month and commitment memberships. All members get 24/7 keycard access. Talk to a coach about what makes sense for your schedule and goals.',
   },
   {
-    q: 'Can I try the gym before joining?',
-    a: 'Absolutely. Book a visit through our website and we\'ll give you a tour, introduce you to the coaching team, and answer all your questions. No pressure.',
+    q: 'Can I visit before committing?',
+    a: 'Absolutely. Request a tour and we\'ll show you around, introduce you to the space and coaching team, and answer your questions with zero pressure.',
+  },
+  {
+    q: 'What are day pass hours?',
+    a: 'Day passes are available 9 AM – 6 PM, 7 days a week. Full members have 24/7 keycard access to the facility.',
   },
   {
     q: 'Do you offer personal training?',
-    a: 'Yes. Our certified coaches offer one-on-one personal training sessions. Whether you need a full program or just want to learn specific lifts, we can help.',
+    a: 'Yes. Our certified coaches offer 1-on-1 personal training. Whether you\'re building a strength foundation, returning from injury, or preparing for competition, we can design a program for you.',
   },
   {
     q: 'What equipment do you have?',
-    a: 'Power racks, barbells, bumper plates, iron plates, specialty bars (safety squat, hex bar, cambered), dumbbells up to 150lbs, kettlebells, conditioning equipment, and more.',
+    a: 'Power racks, barbells, bumper and iron plates, specialty bars (safety squat, hex, cambered), dumbbells up to 150lbs, kettlebells, platforms, and conditioning equipment.',
   },
   {
-    q: 'Is there open gym time?',
-    a: 'Yes. Members have access to open gym during all operating hours. Coached classes and open lifting both available.',
+    q: 'Who is this gym for?',
+    a: 'Anyone who wants to train seriously and respects the space. We have surfers, climbers, cyclists, tech workers, powerlifters, and beginners all training side by side. What they share is intentionality.',
   },
   {
     q: 'Where are you located?',
-    a: `We're at ${GYM_CONFIG.address.full}. Parking is available in the Harvey West Business Park lot. Easy access from Highway 1.`,
+    a: `${GYM_CONFIG.address.full}. Free parking in the Harvey West Business Park lot. Easy access from Highway 1.`,
   },
 ];
 
@@ -116,173 +118,152 @@ export default function Home() {
     <div className="min-h-screen bg-[#0A0A0A]">
       <Navbar />
 
-      {/* ───────── HERO ───────── */}
+      {/* HERO */}
       <section
         className="relative min-h-screen flex items-center pt-16"
         style={{
           backgroundImage: `url(${HERO_IMG})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center 30%',
+          backgroundPosition: 'center 40%',
         }}
       >
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/95 via-[#0A0A0A]/80 to-[#0A0A0A]/40" />
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(900px circle at 10% 0%, rgba(110,168,183,0.08), transparent 55%), radial-gradient(700px circle at 90% 10%, rgba(211,47,47,0.08), transparent 52%)',
-          }}
-        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/97 via-[#0A0A0A]/80 to-[#0A0A0A]/40" />
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(800px circle at 8% 50%, rgba(27,122,74,0.07), transparent 55%), radial-gradient(600px circle at 85% 15%, rgba(46,107,143,0.06), transparent 50%)',
+        }} />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left — Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
+            {/* Left */}
             <div className="animate-fade-in-up">
-              <Badge className="mb-4 bg-[#D32F2F]/15 text-[#FF6B6B] border-[#D32F2F]/25 text-xs tracking-widest uppercase">
+              <Badge className="mb-5 bg-[#1B7A4A]/12 text-[#7FCCA6] border-[#1B7A4A]/25 text-xs tracking-widest uppercase">
                 Santa Cruz, California
               </Badge>
 
               <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl text-white leading-[1] tracking-wide mb-4">
-                TRAIN HARD.
-                <br />
-                <span className="text-[#D32F2F]">STAY</span> LOCAL.
+                SERIOUS<br />
+                STRENGTH<br />
+                <span className="text-[#1B7A4A]">TRAINING.</span>
               </h1>
 
-              <p className="text-white/65 text-base sm:text-lg leading-relaxed mb-8 max-w-lg">
-                Santa Cruz Strength is a serious training gym built for the local community.
-                Real equipment. Knowledgeable coaches. People who show up and put in the work.
+              <p className="text-white/55 text-base sm:text-lg leading-relaxed mb-3 max-w-lg">
+                A focused gym for athletes, lifters, and people who believe strength matters.
+              </p>
+              <p className="text-white/40 text-sm leading-relaxed mb-8 max-w-md">
+                Not a fitness club. Not a commercial gym chain. A strength training environment built
+                for the Santa Cruz community.
               </p>
 
-              {/* Social proof chips */}
               <div className="flex flex-wrap gap-2 mb-8">
-                {['5+ Years in Santa Cruz', 'No Contracts Required', 'All Fitness Levels'].map((chip) => (
-                  <span key={chip} className="text-xs text-white/60 bg-white/6 border border-white/10 px-3 py-1 rounded-full">
+                {['24/7 Member Access', 'No Long-Term Contracts', 'All Experience Levels'].map((chip) => (
+                  <span key={chip} className="text-xs text-white/50 bg-white/5 border border-white/8 px-3 py-1 rounded-full">
                     {chip}
                   </span>
                 ))}
               </div>
 
-              {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <a
-                  href={GYM_CONFIG.joinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
                   data-testid="home-hero-join-now-button"
-                  className="btn-scs-primary px-6 py-3.5 rounded-md font-semibold text-sm text-center flex items-center justify-center gap-2"
-                >
-                  Join Now <ArrowRight size={15} />
+                  className="btn-scs-primary px-6 py-3.5 rounded-md font-semibold text-sm text-center flex items-center justify-center gap-2">
+                  Join Now <ArrowRight size={14} />
                 </a>
-                <button
-                  onClick={scrollToForm}
+                <button onClick={scrollToForm}
                   data-testid="home-hero-book-visit-button"
-                  className="btn-scs-secondary px-6 py-3.5 rounded-md font-semibold text-sm"
-                >
-                  Book a Visit
+                  className="btn-scs-secondary px-6 py-3.5 rounded-md font-semibold text-sm">
+                  Book a Tour
                 </button>
-                <a
-                  href={GYM_CONFIG.phoneHref}
-                  className="flex items-center gap-2 px-4 py-3.5 text-sm text-white/60 hover:text-white transition-colors duration-200"
-                >
-                  <Phone size={15} className="text-[#D32F2F]" />
-                  {GYM_CONFIG.phone}
+                <a href={GYM_CONFIG.phoneHref}
+                  className="flex items-center gap-2 px-3 py-3.5 text-sm text-white/50 hover:text-white transition-colors duration-200">
+                  <Phone size={14} className="text-[#1B7A4A]" />{GYM_CONFIG.phone}
                 </a>
               </div>
             </div>
 
-            {/* Right — Inline Form */}
+            {/* Right — Form */}
             <div ref={formRef} id="lead-form" className="animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-              <div className="bg-[#111214]/90 backdrop-blur border border-white/10 rounded-xl p-6 shadow-2xl">
+              <div className="bg-[#111214]/92 backdrop-blur border border-white/10 rounded-xl p-6 shadow-2xl">
                 <div className="mb-5">
-                  <h2 className="font-display text-2xl text-white tracking-wide">BOOK A FREE VISIT</h2>
-                  <p className="text-white/50 text-sm mt-1">Tell us a bit about yourself and a coach will reach out.</p>
+                  <h2 className="font-display text-2xl text-white tracking-wide">BOOK A TOUR</h2>
+                  <p className="text-white/45 text-sm mt-1">Tell us a bit about yourself. We\'ll reach out to schedule a visit.</p>
                 </div>
-                <LeadForm source="book_a_visit" />
+                <LeadForm source="book_a_tour" ctaLabel="Request a Tour" />
               </div>
             </div>
           </div>
         </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2">
-          <div className="w-0.5 h-10 bg-gradient-to-b from-white/0 via-white/30 to-white/0" />
-        </div>
       </section>
 
-      {/* ───────── WHY SCS BENEFITS ───────── */}
+      {/* WHY SCS */}
       <section className="py-20 sm:py-24 bg-[#111214]" data-testid="home-benefits-section">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <span className="red-accent-line mx-auto" />
-            <p className="text-[#D32F2F] text-xs font-semibold uppercase tracking-widest mb-3">Why Train Here</p>
+            <span className="green-accent-line mx-auto" />
+            <p className="text-[#1B7A4A] text-xs font-semibold uppercase tracking-widest mb-3">Why Train Here</p>
             <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide">
-              BUILT FOR PEOPLE WHO TRAIN.
+              STRENGTH WITHOUT THE NOISE.
             </h2>
-            <p className="text-white/50 max-w-xl mx-auto mt-3 text-sm leading-relaxed">
-              Not a wellness center. Not a commercial gym. A serious training facility for the Santa Cruz community.
+            <p className="text-white/45 max-w-xl mx-auto mt-3 text-sm leading-relaxed">
+              No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {BENEFITS.map((b, i) => (
-              <div
-                key={i}
-                className="card-marketing p-6 transition-colors duration-200 hover:bg-white/6"
-              >
+              <div key={i} className="card-marketing p-6 transition-colors duration-200 hover:bg-white/6">
                 <div className="mb-4">{b.icon}</div>
-                <h3 className="font-semibold text-white text-base mb-2">{b.title}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{b.desc}</p>
+                <h3 className="font-semibold text-white text-sm mb-2">{b.title}</h3>
+                <p className="text-white/45 text-sm leading-relaxed">{b.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ───────── TRAINING EXPERIENCE ───────── */}
+      {/* TRAINING EXPERIENCE */}
       <section className="py-20 sm:py-24 bg-[#0A0A0A]" data-testid="home-training-experience-section">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Image */}
             <div className="relative rounded-xl overflow-hidden order-2 lg:order-1">
-              <img
-                src={GYM_IMG}
-                alt="Santa Cruz Strength gym interior with racks and equipment"
-                className="w-full h-72 sm:h-96 object-cover"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/60 to-transparent" />
-              <div className="absolute bottom-4 left-4 bg-[#D32F2F]/90 backdrop-blur text-white px-3 py-1.5 rounded text-xs font-semibold">
-                Harvey West Business Park, Santa Cruz
+              <img src={GYM_IMG} alt="Santa Cruz Strength gym equipment and training floor"
+                className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/50 to-transparent" />
+              <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur text-white px-3 py-1.5 rounded text-xs">
+                151 Harvey West Blvd · Santa Cruz
               </div>
             </div>
 
-            {/* Content */}
             <div className="order-1 lg:order-2">
-              <span className="red-accent-line" />
-              <p className="text-[#D32F2F] text-xs font-semibold uppercase tracking-widest mb-3">The Experience</p>
+              <span className="green-accent-line" />
+              <p className="text-[#1B7A4A] text-xs font-semibold uppercase tracking-widest mb-3">The Environment</p>
               <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide mb-5">
-                WHAT TO EXPECT WHEN YOU WALK IN
+                WHAT TRAINING HERE FEELS LIKE
               </h2>
-              <p className="text-white/60 leading-relaxed mb-6 text-sm">
-                The moment you walk through our doors, you'll notice it's different here. No pop music blasting, no mirror selfie stations, no one trying to upsell you on supplements. Just a serious space where people come to get stronger.
+              <p className="text-white/55 leading-relaxed mb-3 text-sm">
+                Walk in and you'll notice it immediately. The space is clean. The equipment is serious.
+                People are focused, not performing.
+              </p>
+              <p className="text-white/40 leading-relaxed mb-6 text-sm">
+                No music drowning out your thoughts. No influencer corner. Just chalk, iron,
+                and people who came to work.
               </p>
               <ul className="space-y-3">
                 {[
-                  'Competition-grade power racks and free weights',
-                  'Coaching staff that actually watches your form',
-                  'Programs designed around real strength goals',
-                  'Welcoming environment for all experience levels',
-                  'Members who motivate without the ego',
+                  'Competition-grade racks, barbells, and platforms',
+                  'Coaches who understand real strength programming',
+                  'An environment that respects effort over ego',
+                  'Members from all walks of Santa Cruz life',
+                  '24/7 keycard access for full members',
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-white/70">
-                    <ChevronRight size={15} className="text-[#D32F2F] mt-0.5 shrink-0" />
+                  <li key={i} className="flex items-start gap-3 text-sm text-white/65">
+                    <ChevronRight size={14} className="text-[#1B7A4A] mt-0.5 shrink-0" />
                     {item}
                   </li>
                 ))}
               </ul>
               <div className="mt-8 flex gap-3">
                 <Link to="/join" className="btn-scs-primary px-5 py-2.5 rounded-md text-sm font-semibold">
-                  Get Started
+                  View Membership
                 </Link>
                 <Link to="/personal-training" className="btn-scs-secondary px-5 py-2.5 rounded-md text-sm font-semibold">
                   Personal Training
@@ -293,52 +274,55 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ───────── WHO IT'S FOR ───────── */}
+      {/* WHO IT’S FOR */}
       <section className="py-20 sm:py-24 bg-[#111214]" data-testid="home-who-its-for-section">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <span className="red-accent-line" />
-              <p className="text-[#D32F2F] text-xs font-semibold uppercase tracking-widest mb-3">Who Trains Here</p>
+              <span className="green-accent-line" />
+              <p className="text-[#1B7A4A] text-xs font-semibold uppercase tracking-widest mb-3">Who Trains Here</p>
               <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide mb-5">
-                IF YOU TRAIN,<br />YOU BELONG HERE.
+                STRENGTH BUILT FOR
+                <br />LIFE ON THE COAST.
               </h2>
-              <p className="text-white/60 leading-relaxed text-sm mb-8">
-                Santa Cruz Strength serves the whole athletic community — from first-time lifters to competitive athletes. The common thread isn't experience level. It's the commitment to showing up.
+              <p className="text-white/55 leading-relaxed text-sm mb-3">
+                Santa Cruz Strength serves the full spectrum of the local athletic community.
+                The common thread isn\'t your sport or your background.
+              </p>
+              <p className="text-white/40 text-sm leading-relaxed mb-8">
+                It\'s the belief that being strong makes everything else better —
+                your surfing, your climbing, your work, your years ahead.
               </p>
               <div className="flex flex-wrap gap-2">
                 {WHO_FOR.map((item, i) => (
-                  <span
-                    key={i}
-                    className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/70 text-sm px-3 py-1.5 rounded-full"
-                  >
-                    <span>{item.icon}</span>
+                  <span key={i} className="flex items-center gap-1.5 bg-white/5 border border-white/8 text-white/60 text-sm px-3 py-1.5 rounded-full">
+                    <span className="text-xs">{typeof item.icon === 'string' ? item.icon : item.icon}</span>
                     {item.label}
                   </span>
                 ))}
               </div>
             </div>
             <div className="relative rounded-xl overflow-hidden">
-              <img
-                src={DUMBBELL_IMG}
-                alt="Dumbbells and training equipment at Santa Cruz Strength"
-                className="w-full h-72 sm:h-96 object-cover"
-                loading="lazy"
-              />
+              <img src={SURFER_IMG} alt="Surfer athlete walking on beach in Santa Cruz"
+                className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#111214]/70 to-transparent" />
+              <div className="absolute bottom-5 left-5 right-5">
+                <p className="text-white font-display text-xl tracking-wide">TRAIN HARD.</p>
+                <p className="text-[#7FCCA6] font-display text-xl tracking-wide">PADDLE OUT. REPEAT.</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ───────── TESTIMONIALS ───────── */}
+      {/* TESTIMONIALS */}
       <section className="py-20 sm:py-24 bg-[#0A0A0A]" data-testid="home-testimonials-section">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <span className="red-accent-line mx-auto" />
-            <p className="text-[#D32F2F] text-xs font-semibold uppercase tracking-widest mb-3">Member Stories</p>
+            <span className="green-accent-line mx-auto" />
+            <p className="text-[#1B7A4A] text-xs font-semibold uppercase tracking-widest mb-3">Member Stories</p>
             <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide">
-              STRAIGHT FROM THE MEMBERS
+              HEAR IT FROM THE MEMBERS
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -346,13 +330,13 @@ export default function Home() {
               <div key={i} className="card-marketing p-6">
                 <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, j) => (
-                    <Star key={j} size={14} fill="#D32F2F" className="text-[#D32F2F]" />
+                    <Star key={j} size={13} fill="#1B7A4A" className="text-[#1B7A4A]" />
                   ))}
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed mb-5">"{t.text}"</p>
+                <p className="text-white/65 text-sm leading-relaxed mb-5">"{t.text}"</p>
                 <div className="border-t border-white/8 pt-4">
                   <p className="text-white font-semibold text-sm">{t.name}</p>
-                  <p className="text-white/40 text-xs mt-0.5">{t.detail}</p>
+                  <p className="text-white/35 text-xs mt-0.5">{t.detail}</p>
                 </div>
               </div>
             ))}
@@ -360,7 +344,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ───────── CTA BLOCK ───────── */}
+      {/* CTA BLOCK */}
       <section
         className="py-20 sm:py-24 relative overflow-hidden"
         style={{
@@ -371,55 +355,48 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-[#0A0A0A]/88" />
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <span className="red-accent-line mx-auto" />
-          <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-wide mb-4">
-            READY TO TRAIN?<br />LET'S GO.
+          <span className="green-accent-line mx-auto" />
+          <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-wide mb-3">
+            STRENGTH IS THE
+            <br />FOUNDATION.
           </h2>
-          <p className="text-white/60 text-base mb-8">
-            Join Santa Cruz's most dedicated strength community.
+          <p className="text-white/55 text-base mb-8 max-w-lg mx-auto">
+            Whether you surf, climb, run trails, or just want to stay capable for life —
+            it starts here.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href={GYM_CONFIG.joinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
               data-testid="home-final-cta-join-now-button"
-              className="btn-scs-primary px-8 py-4 rounded-md font-bold text-sm flex items-center justify-center gap-2"
-            >
-              Join Now — Get Started Today
+              className="btn-scs-primary px-8 py-4 rounded-md font-bold text-sm flex items-center justify-center gap-2">
+              Join Santa Cruz Strength
             </a>
-            <button
-              onClick={scrollToForm}
+            <button onClick={scrollToForm}
               data-testid="home-final-cta-book-visit-button"
-              className="btn-scs-secondary px-8 py-4 rounded-md font-semibold text-sm"
-            >
-              Book a Free Visit
+              className="btn-scs-secondary px-8 py-4 rounded-md font-semibold text-sm">
+              Book a Tour First
             </button>
           </div>
-          <p className="text-white/35 text-xs mt-6">No commitment required for a visit. Come see if it's the right fit.</p>
+          <p className="text-white/25 text-xs mt-5">No commitment required for a tour.</p>
         </div>
       </section>
 
-      {/* ───────── FAQ ───────── */}
+      {/* FAQ */}
       <section className="py-20 sm:py-24 bg-[#111214]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
-            <span className="red-accent-line mx-auto" />
+            <span className="green-accent-line mx-auto" />
             <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide" data-testid="home-faq-accordion">
               COMMON QUESTIONS
             </h2>
           </div>
           <Accordion type="single" collapsible className="space-y-2">
             {FAQ_ITEMS.map((item, i) => (
-              <AccordionItem
-                key={i}
-                value={`faq-${i}`}
-                className="card-marketing border-white/8 rounded-lg px-5"
-              >
-                <AccordionTrigger className="text-white text-sm font-medium py-4 hover:no-underline hover:text-white/90">
+              <AccordionItem key={i} value={`faq-${i}`}
+                className="card-marketing border-white/8 rounded-lg px-5">
+                <AccordionTrigger className="text-white text-sm font-medium py-4 hover:no-underline hover:text-[#7FCCA6]">
                   {item.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-white/60 text-sm leading-relaxed pb-4">
+                <AccordionContent className="text-white/55 text-sm leading-relaxed pb-4">
                   {item.a}
                 </AccordionContent>
               </AccordionItem>
@@ -428,33 +405,29 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ───────── LOCAL SECTION ───────── */}
+      {/* LOCAL SECTION */}
       <section className="py-20 sm:py-24 bg-[#0A0A0A]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
-            <span className="red-accent-line mx-auto" />
+            <span className="green-accent-line mx-auto" />
             <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide">FIND US IN SANTA CRUZ</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Contact Card */}
             <div className="card-marketing p-6" data-testid="contact-address-block">
               <h3 className="font-display text-2xl text-white tracking-wide mb-5">VISIT US</h3>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
-                  <MapPin size={18} className="text-[#D32F2F] mt-0.5 shrink-0" />
+                  <MapPin size={17} className="text-[#1B7A4A] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-white text-sm font-medium">{GYM_CONFIG.address.full}</p>
-                    <p className="text-white/40 text-xs mt-0.5">Harvey West Business Park · Free parking available</p>
+                    <p className="text-white/35 text-xs mt-0.5">Harvey West Business Park · Free parking</p>
                   </div>
                 </li>
                 <li>
-                  <a
-                    href={GYM_CONFIG.phoneHref}
-                    data-testid="contact-click-to-call-button"
-                    className="flex items-center gap-3 group"
-                  >
-                    <Phone size={18} className="text-[#D32F2F]" />
-                    <span className="text-white group-hover:text-[#D32F2F] transition-colors duration-200 text-sm font-medium">
+                  <a href={GYM_CONFIG.phoneHref} data-testid="contact-click-to-call-button"
+                    className="flex items-center gap-3 group">
+                    <Phone size={17} className="text-[#1B7A4A]" />
+                    <span className="text-white group-hover:text-[#7FCCA6] transition-colors duration-200 text-sm font-medium">
                       {GYM_CONFIG.phone}
                     </span>
                   </a>
@@ -463,68 +436,58 @@ export default function Home() {
 
               <div className="mt-6 border-t border-white/8 pt-5" data-testid="contact-hours-block">
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock size={15} className="text-[#D32F2F]" />
-                  <h4 className="text-white/80 text-xs font-semibold uppercase tracking-wider">Hours</h4>
+                  <Clock size={14} className="text-[#1B7A4A]" />
+                  <h4 className="text-white/70 text-xs font-semibold uppercase tracking-wider">Access & Hours</h4>
                 </div>
-                <ul className="space-y-1.5">
+                <ul className="space-y-2">
                   {GYM_CONFIG.hours.map((h, i) => (
-                    <li key={i} className="flex justify-between text-sm">
-                      <span className="text-white/50">{h.days}</span>
-                      <span className="text-white font-medium">{h.hours}</span>
+                    <li key={i} className="">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/50">{h.days}</span>
+                        <span className="text-white font-medium">{h.hours}</span>
+                      </div>
+                      {h.note && <p className="text-white/30 text-xs mt-0.5 text-right">{h.note}</p>}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="mt-6">
-                <a
-                  href={GYM_CONFIG.phoneHref}
-                  className="btn-scs-primary w-full py-3 rounded-md text-sm font-semibold text-center block"
-                >
-                  Call to Book a Visit
+              <div className="mt-5">
+                <a href={GYM_CONFIG.phoneHref}
+                  className="btn-scs-primary w-full py-3 rounded-md text-sm font-semibold text-center block">
+                  Call to Book a Tour
                 </a>
               </div>
             </div>
 
-            {/* Map */}
             <div className="rounded-xl overflow-hidden border border-white/8 h-[400px] md:h-auto" data-testid="contact-map-embed">
               <iframe
                 title="Santa Cruz Strength Location"
-                src={`https://maps.google.com/maps?q=151+Harvey+West+Blvd+Ste+D+Santa+Cruz+CA+95060&output=embed`}
-                width="100%"
-                height="100%"
-                style={{ border: 0, minHeight: '350px' }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
+                src="https://maps.google.com/maps?q=151+Harvey+West+Blvd+Ste+D+Santa+Cruz+CA+95060&output=embed"
+                width="100%" height="100%" style={{ border: 0, minHeight: '350px' }}
+                allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ───────── FINAL CTA ───────── */}
-      <section className="py-16 bg-[#D32F2F]">
+      {/* FINAL CTA */}
+      <section className="py-16 bg-[#1B7A4A]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide mb-3">
-            STOP SETTLING FOR AVERAGE GYMS.
+            READY TO TRAIN SERIOUSLY?
           </h2>
-          <p className="text-white/80 text-base mb-6">
-            Come train somewhere that takes your progress as seriously as you do.
+          <p className="text-white/75 text-base mb-6">
+            Come see what a real strength gym feels like.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href={GYM_CONFIG.joinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-white text-[#D32F2F] hover:bg-white/90 active:scale-[0.98] px-8 py-3.5 rounded-md font-bold text-sm transition-colors duration-200"
-            >
+            <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+              className="bg-white text-[#1B7A4A] hover:bg-white/90 active:scale-[0.98] px-8 py-3.5 rounded-md font-bold text-sm transition-colors duration-200">
               Join Santa Cruz Strength
             </a>
-            <Link
-              to="/contact"
-              className="border border-white/30 text-white hover:bg-white/10 px-8 py-3.5 rounded-md font-semibold text-sm transition-colors duration-200"
-            >
+            <Link to="/contact"
+              className="border border-white/30 text-white hover:bg-white/10 px-8 py-3.5 rounded-md font-semibold text-sm transition-colors duration-200">
               Talk to a Coach
             </Link>
           </div>
