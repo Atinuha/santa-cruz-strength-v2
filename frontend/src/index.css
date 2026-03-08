@@ -227,6 +227,24 @@ body {
   outline-offset: 2px;
 }
 
+/* Emergent badge — static, never covers content */
+#emergent-badge-wrapper {
+  display: flex !important;
+  justify-content: flex-end !important;
+  padding: 10px 16px 10px 0 !important;
+  background: #000 !important;
+  width: 100% !important;
+}
+
+#emergent-badge {
+  position: relative !important;
+  bottom: auto !important;
+  right: auto !important;
+  z-index: auto !important;
+  top: auto !important;
+  left: auto !important;
+}
+
 /* Remove default list styles */
 ul {
   list-style: none;
