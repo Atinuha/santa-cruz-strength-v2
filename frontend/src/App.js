@@ -1,54 +1,65 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from './components/ui/sonner';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Public Pages
+import Home from './pages/Home';
+import Join from './pages/Join';
+import PersonalTraining from './pages/PersonalTraining';
+import Contact from './pages/Contact';
+import ThankYou from './pages/ThankYou';
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+// Staff CRM Pages
+import StaffLogin from './pages/staff/Login';
+import Dashboard from './pages/staff/Dashboard';
+import LeadDetail from './pages/staff/LeadDetail';
+import Settings from './pages/staff/Settings';
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+import './App.css';
 
+export default function App() {
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
+    <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          {/* Public */}
+          <Route path="/" element={<Home />} />
+          <Route path="/join" element={<Join />} />
+          <Route path="/personal-training" element={<PersonalTraining />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/thank-you" element={<ThankYou />} />
+
+          {/* Staff Auth */}
+          <Route path="/staff/login" element={<StaffLogin />} />
+
+          {/* Protected Staff CRM */}
+          <Route path="/staff/dashboard" element={
+            <ProtectedRoute><Dashboard /></ProtectedRoute>
+          } />
+          <Route path="/staff/leads/:id" element={
+            <ProtectedRoute><LeadDetail /></ProtectedRoute>
+          } />
+          <Route path="/staff/settings" element={
+            <ProtectedRoute><Settings /></ProtectedRoute>
+          } />
+
+          {/* Fallback */}
+          <Route path="*" element={<Home />} />
         </Routes>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#1A1A1A',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#FFFFFF',
+              fontSize: '14px',
+            },
+          }}
+        />
       </BrowserRouter>
-    </div>
+    </AuthProvider>
   );
 }
-
-export default App;
