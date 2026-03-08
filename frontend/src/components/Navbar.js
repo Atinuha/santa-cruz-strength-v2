@@ -53,11 +53,19 @@ export default function Navbar() {
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <a
+              href="https://myiclubonline.com/iclub/members/signin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-white/55 hover:text-white transition-colors duration-200 font-medium"
+            >
+              Member Login
+            </a>
+            <a
               href={GYM_CONFIG.phoneHref}
-              className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors duration-200"
+              className="flex items-center gap-1.5 text-sm text-white/45 hover:text-white transition-colors duration-200"
             >
               <Phone size={13} />
-              <span>{GYM_CONFIG.phone}</span>
+              <span className="hidden lg:block">{GYM_CONFIG.phone}</span>
             </a>
             <a
               href={GYM_CONFIG.joinUrl}
@@ -100,6 +108,14 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="pt-3 border-t border-white/8 flex flex-col gap-2">
+              <a
+                href="https://myiclubonline.com/iclub/members/signin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 py-2.5 px-3 text-sm text-white/65 font-medium"
+              >
+                Member Login
+              </a>
               <a href={GYM_CONFIG.phoneHref} className="flex items-center gap-2 py-2.5 px-3 text-sm text-white/60"
                 data-testid="contact-click-to-call-button">
                 <Phone size={14} />{GYM_CONFIG.phone}

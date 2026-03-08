@@ -50,6 +50,16 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <a
+                  href="https://myiclubonline.com/iclub/members/signin"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#7FCCA6]/70 hover:text-[#7FCCA6] text-sm transition-colors duration-200 font-medium"
+                >
+                  Member Portal →
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -84,9 +94,19 @@ export default function Footer() {
           <p className="text-white/25 text-xs">
             &copy; {new Date().getFullYear()} Santa Cruz Strength. All rights reserved.
           </p>
-          <Link to="/staff/login" className="text-white/15 hover:text-white/35 text-xs transition-colors duration-200">
-            Staff Login
-          </Link>
+          <div className="flex items-center gap-5">
+            <a
+              href="https://myiclubonline.com/iclub/members/signin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/40 hover:text-white text-xs transition-colors duration-200 font-medium"
+            >
+              Member Portal
+            </a>
+            <Link to="/staff/login" className="text-white/20 hover:text-white/45 text-xs transition-colors duration-200">
+              Staff Login
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

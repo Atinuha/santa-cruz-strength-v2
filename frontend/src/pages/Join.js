@@ -8,11 +8,10 @@ import { ArrowRight, CheckCircle2, Users, Dumbbell, Clock, Key } from 'lucide-re
 const JOIN_IMG = 'https://images.unsplash.com/photo-1688521010779-5a04998b6d1d?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1400';
 
 const MEMBERSHIP_PERKS = [
-  '24/7 keycard access for full members',
+  '24/7 facility access via our app',
   'Unlimited open gym and coached strength classes',
   'Competition-grade equipment and dedicated platforms',
   'Welcoming community of serious athletes',
-  'Onboarding session with a coach included',
   'Month-to-month and commitment options available',
 ];
 
@@ -100,7 +99,7 @@ export default function Join() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             {[
-              { icon: <Key size={18} className="text-[#1B7A4A]" />, label: 'Members: 24/7 Access', desc: 'Keycard entry, always open' },
+              { icon: <Key size={18} className="text-[#1B7A4A]" />, label: 'Members: 24/7 via App', desc: 'Download our app for access' },
               { icon: <Dumbbell size={18} className="text-[#1B7A4A]" />, label: 'Serious Equipment', desc: 'Competition-grade everything' },
               { icon: <Clock size={18} className="text-[#1B7A4A]" />, label: 'Day Passes: 9am–6pm', desc: 'Staffed hours vary by day' },
             ].map((item, i) => (

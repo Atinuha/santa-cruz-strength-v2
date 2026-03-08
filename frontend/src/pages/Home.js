@@ -14,8 +14,8 @@ import {
 } from 'lucide-react';
 
 const HERO_IMG = 'https://images.unsplash.com/photo-1563387061879-ba036b025216?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1800';
-const GYM_IMG = 'https://images.unsplash.com/photo-1738321791421-232f9ee2c487?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200';
-const DUMBBELL_IMG = 'https://images.unsplash.com/photo-1595905492198-262c337b9567?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=800';
+const GYM_IMG = 'https://images.unsplash.com/photo-1526408984842-5f1323d42469?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200';
+const DUMBBELL_IMG = 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=800';
 const COASTAL_IMG = 'https://images.unsplash.com/photo-1770670588301-2769fd50a060?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1800';
 const SURFER_IMG = 'https://images.unsplash.com/photo-1619303642113-fe8576da3f5b?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=900';
 
@@ -124,7 +124,7 @@ export default function Home() {
         style={{
           backgroundImage: `url(${HERO_IMG})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center 40%',
+          backgroundPosition: 'center center',
         }}
       >
         {/* Primary dark overlay — heavy and consistent */}
@@ -159,7 +159,7 @@ export default function Home() {
               </p>
 
               <div className="flex flex-wrap gap-2 mb-8">
-                {['24/7 Member Access', 'No Long-Term Contracts', 'All Experience Levels'].map((chip) => (
+                {['24/7 Access via Our App', 'Flexible Membership Options', 'All Experience Levels'].map((chip) => (
                   <span key={chip} className="text-xs text-white/50 bg-white/5 border border-white/8 px-3 py-1 rounded-full">
                     {chip}
                   </span>
@@ -357,7 +357,8 @@ export default function Home() {
           backgroundPosition: 'center',
         }}
       >
-        <div className="absolute inset-0 bg-[#0A0A0A]/88" />
+        <div className="absolute inset-0 bg-[#0A0A0A]/85" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/40 via-transparent to-[#0A0A0A]/60" />
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <span className="green-accent-line mx-auto" />
           <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-wide mb-3">
