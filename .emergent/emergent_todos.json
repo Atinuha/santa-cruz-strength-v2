@@ -1,18 +1,30 @@
 [
   {
-    "content": "Fix typos across site copy and code",
+    "content": "Get Resend email integration playbook",
     "status": "in_progress"
   },
   {
-    "content": "Redesign color system: coastal dark slate (less oppressive black)",
+    "content": "Use 4 real gym photos throughout the site",
     "status": "pending"
   },
   {
-    "content": "Rebuild TimeQuickSelect as proper dropdown popover with green/red staffed indicators",
+    "content": "Backend: email endpoints, auto-confirm to leads, reply-to management@",
     "status": "pending"
   },
   {
-    "content": "Apply new design to all public pages and CRM",
+    "content": "Backend: blog CRUD endpoints + seed 7 posts",
+    "status": "pending"
+  },
+  {
+    "content": "Frontend: Blog listing + article pages (/blog, /blog/:slug)",
+    "status": "pending"
+  },
+  {
+    "content": "Frontend: Blog management in CRM (owner/admin)",
+    "status": "pending"
+  },
+  {
+    "content": "Frontend: Add Blog to navbar/footer",
     "status": "pending"
   },
   {
