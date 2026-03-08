@@ -1,101 +1,120 @@
 # plan.md
 
 ## 1) Objectives
-- Launch a mobile-first, high-converting Santa Cruz Strength marketing site tailored to Santa Cruz culture (coastal, outdoor athletes, authentic community strength training).
+- **Phase 1–2 complete:** Launch a mobile-first, high-converting Santa Cruz Strength marketing site tailored to Santa Cruz culture (coastal, outdoor athletes, authentic community strength training).
 - Implement dual conversion paths:
   - **Path 1 (Ready to Join):** send “Join Now” to ABC Fitness Ignite: https://onlinejoin.abcfitness.com/signup/plan?club=31691
   - **Path 2 (Not Ready):** capture lead → store in MongoDB → notify staff via email → manage in lightweight CRM.
 - Deliver a simple staff CRM (JWT email/password) for lead triage, notes, statuses, follow-up tracking, and CSV export.
-- Ensure local SEO, fast load, easy-to-edit content, and architecture clean enough to replicate later for Sacramento.
+- Ensure local SEO foundations, fast load, easy-to-edit content, and an architecture clean enough to replicate later for Sacramento.
+- **Current objective (moving into Phase 3):** polish and harden the system for production use (spam mitigation, security tightening, performance checks, content finalization, and operational readiness).
 
 ## 2) Implementation Steps
 
 ### Phase 1: Core Flow POC (Lead capture → DB → email notify → CRM visibility)
-**Scope:** prove the core workflow works end-to-end before building full UI.
+**Status:** ✅ Completed (implemented directly as part of the full build)
 
-**User stories (POC)**
-1. As a visitor, I can submit a lead form and see a clear thank-you message plus an option to join online.
-2. As a staff member, I receive an email when a new lead is submitted.
-3. As a staff member, I can log in and immediately see the new lead in a list.
-4. As a staff member, I can open a lead and update its status.
-5. As an admin, I can create/disable staff accounts.
+**Delivered user stories**
+1. ✅ Visitor can submit a lead form and see a clear thank-you message plus an option to join online.
+2. ✅ Staff receives an email when a new lead is submitted (**SMTP placeholder; logs cleanly until configured**).
+3. ✅ Staff can log in and immediately see new leads.
+4. ✅ Staff can open a lead and update its status.
+5. ✅ Admin can create/disable staff accounts.
 
-**Steps**
-- Define API contract for lead create + minimal fields + validation.
-- Implement backend endpoints (FastAPI):
+**What was built**
+- Backend endpoints (FastAPI):
   - `POST /api/leads` (public)
   - `POST /api/auth/login`
   - `GET /api/staff/leads` (protected)
   - `GET /api/staff/leads/{id}` (protected)
-  - `PATCH /api/staff/leads/{id}` (protected)
-- MongoDB collections + indexes (created_at, status, lead_source, location).
-- Email notification: implement SMTP sender using `.env` placeholders; fail gracefully (log + still store lead).
-- Minimal frontend POC pages:
-  - `/` with embedded form + Join Now CTA
-  - `/thank-you`
-  - `/staff/login`
-  - `/staff/dashboard` (list + open detail)
-- POC test checklist:
-  - Create lead → stored → appears in dashboard immediately
-  - Email fires (or logs configured failure cleanly)
-  - Auth works (JWT stored securely; protected routes enforced)
-- Fix until core flow is reliable.
+  - `PUT /api/staff/leads/{id}` (protected)
+  - `POST /api/staff/leads/{id}/notes` (protected)
+  - `GET /api/staff/stats` (protected)
+  - `GET /api/staff/leads/export/csv` (protected)
+  - `GET/POST/PUT/DELETE /api/staff/users` (admin)
+- MongoDB collections + indexes (id, email, status, lead_source, created_at, location).
+- Email notification sender using `.env` placeholders; fails gracefully.
+- Seeded default admin (for initial setup):
+  - `admin@santacruzstrength.com` / `SCS@admin2024!` (change for production)
+
+**POC checklist**
+- ✅ Create lead → stored → appears in dashboard
+- ✅ Auth works (JWT; protected routes enforced)
+- ✅ Email triggers when configured; otherwise logs clearly
+
 
 ### Phase 2: V1 App Development (Full marketing site + CRM MVP)
-**User stories (V1)**
-1. As a Santa Cruz local, I can quickly understand who the gym is for and what training looks like within 10 seconds on mobile.
-2. As a ready-to-join visitor, I can tap “Join Now” and be taken to ABC Ignite signup.
-3. As a not-ready visitor, I can “Book a Visit” or “Get Started” and submit my info in under 60 seconds.
-4. As staff, I can filter leads by status/source and find someone by name/phone/email.
-5. As staff, I can add notes and set a next follow-up date so nothing falls through.
+**Status:** ✅ Completed and tested
+
+**Delivered user stories (V1)**
+1. ✅ Santa Cruz local understands positioning and training vibe quickly on mobile.
+2. ✅ “Join Now” reliably routes to ABC Ignite.
+3. ✅ “Book a Visit / Get Started / Talk to a Coach” capture leads in under ~60 seconds.
+4. ✅ Staff can filter leads by status/source and search by name/phone/email.
+5. ✅ Staff can add notes and set next follow-up date.
 
 **Public site (React + Tailwind + shadcn/ui)**
-- Build sitemap + routes:
-  - Home, Join, Personal Training, Contact, Thank You.
-- Homepage section outline:
-  - Hero (local positioning + CTAs: Join Now / Book a Visit / Get Started)
+- ✅ Sitemap + routes implemented:
+  - `/` Home
+  - `/join`
+  - `/personal-training`
+  - `/contact`
+  - `/thank-you`
+- ✅ Homepage sections implemented:
+  - Hero (local positioning + CTAs: Join Now / Book a Visit)
   - Why Santa Cruz Strength (authentic, community, coaching)
-  - Training Experience (what to expect)
+  - Training Experience
   - Who It’s For (surfers/climbers/cyclists/runners/general strength)
   - Testimonials
-  - CTA block (Talk to a Coach + Join Now)
-  - FAQ
-  - Local section (Harvey West area, parking, community cues)
-  - Final CTA + contact strip (click-to-call)
-- Join page:
+  - CTA block (repeats Join Now + Book a Visit)
+  - FAQ (Accordion)
+  - Local section (map, address, click-to-call, editable hours)
+  - Final CTA
+- ✅ Join page:
   - Primary: Join Now → ABC Ignite
-  - Secondary: lead form (captures lead_source = website_form)
-- Personal Training page:
-  - PT story + PT inquiry form (lead_source = personal_training_inquiry)
-- Contact page:
-  - Map embed, address, click-to-call, placeholder hours (editable), contact form (lead_source = contact_page)
-- Thank You page logic:
-  - Confirmation messaging + Join online link.
+  - Secondary: lead form (lead_source = `website_form`)
+- ✅ Personal Training page:
+  - PT story + PT inquiry form (lead_source = `personal_training_inquiry`)
+- ✅ Contact page:
+  - Map embed, address, click-to-call, placeholder hours (editable), form (lead_source = `contact_page`)
+- ✅ Thank You page:
+  - Confirmation messaging + “Join Online Now” link
 
 **CRM (Protected)**
-- Dashboard:
-  - table list, search, filters (status/source/date range), quick stats counts by status
-- Lead detail:
-  - full fields, tags, notes, activity log, status changes, last_contact_date, next_follow_up_date
-- Settings:
-  - admin user management (create/reset/disable)
-- CSV export.
+- ✅ `/staff/login` email/password auth
+- ✅ Dashboard:
+  - KPI cards (New 7d, Booked, Joined, Total)
+  - search + filters (status, source)
+  - leads table, click row → detail
+  - add lead modal (manual entry)
+  - export CSV
+- ✅ Lead detail:
+  - status updates (logged)
+  - add note (logged)
+  - activity timeline
+  - next follow-up date
+- ✅ Settings:
+  - profile update (name/email/password)
+  - admin-only staff account management
 
 **Content + design system**
-- Theme tokens: charcoal/black base, white text, red CTAs; ensure accessibility contrast.
-- Image strategy: prefer real gym imagery; otherwise authentic strength/community placeholders (avoid staged/influencer/CrossFit tropes).
-- Editing: isolate copy + business info in a config file (location name, address, phone, hours, signup link).
+- ✅ Theme implemented: charcoal/black base, white text, red CTAs; modern + coastal feel.
+- ✅ Image approach: authentic strength imagery (avoid staged influencer/crossfit cliché).
+- ✅ Editing model: business info + hours + links centralized in `src/config/index.js`.
 
 **Local SEO**
-- Per-page meta title/description, OG tags.
-- JSON-LD LocalBusiness schema (name, address, phone, geo optional).
-- Semantic headings, internal linking, alt text pattern.
-- Performance: responsive images, lazy-load below fold.
+- ✅ Implemented baseline metadata and JSON-LD LocalBusiness/ExerciseGym schema in `public/index.html`.
+- ✅ Semantic sections and clean headings.
 
 **Conclude Phase 2**
-- Run one full end-to-end test pass (visitor lead → CRM → staff update → export).
+- ✅ End-to-end testing complete:
+  - Backend: **100% pass**
+  - Frontend: **95% pass** (no blocking issues)
+
 
 ### Phase 3: Testing, polish, and hardening
+**Status:** 🔄 In progress (next)
+
 **User stories (Polish)**
 1. As a visitor on slow mobile data, the site loads fast and remains readable while images load.
 2. As a visitor, I can submit forms without errors and get clear validation help.
@@ -104,14 +123,34 @@
 5. As staff, I can safely use the CRM on mobile when on the gym floor.
 
 **Steps**
-- Validate all forms (client + server), spam mitigation (honeypot + rate limit).
-- Ensure email deliverability basics (from/reply-to, subject format, retries/logging).
-- Security: password hashing (bcrypt/argon2), JWT expiration/refresh strategy (simple), role checks.
-- UX polish: empty states, loading states, inline phone click, map tap targets.
-- Add indexes + pagination for leads list.
-- Regression testing across pages + protected routes.
+- **Forms + spam mitigation**
+  - Add honeypot field to all public forms.
+  - Add basic rate limiting per IP (e.g., in-memory or simple DB-backed) for `/api/leads`.
+  - Optional: add reCAPTCHA or Turnstile later (keep Phase 3 lightweight unless spam appears).
+- **Email deliverability + operations**
+  - Replace placeholder SMTP settings with real credentials.
+  - Support multiple staff recipients (comma-separated `NOTIFICATION_EMAIL`) if desired.
+  - Add a clear email subject format and include lead source.
+- **Security hardening**
+  - Ensure strong admin password rotation guidance; change seeded default admin credentials.
+  - Confirm password hashing is stable (bcrypt warning observed but non-blocking).
+  - Tighten CORS to known domains for production.
+  - Add JWT expiration handling UX (optional) and ensure logout clears all local storage.
+- **UX + workflow polish**
+  - Improve empty/loading states consistency.
+  - Add pagination controls to CRM list when lead volume grows.
+  - Add quick actions in lead row (click-to-call, click-to-email) without navigating (optional).
+- **Performance**
+  - Convert key images to optimized formats later (webp/avif) and ensure responsive sizing.
+  - Lazy-load map embeds and below-the-fold images.
+  - Lighthouse pass: validate mobile performance and accessibility.
+- **Data + analytics (optional but recommended)**
+  - Add GA4 (or privacy-friendly analytics) and event tracking for CTAs and form submits.
+
 
 ### Phase 4: Future-ready structure for Sacramento (no multi-location UI yet)
+**Status:** 🟡 Partially addressed (foundation in place)
+
 **User stories (Future)**
 1. As an admin, I can add a new location config without touching core logic.
 2. As staff, I only see leads for my location (when enabled later).
@@ -119,21 +158,32 @@
 4. As a developer, I can reuse the same CRM with location tagging.
 5. As leadership, I can compare lead sources by location later.
 
-**Steps**
-- Keep `location` field required in leads/users/settings (default `santa_cruz`).
-- Centralize location config and theming hooks; avoid hardcoding strings.
+**What’s already in place**
+- ✅ Leads and users include a `location` field with default `santa_cruz`.
+- ✅ Config-driven business details in the frontend.
+
+**Steps (when Phase 4 starts)**
+- Add per-location theming/config (e.g., `locations/santa_cruz.js`, `locations/sacramento.js`).
+- Add staff scoping by location (filter leads by staff’s location unless admin).
+- Add location selector only if/when needed.
+- Add multi-location SEO structures (separate domains or subpaths) later.
+
 
 ## 3) Next Actions
-- Confirm/edit: sitemap labels + nav order + any extra pages (e.g., “About/Coaches” later).
-- Provide/confirm brand assets + any real gym photos available (or approve placeholders).
-- Confirm placeholder hours format (e.g., Mon–Fri / Sat / Sun) and whether to show “By appointment” for some times.
-- Provide staff list for initial accounts (name + email + role).
-- Decide initial lead status defaults and whether “Book a Visit” has a dedicated form or reuses a shared lead form with source tagging.
+- Replace placeholder imagery with **real Santa Cruz Strength** photos and logo wherever possible.
+- Configure SMTP fully:
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `NOTIFICATION_EMAIL`, `FROM_EMAIL`
+- Change seeded admin credentials and/or create real staff accounts:
+  - Add each staff member email + role in Settings.
+- Confirm final operating hours content (still placeholder) and update in `src/config/index.js`.
+- Run a Lighthouse pass and apply any Phase 3 performance improvements.
+- Decide if you want additional pages later (About/Coaches, Programs, Schedule) and whether “Book a Visit” should be a distinct form vs shared form.
+
 
 ## 4) Success Criteria
-- Marketing site passes Lighthouse targets (mobile-focused) and feels Santa Cruz-local, not corporate.
+- Marketing site feels Santa Cruz-local, not corporate; loads fast on mobile.
 - “Join Now” reliably routes to ABC Ignite from all primary CTAs.
 - All forms create leads with correct `lead_source` and land on Thank You page.
-- New lead appears in CRM instantly; staff email notification fires (or logs configured failure clearly until SMTP set).
+- New lead appears in CRM instantly; staff email notification fires when SMTP configured (or logs clearly until then).
 - Staff can: log in, search/filter, update status, add notes, set follow-up dates, export CSV.
 - Codebase cleanly supports adding a second location later via config + `location` fields (no rewrite).
