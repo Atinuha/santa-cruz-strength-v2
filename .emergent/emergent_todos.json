@@ -1,0 +1,38 @@
+[
+  {
+    "content": "Get design guidelines from design_agent",
+    "status": "in_progress"
+  },
+  {
+    "content": "Fetch gym images from Unsplash",
+    "status": "pending"
+  },
+  {
+    "content": "Install backend dependencies (bcrypt, PyJWT, etc.)",
+    "status": "pending"
+  },
+  {
+    "content": "Install frontend dependencies (tailwind, react-router, etc.)",
+    "status": "pending"
+  },
+  {
+    "content": "Build backend: auth, leads CRUD, CRM endpoints, email notifications",
+    "status": "pending"
+  },
+  {
+    "content": "Build public marketing site: Home, Join, PT, Contact, Thank You pages",
+    "status": "pending"
+  },
+  {
+    "content": "Build staff CRM: Login, Dashboard, Lead Detail, Settings pages",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: All user stories covered in development",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: End-to-end testing using Testing Agent",
+    "status": "pending"
+  }
+]
