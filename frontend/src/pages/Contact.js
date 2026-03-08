@@ -7,17 +7,17 @@ import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 export default function Contact() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen bg-[var(--ink)]">
       <Navbar />
 
-      <section className="pt-32 pb-12 bg-[#111214] border-b border-white/6">
+      <section className="pt-32 pb-12 bg-[var(--surface)] border-b border-white/6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <span className="green-accent-line" />
           <p className="text-[#1B7A4A] text-xs font-semibold uppercase tracking-widest mb-3">Get In Touch</p>
           <h1 className="font-display text-5xl sm:text-6xl text-white tracking-wide mb-3">
             CONTACT US
           </h1>
-          <p className="text-white/50 text-base max-w-lg">
+          <p className="text-white/65 text-base max-w-lg">
             Questions, tour requests, or want to learn more — we\'re here.
           </p>
         </div>
@@ -34,7 +34,7 @@ export default function Contact() {
                     <MapPin size={17} className="text-[#1B7A4A] mt-0.5 shrink-0" />
                     <div>
                       <p className="text-white text-sm font-medium">{GYM_CONFIG.address.full}</p>
-                      <p className="text-white/35 text-xs mt-0.5">Harvey West Business Park · Free parking</p>
+                      <p className="text-white/52 text-xs mt-0.5">Harvey West Business Park · Free parking</p>
                     </div>
                   </li>
                   <li>
@@ -61,14 +61,14 @@ export default function Contact() {
                   {GYM_CONFIG.hours.map((h, i) => (
                     <li key={i} className="py-2 border-b border-white/5 last:border-0">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/50">{h.days}</span>
+                        <span className="text-white/65">{h.days}</span>
                         <span className="text-white font-medium">{h.hours}</span>
                       </div>
-                      {h.note && <p className="text-white/28 text-xs mt-0.5 text-right">{h.note}</p>}
+                      {h.note && <p className="text-white/45 text-xs mt-0.5 text-right">{h.note}</p>}
                     </li>
                   ))}
                 </ul>
-                <p className="text-white/25 text-xs mt-4">*Hours subject to change on holidays</p>
+                <p className="text-white/42 text-xs mt-4">*Hours subject to change on holidays</p>
               </div>
 
               <div className="mt-5 rounded-xl overflow-hidden border border-white/8 h-56" data-testid="contact-map-embed">
@@ -81,7 +81,7 @@ export default function Contact() {
 
             <div className="card-marketing p-6">
               <h2 className="font-display text-2xl text-white tracking-wide mb-2">REACH OUT</h2>
-              <p className="text-white/45 text-sm mb-5">Fill out the form and we\'ll get back to you within 24 hours.</p>
+              <p className="text-white/62 text-sm mb-5">Fill out the form and we\'ll get back to you within 24 hours.</p>
               <LeadForm source="contact_page" ctaLabel="Send Message" />
             </div>
           </div>

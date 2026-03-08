@@ -5,35 +5,40 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --background: 0 0% 4%;
-  --foreground: 0 0% 98%;
-  --card: 0 0% 7%;
-  --card-foreground: 0 0% 98%;
-  --popover: 0 0% 7%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 0 0% 9%;
-  --secondary: 0 0% 12%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 70%;
-  --accent: 0 0% 12%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 72% 45%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 16%;
-  --input: 0 0% 16%;
-  --ring: 0 0% 92%;
+  /* Coastal dark slate — not pure black, feels warmer and more alive */
+  --background: 220 25% 8%;       /* #0C1420 dark coastal navy */
+  --foreground: 0 0% 96%;
+  --card: 220 22% 11%;            /* #131E30 dark slate card */
+  --card-foreground: 0 0% 96%;
+  --popover: 220 22% 10%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 0 0% 96%;
+  --primary-foreground: 220 25% 8%;
+  --secondary: 220 20% 15%;
+  --secondary-foreground: 0 0% 96%;
+  --muted: 220 20% 14%;
+  --muted-foreground: 215 15% 62%;
+  --accent: 220 20% 15%;
+  --accent-foreground: 0 0% 96%;
+  --destructive: 0 65% 48%;
+  --destructive-foreground: 0 0% 96%;
+  --border: 220 18% 20%;
+  --input: 220 18% 18%;
+  --ring: 215 15% 75%;
   --radius: 0.75rem;
-  /* SCS Brand Colors — Forest Green + Coastal */
+
+  /* SCS Brand */
   --scs-green: #1B7A4A;
-  --scs-green-hover: #145F3A;
-  --scs-green-muted: rgba(27,122,74,0.15);
+  --scs-green-hover: #156038;
+  --scs-green-light: #7FCCA6;
   --scs-coastal: #2E6B8F;
-  --scs-coastal-hex: #2E6B8F;
-  --ink: #0A0A0A;
-  --charcoal: #1A1A1A;
-  --elevated: #111214;
+  --scs-coastal-light: #8BC4DF;
+
+  /* Layout backgrounds */
+  --ink: #0C1420;           /* Main page background */
+  --surface: #111E30;       /* Slightly lighter */
+  --elevated: #162438;      /* Cards, raised panels */
+  --elevated-2: #1A2A40;    /* Hover/active state */
 }
 
 * {
@@ -43,7 +48,7 @@
 
 body {
   background-color: var(--ink);
-  color: #FFFFFF;
+  color: #F0F4FF;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -55,102 +60,72 @@ body {
   font-family: 'Bebas Neue', Impact, system-ui;
 }
 
-/* SCS Brand Buttons — Green */
+/* SCS Brand Buttons */
 .btn-scs-primary {
   background-color: var(--scs-green);
   color: white;
   font-weight: 600;
   transition: background-color 200ms, transform 150ms;
 }
-
-.btn-scs-primary:hover {
-  background-color: var(--scs-green-hover);
-}
-
-.btn-scs-primary:active {
-  transform: scale(0.98);
-}
+.btn-scs-primary:hover { background-color: var(--scs-green-hover); }
+.btn-scs-primary:active { transform: scale(0.98); }
 
 .btn-scs-secondary {
   background: transparent;
-  color: white;
-  border: 1px solid rgba(255,255,255,0.2);
+  color: #F0F4FF;
+  border: 1px solid rgba(240,244,255,0.18);
   transition: border-color 200ms, background-color 200ms;
 }
-
 .btn-scs-secondary:hover {
-  border-color: rgba(255,255,255,0.4);
-  background-color: rgba(255,255,255,0.05);
-}
-
-/* Noise texture */
-.noise-texture {
-  position: relative;
-}
-
-.noise-texture::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-  border-radius: inherit;
+  border-color: rgba(240,244,255,0.35);
+  background-color: rgba(240,244,255,0.06);
 }
 
 /* Card styles */
 .card-marketing {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+  background: var(--elevated);
+  border: 1px solid rgba(240,244,255,0.09);
+  border-radius: 0.875rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 /* Green accent line */
 .green-accent-line {
-  width: 3rem;
+  width: 2.5rem;
   height: 3px;
   background-color: var(--scs-green);
   display: block;
-  margin-bottom: 1rem;
+  margin-bottom: 0.875rem;
+  border-radius: 2px;
 }
-
 /* Legacy alias */
 .red-accent-line {
-  width: 3rem;
+  width: 2.5rem;
   height: 3px;
   background-color: var(--scs-green);
   display: block;
-  margin-bottom: 1rem;
+  margin-bottom: 0.875rem;
+  border-radius: 2px;
 }
 
-/* Section background variants */
-.section-dark {
-  background-color: var(--ink);
+/* Kanban */
+.kanban-column {
+  background: rgba(240,244,255,0.03);
+  border: 1px solid rgba(240,244,255,0.07);
+  border-radius: 0.875rem;
+  min-height: 200px;
 }
-
-.section-elevated {
-  background-color: var(--elevated);
+.kanban-card {
+  background: var(--elevated);
+  border: 1px solid rgba(240,244,255,0.09);
+  border-radius: 0.625rem;
+  transition: background-color 200ms, border-color 200ms, transform 150ms;
+  cursor: pointer;
 }
-
-.section-charcoal {
-  background-color: var(--charcoal);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #111;
-}
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #444;
+.kanban-card:hover {
+  background: var(--elevated-2);
+  border-color: rgba(240,244,255,0.18);
+  transform: translateY(-1px);
 }
 
 /* CRM table */
@@ -159,83 +134,61 @@ body {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(255,255,255,0.5);
-  background-color: rgba(0,0,0,0.3);
+  color: rgba(240,244,255,0.45);
+  background-color: rgba(0,0,0,0.2);
 }
-
 .crm-table tr:hover td {
-  background-color: rgba(255,255,255,0.03);
+  background-color: rgba(240,244,255,0.03);
 }
 
-/* Kanban */
-.kanban-column {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+/* Time picker dropdown */
+.time-picker-dropdown {
+  background: var(--elevated);
+  border: 1px solid rgba(240,244,255,0.14);
   border-radius: 0.75rem;
-  min-height: 200px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
 }
 
-.kanban-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 0.625rem;
-  transition: background-color 200ms, border-color 200ms, transform 200ms;
-  cursor: pointer;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--ink); }
+::-webkit-scrollbar-thumb { background: #2A3A50; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #374F6A; }
 
-.kanban-card:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.16);
-  transform: translateY(-1px);
-}
-
-/* Animation utilities */
+/* Animations */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.5s ease-out forwards;
-}
+.animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
 
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
+.animate-fade-in { animation: fadeIn 0.35s ease-out forwards; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-up,
-  .animate-fade-in {
-    animation: none;
-  }
+  .animate-fade-in-up, .animate-fade-in { animation: none; }
 }
 
 /* Focus rings */
 *:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.7);
+  outline: 2px solid rgba(127,204,166,0.6);
   outline-offset: 2px;
 }
 
-/* Emergent badge — static, never covers content */
+/* Remove default list styles */
+ul { list-style: none; padding: 0; margin: 0; }
+
+/* Emergent badge */
 #emergent-badge-wrapper {
   display: flex !important;
   justify-content: flex-end !important;
   padding: 10px 16px 10px 0 !important;
-  background: #000 !important;
+  background: var(--ink) !important;
   width: 100% !important;
 }
-
 #emergent-badge {
   position: relative !important;
   bottom: auto !important;
@@ -243,11 +196,4 @@ body {
   z-index: auto !important;
   top: auto !important;
   left: auto !important;
-}
-
-/* Remove default list styles */
-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
 }

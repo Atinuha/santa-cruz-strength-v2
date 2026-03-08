@@ -1,22 +1,18 @@
 [
   {
-    "content": "Update CSV template + import to handle member fields (DOB, address, city, state, zip, phone_number, how_did_you_hear)",
+    "content": "Fix typos across site copy and code",
     "status": "in_progress"
   },
   {
-    "content": "Build time quick-select picker in LeadDetail (clickable 30-min slots with staffed indicator)",
+    "content": "Redesign color system: coastal dark slate (less oppressive black)",
     "status": "pending"
   },
   {
-    "content": "Backend: staffed hours settings endpoints (GET/PUT, owner only)",
+    "content": "Rebuild TimeQuickSelect as proper dropdown popover with green/red staffed indicators",
     "status": "pending"
   },
   {
-    "content": "Build staff schedule UI in Settings (owner only) - set hours per day, inline editing",
-    "status": "pending"
-  },
-  {
-    "content": "Update Kanban card follow-up display to show time",
+    "content": "Apply new design to all public pages and CRM",
     "status": "pending"
   },
   {

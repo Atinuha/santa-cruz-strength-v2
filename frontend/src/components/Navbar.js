@@ -17,7 +17,7 @@ export default function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-sm border-b border-white/8">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--ink)]/95 backdrop-blur-sm border-b border-white/8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -62,7 +62,7 @@ export default function Navbar() {
             </a>
             <a
               href={GYM_CONFIG.phoneHref}
-              className="flex items-center gap-1.5 text-sm text-white/45 hover:text-white transition-colors duration-200"
+              className="flex items-center gap-1.5 text-sm text-white/62 hover:text-white transition-colors duration-200"
             >
               <Phone size={13} />
               <span className="hidden lg:block">{GYM_CONFIG.phone}</span>
@@ -91,7 +91,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-[#111214] border-t border-white/8 animate-fade-in">
+        <div className="md:hidden bg-[var(--surface)] border-t border-white/8 animate-fade-in">
           <div className="px-4 py-4 space-y-1">
             {navLinks.map((link) => (
               <Link

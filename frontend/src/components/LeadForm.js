@@ -60,7 +60,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
     }
   };
 
-  const inputClass = `w-full bg-black/40 border text-white placeholder:text-white/35 rounded-md px-3 py-2.5 text-sm
+  const inputClass = `w-full bg-white/5 border text-white placeholder:text-white/52 rounded-md px-3 py-2.5 text-sm
     focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-colors duration-200`;
   const errorClass = 'text-red-400 text-xs mt-1';
 
@@ -108,7 +108,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
                 style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                 {INTEREST_TYPES.map((t) => <option key={t} value={t} style={{ background: '#1A1A1A' }}>{t}</option>)}
               </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/52 pointer-events-none" />
             </div>
           </div>
 
@@ -161,7 +161,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
         {loading ? <><Loader2 size={15} className="animate-spin" /> Sending...</> : (ctaLabel || 'Request a Tour — No Commitment')}
       </button>
 
-      <p className="text-center text-xs text-white/30">
+      <p className="text-center text-xs text-white/48">
         A coach will reach out within 24 hours.
       </p>
     </form>

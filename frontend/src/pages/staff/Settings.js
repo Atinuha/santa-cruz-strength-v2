@@ -171,20 +171,20 @@ export default function Settings() {
     } catch { toast.error('Download failed'); }
   };
 
-  const inputClass = 'w-full bg-black/40 border border-white/12 text-white placeholder:text-white/30 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 transition-colors duration-200';
+  const inputClass = 'w-full bg-white/5 border border-white/12 text-white placeholder:text-white/48 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 transition-colors duration-200';
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
-      <header className="sticky top-0 z-40 bg-[#0A0A0A]/96 backdrop-blur border-b border-white/8">
+    <div className="min-h-screen bg-[var(--ink)]">
+      <header className="sticky top-0 z-40 bg-[var(--ink)]/96 backdrop-blur border-b border-white/8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/staff/dashboard')} className="text-white/45 hover:text-white flex items-center gap-1.5 text-sm transition-colors duration-200">
+            <button onClick={() => navigate('/staff/dashboard')} className="text-white/62 hover:text-white flex items-center gap-1.5 text-sm transition-colors duration-200">
               <ArrowLeft size={14} /> Dashboard
             </button>
-            <span className="text-white/20">/</span>
+            <span className="text-white/38">/</span>
             <span className="text-white text-sm">Settings</span>
           </div>
-          <button onClick={() => { logout(); navigate('/staff/login'); }} className="text-white/35 hover:text-white/70 p-1.5 rounded">
+          <button onClick={() => { logout(); navigate('/staff/login'); }} className="text-white/52 hover:text-white/70 p-1.5 rounded">
             <LogOut size={14} />
           </button>
         </div>
@@ -240,7 +240,7 @@ export default function Settings() {
             {/* Template download */}
             <div className="bg-white/3 border border-white/8 rounded-lg p-4">
               <p className="text-white text-sm font-semibold mb-1">CSV Template</p>
-              <p className="text-white/40 text-xs mb-3">Download the template to see the exact format for importing leads.</p>
+              <p className="text-white/58 text-xs mb-3">Download the template to see the exact format for importing leads.</p>
               <button onClick={handleTemplateDownload}
                 className="btn-scs-secondary px-3 py-2 rounded-md text-xs flex items-center gap-1.5 font-medium">
                 <Download size={13} /> Download Template
@@ -250,7 +250,7 @@ export default function Settings() {
             {/* Upload */}
             <div className="bg-white/3 border border-white/8 rounded-lg p-4">
               <p className="text-white text-sm font-semibold mb-1">Import Leads</p>
-              <p className="text-white/40 text-xs mb-3">Upload a CSV file. Duplicate emails are automatically skipped.</p>
+              <p className="text-white/58 text-xs mb-3">Upload a CSV file. Duplicate emails are automatically skipped.</p>
               <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" id="csv-upload" />
               <label htmlFor="csv-upload"
                 className={`btn-scs-primary px-3 py-2 rounded-md text-xs flex items-center gap-1.5 font-medium cursor-pointer w-fit ${
@@ -292,19 +292,19 @@ export default function Settings() {
             </div>
 
             {invites.length === 0 ? (
-              <p className="text-white/30 text-sm">No pending invites.</p>
+              <p className="text-white/48 text-sm">No pending invites.</p>
             ) : (
               <div className="space-y-2">
                 {invites.map((inv) => (
                   <div key={inv.id} className="flex items-center justify-between p-3 bg-white/3 border border-white/8 rounded-lg">
                     <div className="min-w-0">
                       <p className="text-white text-sm font-medium">{inv.name}</p>
-                      <p className="text-white/40 text-xs">{inv.email} · {inv.role} · Invited by {inv.created_by_name}</p>
-                      <p className="text-white/25 text-xs">Expires {new Date(inv.expires_at).toLocaleDateString()}</p>
+                      <p className="text-white/58 text-xs">{inv.email} · {inv.role} · Invited by {inv.created_by_name}</p>
+                      <p className="text-white/42 text-xs">Expires {new Date(inv.expires_at).toLocaleDateString()}</p>
                     </div>
                     <div className="flex items-center gap-2 ml-3">
                       <button onClick={() => copyInviteLink(`${window.location.origin}/staff/accept-invite?token=${inv.token}`)}
-                        className="text-white/40 hover:text-white p-1.5 rounded transition-colors duration-200" title="Copy invite link">
+                        className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Copy invite link">
                         <Copy size={13} />
                       </button>
                       <button onClick={() => handleRevokeInvite(inv)}
@@ -345,7 +345,7 @@ export default function Settings() {
                   <div key={u.id} className="flex items-center justify-between p-3 bg-white/3 border border-white/8 rounded-lg">
                     <div>
                       <p className="text-white text-sm font-medium">{u.name} {u.id === user.id && <span className="text-[#7FCCA6]/70 text-xs">(you)</span>}</p>
-                      <p className="text-white/40 text-xs">{u.email}</p>
+                      <p className="text-white/58 text-xs">{u.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_COLORS[u.role] || ROLE_COLORS.staff}`}>{u.role}</span>
@@ -355,7 +355,7 @@ export default function Settings() {
                       {u.id !== user.id && u.role !== 'owner' && (
                         <>
                           <button onClick={() => handleToggleActive(u)}
-                            className="text-white/35 hover:text-white text-xs btn-scs-secondary px-2 py-1 rounded">
+                            className="text-white/52 hover:text-white text-xs btn-scs-secondary px-2 py-1 rounded">
                             {u.is_active ? 'Disable' : 'Enable'}
                           </button>
                           <button onClick={() => handleDeleteUser(u)} data-testid="crm-settings-delete-account-button"
@@ -371,11 +371,11 @@ export default function Settings() {
             )}
 
             <div className="mt-4 p-3 bg-white/3 rounded-lg border border-white/6">
-              <p className="text-white/40 text-xs">
+              <p className="text-white/58 text-xs">
                 <strong className="text-white/55">Role permissions:</strong>{' '}
                 <span className="text-[#7FCCA6]/70">Owner</span> — full access including delete.{' '}
                 <span className="text-blue-300/70">Admin</span> — manage staff, delete leads.{' '}
-                <span className="text-white/50">Staff</span> — view leads, update status, add notes. Cannot delete.
+                <span className="text-white/65">Staff</span> — view leads, update status, add notes. Cannot delete.
               </p>
             </div>
           </section>
@@ -388,7 +388,7 @@ export default function Settings() {
               <div className="flex items-center gap-2">
                 <CalendarDays size={15} className="text-[#1B7A4A]" />
                 <h2 className="font-display text-xl text-white tracking-wide">STAFFED HOURS</h2>
-                <span className="text-white/30 text-xs">owner only</span>
+                <span className="text-white/48 text-xs">owner only</span>
               </div>
               <button
                 onClick={handleSaveHours}
@@ -399,7 +399,7 @@ export default function Settings() {
               </button>
             </div>
 
-            <p className="text-white/40 text-xs mb-4">
+            <p className="text-white/58 text-xs mb-4">
               Set when staff are available. This shows on the follow-up scheduler so your team knows if someone will be around — but you can still schedule outside these hours.
             </p>
 
@@ -424,18 +424,18 @@ export default function Settings() {
                           type="time"
                           value={d.open}
                           onChange={(e) => setStaffedHours(p => ({ ...p, [day]: { ...d, open: e.target.value } }))}
-                          className="bg-black/40 border border-white/10 text-white rounded px-2 py-1 text-xs w-24"
+                          className="bg-white/5 border border-white/10 text-white rounded px-2 py-1 text-xs w-24"
                           style={{ colorScheme: 'dark' }}
                         />
-                        <span className="text-white/30 text-xs">to</span>
+                        <span className="text-white/48 text-xs">to</span>
                         <input
                           type="time"
                           value={d.close}
                           onChange={(e) => setStaffedHours(p => ({ ...p, [day]: { ...d, close: e.target.value } }))}
-                          className="bg-black/40 border border-white/10 text-white rounded px-2 py-1 text-xs w-24"
+                          className="bg-white/5 border border-white/10 text-white rounded px-2 py-1 text-xs w-24"
                           style={{ colorScheme: 'dark' }}
                         />
-                        <span className="text-white/40 text-xs">
+                        <span className="text-white/58 text-xs">
                           {(() => {
                             const [oh, om] = d.open.split(':').map(Number);
                             const [ch, cm] = d.close.split(':').map(Number);
@@ -445,14 +445,14 @@ export default function Settings() {
                         </span>
                       </div>
                     ) : (
-                      <span className="text-white/25 text-xs">Closed / No staff</span>
+                      <span className="text-white/42 text-xs">Closed / No staff</span>
                     )}
                   </div>
                 );
               })}
             </div>
 
-            <p className="text-white/25 text-xs mt-3">
+            <p className="text-white/42 text-xs mt-3">
               * After-hours slots are shown dimmed on the follow-up scheduler. You can still pick them — they'll be marked as outside staffed hours.
             </p>
           </section>
@@ -461,24 +461,24 @@ export default function Settings() {
         {/* Email Config Note */}
         <section className="card-marketing p-6 border-yellow-500/15">
           <h2 className="font-display text-lg text-white tracking-wide mb-3">EMAIL NOTIFICATIONS</h2>
-          <p className="text-white/45 text-sm leading-relaxed">
+          <p className="text-white/62 text-sm leading-relaxed">
             Email notifications and invite emails require SMTP configuration. Contact your system admin to set:
           </p>
-          <ul className="mt-3 space-y-1 text-white/35 text-xs font-mono">
+          <ul className="mt-3 space-y-1 text-white/52 text-xs font-mono">
             <li>SMTP_HOST — e.g. smtp.gmail.com</li>
             <li>SMTP_USER — sending email address</li>
             <li>SMTP_PASSWORD — app password or SMTP password</li>
             <li>NOTIFICATION_EMAIL — where new lead alerts go</li>
             <li>FROM_EMAIL — display sender address</li>
           </ul>
-          <p className="text-white/25 text-xs mt-3">Until configured, invite links can be copied and shared manually.</p>
+          <p className="text-white/42 text-xs mt-3">Until configured, invite links can be copied and shared manually.</p>
         </section>
 
       </div>
 
       {/* Send Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) { setInviteResult(null); setNewInvite({ name: '', email: '', role: 'staff' }); } }}>
-        <DialogContent className="bg-[#111214] border-white/12 text-white max-w-sm">
+        <DialogContent className="bg-[var(--surface)] border-white/12 text-white max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display tracking-wide text-lg">INVITE STAFF MEMBER</DialogTitle>
           </DialogHeader>
@@ -490,17 +490,17 @@ export default function Settings() {
                 <p className="text-white text-sm font-medium mb-1">
                   {inviteResult.email_sent ? '✓ Invite email sent!' : 'Invite created — email not configured'}
                 </p>
-                <p className="text-white/45 text-xs">Share this link with your staff member:</p>
+                <p className="text-white/62 text-xs">Share this link with your staff member:</p>
               </div>
               <div className="relative">
                 <input readOnly value={inviteResult.invite_url}
-                  className="w-full bg-black/40 border border-white/12 text-white/70 text-xs rounded-md px-3 py-2.5 pr-10 font-mono" />
+                  className="w-full bg-white/5 border border-white/12 text-white/70 text-xs rounded-md px-3 py-2.5 pr-10 font-mono" />
                 <button onClick={() => copyInviteLink(inviteResult.invite_url)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors duration-200">
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white/58 hover:text-white transition-colors duration-200">
                   {copied ? <Check size={14} className="text-[#7FCCA6]" /> : <Copy size={14} />}
                 </button>
               </div>
-              <p className="text-white/30 text-xs">Expires in 7 days. One-time use.</p>
+              <p className="text-white/48 text-xs">Expires in 7 days. One-time use.</p>
               <button onClick={() => { setInviteOpen(false); setInviteResult(null); setNewInvite({ name: '', email: '', role: 'staff' }); }}
                 className="w-full btn-scs-secondary py-2.5 rounded-md text-sm">Done</button>
             </div>
@@ -519,7 +519,7 @@ export default function Settings() {
               <div>
                 <label className="block text-xs text-white/55 mb-1">Role</label>
                 <select value={newInvite.role} onChange={(e) => setNewInvite(p => ({...p, role: e.target.value}))}
-                  className={inputClass + ' appearance-none'} style={{backgroundColor:'rgba(0,0,0,0.5)'}}>
+                  className={inputClass + ' appearance-none'} style={{backgroundColor:'var(--elevated)'}}>
                   <option value="staff" style={{background:'#1A1A1A'}}>Staff — view + notes (no delete)</option>
                   {isOwner && <option value="admin" style={{background:'#1A1A1A'}}>Admin — full access</option>}
                 </select>
@@ -537,7 +537,7 @@ export default function Settings() {
 
       {/* Add User Directly */}
       <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
-        <DialogContent className="bg-[#111214] border-white/12 text-white max-w-sm">
+        <DialogContent className="bg-[var(--surface)] border-white/12 text-white max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display tracking-wide text-lg">ADD STAFF (DIRECT)</DialogTitle>
           </DialogHeader>
@@ -557,7 +557,7 @@ export default function Settings() {
             <div>
               <label className="block text-xs text-white/55 mb-1">Role</label>
               <select value={newUser.role} onChange={(e) => setNewUser(p => ({...p, role: e.target.value}))}
-                className={inputClass + ' appearance-none'} style={{backgroundColor:'rgba(0,0,0,0.5)'}}>
+                className={inputClass + ' appearance-none'} style={{backgroundColor:'var(--elevated)'}}>
                 <option value="staff" style={{background:'#1A1A1A'}}>Staff</option>
                 {isOwner && <option value="admin" style={{background:'#1A1A1A'}}>Admin</option>}
               </select>

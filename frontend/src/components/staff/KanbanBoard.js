@@ -45,19 +45,19 @@ function KanbanCard({ lead, onStatusChange, movingId }) {
           </p>
           <StatusBadgeInline status={lead.status} />
         </div>
-        {isMoving && <Loader2 size={12} className="text-white/40 animate-spin shrink-0 mt-1" />}
+        {isMoving && <Loader2 size={12} className="text-white/58 animate-spin shrink-0 mt-1" />}
       </div>
 
       {/* Contact */}
       <div className="space-y-1 mb-3">
         {lead.phone && (
           <a href={`tel:${lead.phone}`} onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 text-white/50 hover:text-[#7FCCA6] text-xs transition-colors duration-200">
+            className="flex items-center gap-1.5 text-white/65 hover:text-[#7FCCA6] text-xs transition-colors duration-200">
             <Phone size={10} />{lead.phone}
           </a>
         )}
         {lead.email && (
-          <p className="text-white/35 text-xs truncate">{lead.email}</p>
+          <p className="text-white/52 text-xs truncate">{lead.email}</p>
         )}
       </div>
 
@@ -65,12 +65,12 @@ function KanbanCard({ lead, onStatusChange, movingId }) {
       <div className="flex items-center justify-between">
         <div className="flex gap-1.5">
           {lead.lead_source && (
-            <span className="text-[10px] text-white/30 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] text-white/48 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded">
               {SOURCE_LABELS[lead.lead_source] || lead.lead_source}
             </span>
           )}
           {lead.created_at && (
-            <span className="text-[10px] text-white/25">
+            <span className="text-[10px] text-white/42">
               {new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
           )}
@@ -82,17 +82,17 @@ function KanbanCard({ lead, onStatusChange, movingId }) {
             <button
               onClick={(e) => e.stopPropagation()}
               disabled={isMoving}
-              className="text-white/30 hover:text-white/70 p-1 rounded transition-colors duration-200"
+              className="text-white/48 hover:text-white/70 p-1 rounded transition-colors duration-200"
               title="Move to..."
             >
               <ArrowRight size={12} />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="bg-[#1A1A1A] border-white/12 w-44"
+            className="bg-[var(--elevated)] border-white/12 w-44"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-white/35 text-xs px-2 py-1 font-medium uppercase tracking-wide">Move to...</p>
+            <p className="text-white/52 text-xs px-2 py-1 font-medium uppercase tracking-wide">Move to...</p>
             {nextStatuses.map((s) => (
               <DropdownMenuItem
                 key={s.value}
@@ -164,7 +164,7 @@ export default function KanbanBoard({ leads, onLeadsUpdated }) {
                     {col.title}
                   </span>
                 </div>
-                <span className="text-xs text-white/30 bg-white/5 px-1.5 py-0.5 rounded">
+                <span className="text-xs text-white/48 bg-white/5 px-1.5 py-0.5 rounded">
                   {colLeads.length}
                 </span>
               </div>
@@ -173,7 +173,7 @@ export default function KanbanBoard({ leads, onLeadsUpdated }) {
               <div className="p-2 space-y-2 min-h-[120px]">
                 {colLeads.length === 0 ? (
                   <div className="text-center py-6">
-                    <p className="text-white/20 text-xs">No leads</p>
+                    <p className="text-white/38 text-xs">No leads</p>
                   </div>
                 ) : (
                   colLeads.map((lead) => (

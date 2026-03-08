@@ -130,11 +130,11 @@ export default function LeadDetail() {
     }
   };
 
-  const inputClass = 'w-full bg-black/40 border border-white/12 text-white placeholder:text-white/35 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors duration-200';
+  const inputClass = 'w-full bg-white/5 border border-white/12 text-white placeholder:text-white/52 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors duration-200';
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--ink)] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#1B7A4A] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -145,26 +145,26 @@ export default function LeadDetail() {
   const activityLog = [...(lead.activity_log || [])].reverse();
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen bg-[var(--ink)]">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0A0A0A]/95 backdrop-blur border-b border-white/8">
+      <header className="sticky top-0 z-40 bg-[var(--ink)]/95 backdrop-blur border-b border-white/8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/staff/dashboard')}
-              className="text-white/50 hover:text-white flex items-center gap-1.5 text-sm transition-colors duration-200"
+              className="text-white/65 hover:text-white flex items-center gap-1.5 text-sm transition-colors duration-200"
             >
               <ArrowLeft size={15} /> Dashboard
             </button>
-            <span className="text-white/20">/</span>
+            <span className="text-white/38">/</span>
             <span className="text-white text-sm truncate max-w-[200px]">
               {lead.first_name} {lead.last_name}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            {saving && <Loader2 size={14} className="text-white/40 animate-spin" />}
-            <span className="text-white/50 text-xs hidden sm:block">{user?.name}</span>
-            <button onClick={() => { logout(); navigate('/staff/login'); }} className="text-white/40 hover:text-white/70 p-1.5 rounded">
+            {saving && <Loader2 size={14} className="text-white/58 animate-spin" />}
+            <span className="text-white/65 text-xs hidden sm:block">{user?.name}</span>
+            <button onClick={() => { logout(); navigate('/staff/login'); }} className="text-white/58 hover:text-white/70 p-1.5 rounded">
               <LogOut size={14} />
             </button>
           </div>
@@ -238,13 +238,13 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
           { label: 'Created', value: lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—' },
         ].map((row) => (
           <div key={row.label} className="flex justify-between text-xs">
-            <dt className="text-white/40">{row.label}</dt>
+            <dt className="text-white/58">{row.label}</dt>
             <dd className="text-white/80 text-right">{row.value || '—'}</dd>
           </div>
         ))}
         {lead.training_goals && (
           <div className="pt-1">
-            <dt className="text-white/40 text-xs mb-1">Training Goals</dt>
+            <dt className="text-white/58 text-xs mb-1">Training Goals</dt>
             <dd className="text-white/70 text-xs leading-relaxed">{lead.training_goals}</dd>
           </div>
         )}
@@ -254,12 +254,12 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
 
       {/* Status Change */}
       <div>
-        <label className="block text-xs text-white/50 mb-1.5">Update Status</label>
+        <label className="block text-xs text-white/65 mb-1.5">Update Status</label>
         <Select value={statusValue} onValueChange={onStatusChange}>
-          <SelectTrigger className="w-full bg-black/40 border-white/12 text-white text-sm" data-testid="crm-lead-detail-status-select">
+          <SelectTrigger className="w-full bg-white/5 border-white/12 text-white text-sm" data-testid="crm-lead-detail-status-select">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-[#1A1A1A] border-white/12">
+          <SelectContent className="bg-[var(--elevated)] border-white/12">
             {LEAD_STATUSES.map((s) => (
               <SelectItem key={s.value} value={s.value} className="text-white text-sm">{s.label}</SelectItem>
             ))}
@@ -269,12 +269,12 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
 
       {/* Follow-up date + time */}
       <div>
-        <label className="block text-xs text-white/50 mb-1.5">Follow-up / Tour — Date & Time</label>
+        <label className="block text-xs text-white/65 mb-1.5">Follow-up / Tour — Date & Time</label>
         <input
           type="date"
           value={followUpDate}
           onChange={(e) => setFollowUpDate(e.target.value)}
-          className="w-full bg-black/40 border border-white/12 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 mb-2"
+          className="w-full bg-white/5 border border-white/12 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 mb-2"
           style={{ colorScheme: 'dark' }}
         />
         <TimeQuickSelect
@@ -286,7 +286,7 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
           Save Follow-up
         </button>
         {(lead.next_follow_up_date) && (
-          <p className="text-white/35 text-xs mt-1.5">
+          <p className="text-white/52 text-xs mt-1.5">
             Saved: {new Date(lead.next_follow_up_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             {lead.next_follow_up_time && ` at ${formatTime12(lead.next_follow_up_time)}`}
           </p>
@@ -296,7 +296,7 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
       {/* Tags */}
       {lead.tags && lead.tags.length > 0 && (
         <div>
-          <p className="text-xs text-white/40 mb-2">Tags</p>
+          <p className="text-xs text-white/58 mb-2">Tags</p>
           <div className="flex flex-wrap gap-1.5">
             {lead.tags.map((tag, i) => (
               <span key={i} className="text-xs bg-white/8 text-white/60 border border-white/10 px-2 py-0.5 rounded-full">{tag}</span>
@@ -360,7 +360,7 @@ function ActivityTimeline({ log }) {
     <div className="card-marketing p-5" data-testid="crm-lead-detail-activity-timeline">
       <h3 className="text-white text-sm font-semibold mb-4">Activity Timeline</h3>
       {log.length === 0 ? (
-        <p className="text-white/35 text-sm">No activity yet.</p>
+        <p className="text-white/52 text-sm">No activity yet.</p>
       ) : (
         <div className="space-y-3">
           {log.map((entry, i) => (
@@ -372,11 +372,11 @@ function ActivityTimeline({ log }) {
               <div className="pb-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-white text-xs font-medium">{entry.action}</span>
-                  <span className="text-white/30 text-xs">
+                  <span className="text-white/48 text-xs">
                     {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : ''}
                   </span>
                   {entry.staff_name && (
-                    <span className="text-white/30 text-xs">by {entry.staff_name}</span>
+                    <span className="text-white/48 text-xs">by {entry.staff_name}</span>
                   )}
                 </div>
                 {entry.note && (

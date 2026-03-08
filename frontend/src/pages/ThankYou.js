@@ -17,7 +17,7 @@ export default function ThankYou() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen bg-[var(--ink)]">
       <Navbar />
 
       <section className="pt-32 pb-20 min-h-screen flex items-center">
@@ -34,13 +34,13 @@ export default function ThankYou() {
             A coach from Santa Cruz Strength will contact you shortly
             to help you get started.
           </p>
-          <p className="text-white/35 text-sm mb-10">
+          <p className="text-white/52 text-sm mb-10">
             We typically reach out within a few hours during staffed hours.
           </p>
 
           <div className="card-marketing p-6 mb-8 text-left">
             <h3 className="font-display text-xl text-white tracking-wide mb-2">READY TO START NOW?</h3>
-            <p className="text-white/50 text-sm leading-relaxed mb-4">
+            <p className="text-white/65 text-sm leading-relaxed mb-4">
               If you\'d like to skip the wait and get your membership started today, you can
               enroll directly through our online portal.
             </p>
@@ -56,7 +56,7 @@ export default function ThankYou() {
               data-testid="contact-click-to-call-button">
               <Phone size={14} className="text-[#1B7A4A]" />Call Us: {GYM_CONFIG.phone}
             </a>
-            <Link to="/" className="px-5 py-2.5 text-sm text-white/40 hover:text-white transition-colors duration-200">
+            <Link to="/" className="px-5 py-2.5 text-sm text-white/58 hover:text-white transition-colors duration-200">
               Back to Home
             </Link>
           </div>

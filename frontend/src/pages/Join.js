@@ -17,7 +17,7 @@ const MEMBERSHIP_PERKS = [
 
 export default function Join() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen bg-[var(--ink)]">
       <Navbar />
 
       <section className="relative pt-32 pb-16 sm:pb-20"
@@ -26,7 +26,7 @@ export default function Join() {
           backgroundSize: 'cover',
           backgroundPosition: 'center 40%',
         }}>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/92 via-[#0A0A0A]/80 to-[#0A0A0A]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--ink)]/92 via-[var(--ink)]/80 to-[var(--ink)]" />
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
           <span className="green-accent-line" />
           <p className="text-[#1B7A4A] text-xs font-semibold uppercase tracking-widest mb-3">Membership</p>
@@ -39,7 +39,7 @@ export default function Join() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 bg-[#0A0A0A]">
+      <section className="py-16 sm:py-20 bg-[var(--ink)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -49,7 +49,7 @@ export default function Join() {
                 <div className="w-10 h-10 rounded-full bg-[#1B7A4A] flex items-center justify-center text-white font-bold text-lg">1</div>
                 <div>
                   <h2 className="font-display text-2xl text-white tracking-wide">JOIN NOW</h2>
-                  <p className="text-white/45 text-xs">Complete enrollment online in a few minutes</p>
+                  <p className="text-white/62 text-xs">Complete enrollment online in a few minutes</p>
                 </div>
               </div>
 
@@ -71,7 +71,7 @@ export default function Join() {
                 data-testid="join-page-join-now-button">
                 Start My Membership <ArrowRight size={15} />
               </a>
-              <p className="text-center text-xs text-white/25 mt-3">Secure enrollment via ABC Fitness platform</p>
+              <p className="text-center text-xs text-white/42 mt-3">Secure enrollment via ABC Fitness platform</p>
             </div>
 
             {/* Path 2 */}
@@ -80,7 +80,7 @@ export default function Join() {
                 <div className="w-10 h-10 rounded-full bg-white/8 border border-white/12 flex items-center justify-center text-white font-bold text-lg">2</div>
                 <div>
                   <h2 className="font-display text-2xl text-white tracking-wide">TOUR FIRST</h2>
-                  <p className="text-white/45 text-xs">See the gym before you commit</p>
+                  <p className="text-white/62 text-xs">See the gym before you commit</p>
                 </div>
               </div>
 
@@ -95,7 +95,7 @@ export default function Join() {
         </div>
       </section>
 
-      <section className="py-10 bg-[#111214] border-y border-white/6">
+      <section className="py-10 bg-[var(--surface)] border-y border-white/6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             {[
@@ -106,7 +106,7 @@ export default function Join() {
               <div key={i} className="flex flex-col items-center gap-2">
                 {item.icon}
                 <p className="text-white text-sm font-semibold">{item.label}</p>
-                <p className="text-white/35 text-xs">{item.desc}</p>
+                <p className="text-white/52 text-xs">{item.desc}</p>
               </div>
             ))}
           </div>

@@ -28,19 +28,19 @@ export default function StaffLogin() {
     }
   };
 
-  const inputClass = `w-full bg-black/40 border border-white/12 text-white placeholder:text-white/30
+  const inputClass = `w-full bg-white/5 border border-white/12 text-white placeholder:text-white/48
     rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 focus:border-transparent
     transition-colors duration-200`;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[var(--ink)] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-[#1B7A4A] rounded-lg flex items-center justify-center mx-auto mb-4">
             <span className="font-display text-white text-2xl">S</span>
           </div>
           <h1 className="font-display text-2xl text-white tracking-wide">STAFF LOGIN</h1>
-          <p className="text-white/35 text-sm mt-1">{GYM_CONFIG.name} — Lead CRM</p>
+          <p className="text-white/52 text-sm mt-1">{GYM_CONFIG.name} — Lead CRM</p>
         </div>
 
         <div className="card-marketing p-6">
@@ -59,7 +59,7 @@ export default function StaffLogin() {
                   onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
                   required data-testid="staff-login-password-input" className={`${inputClass} pr-10`} />
                 <button type="button" onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/65 transition-colors duration-200">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/52 hover:text-white/65 transition-colors duration-200">
                   {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
@@ -76,7 +76,7 @@ export default function StaffLogin() {
           </form>
         </div>
 
-        <p className="text-center text-white/20 text-xs mt-4">Staff access only.</p>
+        <p className="text-center text-white/38 text-xs mt-4">Staff access only.</p>
       </div>
     </div>
   );

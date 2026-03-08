@@ -115,7 +115,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen bg-[var(--ink)]">
       <Navbar />
 
       {/* HERO */}
@@ -127,10 +127,10 @@ export default function Home() {
           backgroundPosition: 'center center',
         }}
       >
-        {/* Primary dark overlay — heavy and consistent */}
-        <div className="absolute inset-0 bg-[#0A0A0A]/80" />
-        {/* Directional gradient — darker on left (text), still dark on right (form) */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/70 via-[#0A0A0A]/30 to-[#0A0A0A]/20" />
+        {/* Stronger base overlay for readability */}
+        <div className="absolute inset-0 bg-[#0C1420]/82" />
+        {/* Left-heavy gradient to keep text fully readable */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0C1420]/75 via-[#0C1420]/40 to-[#0C1420]/15" />
         {/* Subtle brand accent — barely visible */}
         <div className="absolute inset-0" style={{
           background: 'radial-gradient(600px circle at 8% 50%, rgba(27,122,74,0.06), transparent 50%)',
@@ -153,14 +153,14 @@ export default function Home() {
               <p className="text-white/55 text-base sm:text-lg leading-relaxed mb-3 max-w-lg">
                 A focused gym for athletes, lifters, and people who believe strength matters.
               </p>
-              <p className="text-white/40 text-sm leading-relaxed mb-8 max-w-md">
+              <p className="text-white/58 text-sm leading-relaxed mb-8 max-w-md">
                 Not a fitness club. Not a commercial gym chain. A strength training environment built
                 for the Santa Cruz community.
               </p>
 
               <div className="flex flex-wrap gap-2 mb-8">
                 {['24/7 Access via Our App', 'Flexible Membership Options', 'All Experience Levels'].map((chip) => (
-                  <span key={chip} className="text-xs text-white/50 bg-white/5 border border-white/8 px-3 py-1 rounded-full">
+                  <span key={chip} className="text-xs text-white/65 bg-white/5 border border-white/8 px-3 py-1 rounded-full">
                     {chip}
                   </span>
                 ))}
@@ -178,7 +178,7 @@ export default function Home() {
                   Book a Tour
                 </button>
                 <a href={GYM_CONFIG.phoneHref}
-                  className="flex items-center gap-2 px-3 py-3.5 text-sm text-white/50 hover:text-white transition-colors duration-200">
+                  className="flex items-center gap-2 px-3 py-3.5 text-sm text-white/65 hover:text-white transition-colors duration-200">
                   <Phone size={14} className="text-[#1B7A4A]" />{GYM_CONFIG.phone}
                 </a>
               </div>
@@ -186,10 +186,10 @@ export default function Home() {
 
             {/* Right — Form */}
             <div ref={formRef} id="lead-form" className="animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-              <div className="bg-[#0D0D0D]/98 backdrop-blur border border-white/10 rounded-xl p-6 shadow-2xl">
+              <div className="bg-[#0C1420]/97 backdrop-blur-md border border-white/12 rounded-xl p-6 shadow-2xl">
                 <div className="mb-5">
                   <h2 className="font-display text-2xl text-white tracking-wide">BOOK A TOUR</h2>
-                  <p className="text-white/45 text-sm mt-1">Tell us a bit about yourself. We\'ll reach out to schedule a visit.</p>
+                  <p className="text-white/62 text-sm mt-1">Tell us a bit about yourself. We\'ll reach out to schedule a visit.</p>
                 </div>
                 <LeadForm source="book_a_tour" ctaLabel="Request a Tour" />
               </div>
@@ -199,7 +199,7 @@ export default function Home() {
       </section>
 
       {/* WHY SCS */}
-      <section className="py-20 sm:py-24 bg-[#111214]" data-testid="home-benefits-section">
+      <section className="py-20 sm:py-24 bg-[var(--surface)]" data-testid="home-benefits-section">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <span className="green-accent-line mx-auto" />
@@ -207,7 +207,7 @@ export default function Home() {
             <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide">
               STRENGTH WITHOUT THE NOISE.
             </h2>
-            <p className="text-white/45 max-w-xl mx-auto mt-3 text-sm leading-relaxed">
+            <p className="text-white/62 max-w-xl mx-auto mt-3 text-sm leading-relaxed">
               No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.
             </p>
           </div>
@@ -217,7 +217,7 @@ export default function Home() {
               <div key={i} className="card-marketing p-6 transition-colors duration-200 hover:bg-white/6">
                 <div className="mb-4">{b.icon}</div>
                 <h3 className="font-semibold text-white text-sm mb-2">{b.title}</h3>
-                <p className="text-white/45 text-sm leading-relaxed">{b.desc}</p>
+                <p className="text-white/62 text-sm leading-relaxed">{b.desc}</p>
               </div>
             ))}
           </div>
@@ -225,13 +225,13 @@ export default function Home() {
       </section>
 
       {/* TRAINING EXPERIENCE */}
-      <section className="py-20 sm:py-24 bg-[#0A0A0A]" data-testid="home-training-experience-section">
+      <section className="py-20 sm:py-24 bg-[var(--ink)]" data-testid="home-training-experience-section">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative rounded-xl overflow-hidden order-2 lg:order-1">
               <img src={GYM_IMG} alt="Santa Cruz Strength gym equipment and training floor"
                 className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/50 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)]/50 to-transparent" />
               <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur text-white px-3 py-1.5 rounded text-xs">
                 151 Harvey West Blvd · Santa Cruz
               </div>
@@ -247,7 +247,7 @@ export default function Home() {
                 Walk in and you'll notice it immediately. The space is clean. The equipment is serious.
                 People are focused, not performing.
               </p>
-              <p className="text-white/40 leading-relaxed mb-6 text-sm">
+              <p className="text-white/58 leading-relaxed mb-6 text-sm">
                 No music drowning out your thoughts. No influencer corner. Just chalk, iron,
                 and people who came to work.
               </p>
@@ -279,7 +279,7 @@ export default function Home() {
       </section>
 
       {/* WHO IT’S FOR */}
-      <section className="py-20 sm:py-24 bg-[#111214]" data-testid="home-who-its-for-section">
+      <section className="py-20 sm:py-24 bg-[var(--surface)]" data-testid="home-who-its-for-section">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -293,7 +293,7 @@ export default function Home() {
                 Santa Cruz Strength serves the full spectrum of the local athletic community.
                 The common thread isn\'t your sport or your background.
               </p>
-              <p className="text-white/40 text-sm leading-relaxed mb-8">
+              <p className="text-white/58 text-sm leading-relaxed mb-8">
                 It\'s the belief that being strong makes everything else better —
                 your surfing, your climbing, your work, your years ahead.
               </p>
@@ -309,7 +309,7 @@ export default function Home() {
             <div className="relative rounded-xl overflow-hidden">
               <img src={SURFER_IMG} alt="Surfer athlete walking on beach in Santa Cruz"
                 className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#111214]/70 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)]/70 to-transparent" />
               <div className="absolute bottom-5 left-5 right-5">
                 <p className="text-white font-display text-xl tracking-wide">TRAIN HARD.</p>
                 <p className="text-[#7FCCA6] font-display text-xl tracking-wide">PADDLE OUT. REPEAT.</p>
@@ -320,7 +320,7 @@ export default function Home() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="py-20 sm:py-24 bg-[#0A0A0A]" data-testid="home-testimonials-section">
+      <section className="py-20 sm:py-24 bg-[var(--ink)]" data-testid="home-testimonials-section">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <span className="green-accent-line mx-auto" />
@@ -340,7 +340,7 @@ export default function Home() {
                 <p className="text-white/65 text-sm leading-relaxed mb-5">"{t.text}"</p>
                 <div className="border-t border-white/8 pt-4">
                   <p className="text-white font-semibold text-sm">{t.name}</p>
-                  <p className="text-white/35 text-xs mt-0.5">{t.detail}</p>
+                  <p className="text-white/52 text-xs mt-0.5">{t.detail}</p>
                 </div>
               </div>
             ))}
@@ -357,8 +357,8 @@ export default function Home() {
           backgroundPosition: 'center',
         }}
       >
-        <div className="absolute inset-0 bg-[#0A0A0A]/85" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/40 via-transparent to-[#0A0A0A]/60" />
+        <div className="absolute inset-0 bg-[var(--ink)]/85" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--ink)]/40 via-transparent to-[var(--ink)]/60" />
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <span className="green-accent-line mx-auto" />
           <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-wide mb-3">
@@ -381,12 +381,12 @@ export default function Home() {
               Book a Tour First
             </button>
           </div>
-          <p className="text-white/25 text-xs mt-5">No commitment required for a tour.</p>
+          <p className="text-white/42 text-xs mt-5">No commitment required for a tour.</p>
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="py-20 sm:py-24 bg-[#111214]">
+      <section className="py-20 sm:py-24 bg-[var(--surface)]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
             <span className="green-accent-line mx-auto" />
@@ -411,7 +411,7 @@ export default function Home() {
       </section>
 
       {/* LOCAL SECTION */}
-      <section className="py-20 sm:py-24 bg-[#0A0A0A]">
+      <section className="py-20 sm:py-24 bg-[var(--ink)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
             <span className="green-accent-line mx-auto" />
@@ -425,7 +425,7 @@ export default function Home() {
                   <MapPin size={17} className="text-[#1B7A4A] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-white text-sm font-medium">{GYM_CONFIG.address.full}</p>
-                    <p className="text-white/35 text-xs mt-0.5">Harvey West Business Park · Free parking</p>
+                    <p className="text-white/52 text-xs mt-0.5">Harvey West Business Park · Free parking</p>
                   </div>
                 </li>
                 <li>
@@ -448,10 +448,10 @@ export default function Home() {
                   {GYM_CONFIG.hours.map((h, i) => (
                     <li key={i} className="">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/50">{h.days}</span>
+                        <span className="text-white/65">{h.days}</span>
                         <span className="text-white font-medium">{h.hours}</span>
                       </div>
-                      {h.note && <p className="text-white/30 text-xs mt-0.5 text-right">{h.note}</p>}
+                      {h.note && <p className="text-white/48 text-xs mt-0.5 text-right">{h.note}</p>}
                     </li>
                   ))}
                 </ul>

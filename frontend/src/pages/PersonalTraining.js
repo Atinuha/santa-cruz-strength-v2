@@ -24,7 +24,7 @@ const PT_WHO = [
 
 export default function PersonalTraining() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen bg-[var(--ink)]">
       <Navbar />
 
       <section className="relative pt-32 pb-16"
@@ -33,7 +33,7 @@ export default function PersonalTraining() {
           backgroundSize: 'cover',
           backgroundPosition: 'center 30%',
         }}>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/88 via-[#0A0A0A]/82 to-[#0A0A0A]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--ink)]/88 via-[var(--ink)]/82 to-[var(--ink)]" />
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
           <span className="green-accent-line" />
           <p className="text-[#1B7A4A] text-xs font-semibold uppercase tracking-widest mb-3">1-on-1 Coaching</p>
@@ -48,14 +48,14 @@ export default function PersonalTraining() {
         </div>
       </section>
 
-      <section className="py-16 bg-[#0A0A0A]">
+      <section className="py-16 bg-[var(--ink)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-16">
             {PT_BENEFITS.map((b, i) => (
               <div key={i} className="card-marketing p-6">
                 <div className="mb-3">{b.icon}</div>
                 <h3 className="text-white font-semibold text-sm mb-2">{b.title}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{b.desc}</p>
+                <p className="text-white/65 text-sm leading-relaxed">{b.desc}</p>
               </div>
             ))}
           </div>
@@ -77,7 +77,7 @@ export default function PersonalTraining() {
               </ul>
               <div className="mt-8 p-5 bg-[#1B7A4A]/8 border border-[#1B7A4A]/18 rounded-xl">
                 <p className="text-white/75 text-sm font-medium mb-1">How to get started</p>
-                <p className="text-white/50 text-sm leading-relaxed">
+                <p className="text-white/65 text-sm leading-relaxed">
                   Reach out below. A coach will contact you, learn about your goals, and
                   schedule a first consultation. No contracts to try it.
                 </p>
@@ -86,19 +86,19 @@ export default function PersonalTraining() {
 
             <div className="card-marketing p-6">
               <h2 className="font-display text-2xl text-white tracking-wide mb-2">TALK TO A COACH</h2>
-              <p className="text-white/45 text-sm mb-5">Tell us about your goals and we\'ll schedule a consultation.</p>
+              <p className="text-white/62 text-sm mb-5">Tell us about your goals and we\'ll schedule a consultation.</p>
               <LeadForm source="personal_training_inquiry" ctaLabel="Request a Consultation" />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-14 bg-[#111214] border-t border-white/6">
+      <section className="py-14 bg-[var(--surface)] border-t border-white/6">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="font-display text-3xl sm:text-4xl text-white tracking-wide mb-4">
             READY TO TRAIN WITH PURPOSE?
           </h2>
-          <p className="text-white/50 text-sm mb-6">Fill out the form above or call us directly.</p>
+          <p className="text-white/65 text-sm mb-6">Fill out the form above or call us directly.</p>
           <a href={GYM_CONFIG.phoneHref}
             className="btn-scs-primary inline-flex items-center gap-2 px-6 py-3 rounded-md font-semibold text-sm">
             Call Us: {GYM_CONFIG.phone}

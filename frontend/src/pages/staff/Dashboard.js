@@ -42,28 +42,28 @@ function QuickAddStrip({ onAdded }) {
     }
   };
 
-  const inputClass = 'bg-black/40 border border-white/12 text-white placeholder:text-white/28 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 transition-colors duration-200';
+  const inputClass = 'bg-white/5 border border-white/12 text-white placeholder:text-white/45 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 transition-colors duration-200';
 
   return (
     <div className="mb-4">
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 text-sm text-white/45 hover:text-white bg-white/3 hover:bg-white/6 border border-white/8 hover:border-white/15 px-4 py-2.5 rounded-lg w-full transition-colors duration-200"
+          className="flex items-center gap-2 text-sm text-white/62 hover:text-white bg-white/3 hover:bg-white/6 border border-white/8 hover:border-white/15 px-4 py-2.5 rounded-lg w-full transition-colors duration-200"
         >
           <Zap size={14} className="text-[#1B7A4A]" />
           <span className="font-medium">Quick Add</span>
-          <span className="text-white/28 text-xs ml-1">— walk-in, call-in, or any quick entry</span>
+          <span className="text-white/45 text-xs ml-1">— walk-in, call-in, or any quick entry</span>
         </button>
       ) : (
-        <form onSubmit={handleSubmit} className="bg-[#111214] border border-[#1B7A4A]/20 rounded-lg p-4">
+        <form onSubmit={handleSubmit} className="bg-[var(--surface)] border border-[#1B7A4A]/20 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Zap size={14} className="text-[#1B7A4A]" />
               <span className="text-white text-sm font-semibold">Quick Add Lead</span>
-              <span className="text-white/30 text-xs">walk-in / call-in</span>
+              <span className="text-white/48 text-xs">walk-in / call-in</span>
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="text-white/35 hover:text-white text-xs px-2 py-1">
+            <button type="button" onClick={() => setOpen(false)} className="text-white/52 hover:text-white text-xs px-2 py-1">
               Cancel
             </button>
           </div>
@@ -203,18 +203,18 @@ export default function Dashboard() {
   };
 
   const KPI_STATS = [
-    { label: 'New (7 days)', value: stats?.new_7d ?? '—', icon: <TrendingUp size={15} />, testid: 'crm-dashboard-kpi-new', color: 'text-white/40' },
+    { label: 'New (7 days)', value: stats?.new_7d ?? '—', icon: <TrendingUp size={15} />, testid: 'crm-dashboard-kpi-new', color: 'text-white/58' },
     { label: 'Tour Booked', value: stats?.by_status?.['Booked Visit'] ?? 0, icon: <Calendar size={15} />, testid: 'crm-dashboard-kpi-booked', color: 'text-[#7FCCA6]/50' },
     { label: 'Members', value: stats?.by_status?.['Joined'] ?? 0, icon: <Users size={15} />, testid: 'crm-dashboard-kpi-joined', color: 'text-[#1B7A4A]/70' },
-    { label: 'Total Leads', value: stats?.total ?? '—', icon: <Activity size={15} />, testid: 'crm-dashboard-kpi-total', color: 'text-white/40' },
+    { label: 'Total Leads', value: stats?.total ?? '—', icon: <Activity size={15} />, testid: 'crm-dashboard-kpi-total', color: 'text-white/58' },
   ];
 
-  const inputClass = 'bg-black/40 border border-white/12 text-white placeholder:text-white/30 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-colors duration-200';
+  const inputClass = 'bg-white/5 border border-white/12 text-white placeholder:text-white/48 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-colors duration-200';
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen bg-[var(--ink)]">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0A0A0A]/96 backdrop-blur border-b border-white/8">
+      <header className="sticky top-0 z-40 bg-[var(--ink)]/96 backdrop-blur border-b border-white/8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 bg-[#1B7A4A] rounded flex items-center justify-center">
@@ -222,17 +222,17 @@ export default function Dashboard() {
             </div>
             <span className="font-display text-white tracking-wider text-sm hidden sm:block">SANTA CRUZ STRENGTH</span>
             <span className="font-display text-white tracking-wider text-sm sm:hidden">SCS</span>
-            <span className="text-white/20 hidden sm:block">|</span>
-            <span className="text-white/40 text-xs hidden sm:block">Lead CRM</span>
+            <span className="text-white/38 hidden sm:block">|</span>
+            <span className="text-white/58 text-xs hidden sm:block">Lead CRM</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/" className="text-white/35 hover:text-white text-xs transition-colors duration-200 hidden sm:block">View Site</Link>
-            <Link to="/staff/settings" className="text-white/35 hover:text-white p-1.5 rounded transition-colors duration-200" title="Settings">
+            <Link to="/" className="text-white/52 hover:text-white text-xs transition-colors duration-200 hidden sm:block">View Site</Link>
+            <Link to="/staff/settings" className="text-white/52 hover:text-white p-1.5 rounded transition-colors duration-200" title="Settings">
               <Settings size={14} />
             </Link>
-            <span className="text-white/40 text-xs">{user?.name}</span>
+            <span className="text-white/58 text-xs">{user?.name}</span>
             <button onClick={() => { logout(); navigate('/staff/login'); }}
-              className="text-white/35 hover:text-white/70 p-1.5 rounded transition-colors duration-200" title="Logout">
+              className="text-white/52 hover:text-white/70 p-1.5 rounded transition-colors duration-200" title="Logout">
               <LogOut size={14} />
             </button>
           </div>
@@ -256,7 +256,7 @@ export default function Dashboard() {
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <div className="relative flex-1 min-w-0">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/48" />
             <input type="text" placeholder="Search name, phone, email..."
               value={search} onChange={(e) => setSearch(e.target.value)}
               data-testid="crm-dashboard-search-input"
@@ -265,10 +265,10 @@ export default function Dashboard() {
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger data-testid="crm-dashboard-status-filter-select"
-              className="w-full sm:w-44 bg-black/40 border-white/12 text-white text-sm h-9">
+              className="w-full sm:w-44 bg-white/5 border-white/12 text-white text-sm h-9">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1A1A1A] border-white/12">
+            <SelectContent className="bg-[var(--elevated)] border-white/12">
               <SelectItem value="all" className="text-white text-sm">All Statuses</SelectItem>
               {LEAD_STATUSES.map((s) => (
                 <SelectItem key={s.value} value={s.value} className="text-white text-sm">{s.label}</SelectItem>
@@ -277,10 +277,10 @@ export default function Dashboard() {
           </Select>
 
           <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="w-full sm:w-40 bg-black/40 border-white/12 text-white text-sm h-9">
+            <SelectTrigger className="w-full sm:w-40 bg-white/5 border-white/12 text-white text-sm h-9">
               <SelectValue placeholder="All Sources" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1A1A1A] border-white/12">
+            <SelectContent className="bg-[var(--elevated)] border-white/12">
               <SelectItem value="all" className="text-white text-sm">All Sources</SelectItem>
               {LEAD_SOURCES.map((s) => (
                 <SelectItem key={s.value} value={s.value} className="text-white text-sm">{s.label}</SelectItem>
@@ -294,7 +294,7 @@ export default function Dashboard() {
               <button
                 onClick={() => setViewMode('kanban')}
                 className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors duration-200 ${
-                  viewMode === 'kanban' ? 'bg-[#1B7A4A] text-white' : 'text-white/40 hover:text-white hover:bg-white/5'
+                  viewMode === 'kanban' ? 'bg-[#1B7A4A] text-white' : 'text-white/58 hover:text-white hover:bg-white/5'
                 }`}
                 title="Kanban view"
               >
@@ -304,7 +304,7 @@ export default function Dashboard() {
               <button
                 onClick={() => setViewMode('table')}
                 className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors duration-200 ${
-                  viewMode === 'table' ? 'bg-[#1B7A4A] text-white' : 'text-white/40 hover:text-white hover:bg-white/5'
+                  viewMode === 'table' ? 'bg-[#1B7A4A] text-white' : 'text-white/58 hover:text-white hover:bg-white/5'
                 }`}
                 title="Table view"
               >
@@ -335,7 +335,7 @@ export default function Dashboard() {
 
         {/* Lead count */}
         <div className="mb-4">
-          <p className="text-white/35 text-xs">
+          <p className="text-white/52 text-xs">
             {loading ? 'Loading...' : `${total} lead${total !== 1 ? 's' : ''}${search || statusFilter !== 'all' || sourceFilter !== 'all' ? ' (filtered)' : ''}`}
           </p>
         </div>
@@ -348,8 +348,8 @@ export default function Dashboard() {
         ) : leads.length === 0 ? (
           <div className="card-marketing text-center py-20">
             <Users size={32} className="text-white/18 mx-auto mb-3" />
-            <p className="text-white/35 text-sm">No leads found</p>
-            <p className="text-white/20 text-xs mt-1">Adjust your filters or add a new lead</p>
+            <p className="text-white/52 text-sm">No leads found</p>
+            <p className="text-white/38 text-xs mt-1">Adjust your filters or add a new lead</p>
           </div>
         ) : viewMode === 'kanban' ? (
           <KanbanBoard leads={leads} onLeadsUpdated={() => fetchData(true)} />
@@ -377,7 +377,7 @@ export default function Dashboard() {
                       <td className="px-4 py-3">
                         <div>
                           <p className="text-white text-sm font-medium">{lead.first_name} {lead.last_name}</p>
-                          <p className="text-white/35 text-xs">{lead.email}</p>
+                          <p className="text-white/52 text-xs">{lead.email}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
@@ -388,18 +388,18 @@ export default function Dashboard() {
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={lead.status} /></td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="text-white/40 text-xs">{SOURCE_LABELS[lead.lead_source] || lead.lead_source}</span>
+                        <span className="text-white/58 text-xs">{SOURCE_LABELS[lead.lead_source] || lead.lead_source}</span>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className="text-white/40 text-xs">{lead.interest_type}</span>
+                        <span className="text-white/58 text-xs">{lead.interest_type}</span>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className="text-white/30 text-xs">
+                        <span className="text-white/48 text-xs">
                           {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <ChevronRight size={13} className="text-white/25" />
+                        <ChevronRight size={13} className="text-white/42" />
                       </td>
                     </tr>
                   ))}
@@ -412,7 +412,7 @@ export default function Dashboard() {
 
       {/* Add Lead Dialog */}
       <Dialog open={addLeadOpen} onOpenChange={setAddLeadOpen}>
-        <DialogContent className="bg-[#111214] border-white/12 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[var(--surface)] border-white/12 text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display tracking-wide text-lg">ADD LEAD</DialogTitle>
           </DialogHeader>
@@ -442,7 +442,7 @@ export default function Dashboard() {
             <div>
               <label className="block text-xs text-white/55 mb-1">Interest</label>
               <select value={newLead.interest_type} onChange={(e) => setNewLead(p => ({...p, interest_type: e.target.value}))}
-                className={inputClass + ' w-full appearance-none'} style={{backgroundColor:'rgba(0,0,0,0.5)'}}>
+                className={inputClass + ' w-full appearance-none'} style={{backgroundColor:'var(--elevated)'}}>
                 {INTEREST_TYPES.map(t => <option key={t} value={t} style={{background:'#1A1A1A'}}>{t}</option>)}
               </select>
             </div>
