@@ -90,7 +90,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="border-t border-white/8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-white/25 text-xs">
             &copy; {new Date().getFullYear()} Santa Cruz Strength. All rights reserved.
           </p>
@@ -99,12 +99,15 @@ export default function Footer() {
               href="https://myiclubonline.com/iclub/members/signin"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/40 hover:text-white text-xs transition-colors duration-200 font-medium"
+              className="text-[#7FCCA6]/80 hover:text-[#7FCCA6] text-xs transition-colors duration-200 font-medium"
             >
               Member Portal
             </a>
-            <Link to="/staff/login" className="text-white/20 hover:text-white/45 text-xs transition-colors duration-200">
-              Staff Login
+            <Link
+              to="/staff/login"
+              className="text-white/50 hover:text-white text-xs transition-colors duration-200 font-medium"
+            >
+              Staff / Admin Login
             </Link>
           </div>
         </div>
