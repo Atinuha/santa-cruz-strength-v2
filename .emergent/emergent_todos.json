@@ -1,34 +1,22 @@
 [
   {
-    "content": "Backend: add owner role, staff permissions (no delete), invite system",
+    "content": "Update CSV template + import to handle member fields (DOB, address, city, state, zip, phone_number, how_did_you_hear)",
     "status": "in_progress"
   },
   {
-    "content": "Backend: CSV import endpoint + template download",
+    "content": "Build time quick-select picker in LeadDetail (clickable 30-min slots with staffed indicator)",
     "status": "pending"
   },
   {
-    "content": "Frontend: invite UI in Settings (send link, list pending, revoke)",
+    "content": "Backend: staffed hours settings endpoints (GET/PUT, owner only)",
     "status": "pending"
   },
   {
-    "content": "Frontend: CSV upload modal + template download in Dashboard",
+    "content": "Build staff schedule UI in Settings (owner only) - set hours per day, inline editing",
     "status": "pending"
   },
   {
-    "content": "Frontend: Quick Add modal for walk-ins (minimal fields, fast)",
-    "status": "pending"
-  },
-  {
-    "content": "Frontend: Time picker for follow-up/tour scheduled in LeadDetail",
-    "status": "pending"
-  },
-  {
-    "content": "Frontend: Accept Invite page (/staff/accept-invite)",
-    "status": "pending"
-  },
-  {
-    "content": "Update seed: management@ becomes owner role",
+    "content": "Update Kanban card follow-up display to show time",
     "status": "pending"
   },
   {

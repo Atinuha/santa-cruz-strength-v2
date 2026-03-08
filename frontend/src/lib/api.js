@@ -63,6 +63,10 @@ export const createInvite = (data) => api.post('/staff/invites', data);
 export const revokeInvite = (id) => api.delete(`/staff/invites/${id}`);
 export const acceptInvite = (data) => api.post('/auth/accept-invite', data);
 
+// Staffed Hours
+export const getStaffedHours = () => api.get('/staff/settings/staffed-hours');
+export const updateStaffedHours = (hours) => api.put('/staff/settings/staffed-hours', hours);
+
 // CSV
 export const importLeadsCSV = (file) => {
   const form = new FormData();

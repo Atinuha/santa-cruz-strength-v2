@@ -446,19 +446,31 @@ async def create_lead_manual(lead: LeadCreate, user=Depends(require_staff)):
     await db.leads.insert_one(doc)
     return {'id': lead_id, 'status': 'created'}
 
-# CSV Template
+# CSV Template — includes member fields
 @api_router.get('/staff/leads/template/csv')
 async def download_csv_template(user=Depends(require_staff)):
-    fieldnames = ['first_name', 'last_name', 'email', 'phone', 'interest_type', 'training_goals', 'start_timeline', 'preferred_contact', 'notes', 'lead_source']
+    fieldnames = [
+        'first_name', 'last_name', 'date_of_birth', 'email', 'phone',
+        'address', 'city', 'state', 'zip_code',
+        'interest_type', 'training_goals', 'start_timeline',
+        'preferred_contact', 'notes', 'lead_source', 'how_did_you_hear_about_us'
+    ]
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
     writer.writerow({
-        'first_name': 'Alex', 'last_name': 'Smith', 'email': 'alex@example.com',
-        'phone': '(831) 555-0100', 'interest_type': 'General Membership',
-        'training_goals': 'Build strength', 'start_timeline': 'ASAP',
-        'preferred_contact': 'call', 'notes': 'Walked in on Tuesday',
-        'lead_source': 'manual_entry'
+        'first_name': 'Alex', 'last_name': 'Smith',
+        'date_of_birth': '1990-04-15',
+        'email': 'alex@example.com', 'phone': '(831) 555-0100',
+        'address': '123 Pacific Ave', 'city': 'Santa Cruz',
+        'state': 'CA', 'zip_code': '95060',
+        'interest_type': 'General Membership',
+        'training_goals': 'Build strength',
+        'start_timeline': 'ASAP',
+        'preferred_contact': 'call',
+        'notes': 'Previous member',
+        'lead_source': 'csv_import',
+        'how_did_you_hear_about_us': 'Friend'
     })
     output.seek(0)
     return StreamingResponse(
@@ -467,14 +479,20 @@ async def download_csv_template(user=Depends(require_staff)):
         headers={'Content-Disposition': 'attachment; filename=scs-leads-template.csv'}
     )
 
-# CSV Export
+# CSV Export — includes member fields
 @api_router.get('/staff/leads/export/csv')
 async def export_leads_csv(status: Optional[str] = None, location: Optional[str] = None, user=Depends(require_staff)):
     query = {}
     if status: query['status'] = status
     if location: query['location'] = location
     leads = await db.leads.find(query, {'_id': 0}).sort('created_at', -1).to_list(10000)
-    fieldnames = ['first_name', 'last_name', 'email', 'phone', 'status', 'interest_type', 'lead_source', 'training_goals', 'start_timeline', 'preferred_contact', 'location', 'notes', 'created_at', 'last_contact_date', 'next_follow_up_date', 'next_follow_up_time']
+    fieldnames = [
+        'first_name', 'last_name', 'date_of_birth', 'email', 'phone',
+        'address', 'city', 'state', 'zip_code',
+        'status', 'interest_type', 'lead_source', 'how_did_you_hear_about_us',
+        'training_goals', 'start_timeline', 'preferred_contact', 'location',
+        'notes', 'created_at', 'last_contact_date', 'next_follow_up_date', 'next_follow_up_time'
+    ]
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
@@ -483,55 +501,83 @@ async def export_leads_csv(status: Optional[str] = None, location: Optional[str]
     output.seek(0)
     return StreamingResponse(iter([output.getvalue()]), media_type='text/csv', headers={'Content-Disposition': 'attachment; filename=scs-leads.csv'})
 
-# CSV Import
+# CSV Import — handles both member format and lead format
 @api_router.post('/staff/leads/import/csv')
 async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_staff)):
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail='File must be a CSV')
     content = await file.read()
     try:
-        text = content.decode('utf-8-sig')  # handle BOM
+        text = content.decode('utf-8-sig')
     except UnicodeDecodeError:
         text = content.decode('latin-1')
     reader = csv.DictReader(io.StringIO(text))
-    required_fields = {'first_name', 'last_name', 'email', 'phone'}
     rows = list(reader)
     if not rows:
         raise HTTPException(status_code=400, detail='CSV is empty')
-    # Validate headers
     headers = set(reader.fieldnames or [])
-    missing = required_fields - headers
-    if missing:
-        raise HTTPException(status_code=400, detail='Missing required columns: ' + ', '.join(missing))
+    # Must have at least phone/email to be useful
+    if not (('email' in headers) or ('phone' in headers) or ('phone_number' in headers)):
+        raise HTTPException(status_code=400, detail='CSV must have at minimum an email or phone column')
     now = now_utc()
     imported = 0
     skipped = 0
     errors = []
     for i, row in enumerate(rows, 1):
-        fn = (row.get('first_name') or '').strip()
-        ln = (row.get('last_name') or '').strip()
+        # Handle 'name' as full name (member export format)
+        full_name = (row.get('name') or '').strip()
+        if full_name and not row.get('first_name'):
+            parts = full_name.split(' ', 1)
+            fn = parts[0]
+            ln = parts[1] if len(parts) > 1 else ''
+        else:
+            fn = (row.get('first_name') or '').strip()
+            ln = (row.get('last_name') or '').strip()
+        # Support both 'phone' and 'phone_number' columns
+        phone = (row.get('phone') or row.get('phone_number') or '').strip()
         email = (row.get('email') or '').strip().lower()
-        phone = (row.get('phone') or '').strip()
-        if not fn or not ln or not email or not phone:
-            errors.append(f'Row {i}: missing required fields')
+        if not fn or not phone:
+            errors.append(f'Row {i}: missing name or phone — skipped')
             skipped += 1
             continue
-        existing = await db.leads.find_one({'email': email, 'location': 'santa_cruz'})
-        if existing:
-            skipped += 1
-            continue
+        if email:
+            existing = await db.leads.find_one({'email': email, 'location': 'santa_cruz'})
+            if existing:
+                skipped += 1
+                continue
+        # Build notes combining address info if present
+        address_parts = [
+            row.get('address', ''), row.get('city', ''),
+            row.get('state', ''), row.get('zip_code', '')
+        ]
+        address_str = ', '.join(p.strip() for p in address_parts if p and p.strip())
+        base_notes = (row.get('notes') or '').strip()
+        combined_notes = base_notes
+        if address_str:
+            combined_notes = f'{base_notes}\nAddress: {address_str}'.strip()
+        # how_did_you_hear maps to lead_source or stored in notes
+        how_heard = (row.get('how_did_you_hear_about_us') or '').strip()
+        lead_source = (row.get('lead_source') or 'csv_import').strip()
+        if how_heard and how_heard.lower() not in ('', 'n/a', 'unknown'):
+            combined_notes = f'{combined_notes}\nHow heard: {how_heard}'.strip()
         lead_id = str(uuid.uuid4())
         doc = {
             'id': lead_id,
             'first_name': fn, 'last_name': ln, 'email': email, 'phone': phone,
             'location': 'santa_cruz',
+            'date_of_birth': (row.get('date_of_birth') or row.get('date_of_birht') or '').strip(),
+            'address': (row.get('address') or '').strip(),
+            'city': (row.get('city') or '').strip(),
+            'state': (row.get('state') or '').strip(),
+            'zip_code': (row.get('zip_code') or '').strip(),
+            'how_did_you_hear_about_us': how_heard,
             'interest_type': (row.get('interest_type') or 'General Membership').strip(),
             'training_goals': (row.get('training_goals') or '').strip(),
             'start_timeline': (row.get('start_timeline') or 'Just exploring').strip(),
             'preferred_contact': (row.get('preferred_contact') or 'call').strip(),
-            'lead_source': (row.get('lead_source') or 'csv_import').strip(),
-            'notes': (row.get('notes') or '').strip(),
-            'tags': [],
+            'lead_source': lead_source,
+            'notes': combined_notes,
+            'tags': ['imported'],
             'status': 'New',
             'next_follow_up_date': None,
             'next_follow_up_time': None,
@@ -542,7 +588,7 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
         }
         await db.leads.insert_one(doc)
         imported += 1
-    return {'imported': imported, 'skipped': skipped, 'errors': errors, 'total_rows': len(rows)}
+    return {'imported': imported, 'skipped': skipped, 'errors': errors[:10], 'total_rows': len(rows)}
 
 @api_router.get('/staff/leads/{lead_id}')
 async def get_lead(lead_id: str, user=Depends(require_staff)):
@@ -667,6 +713,34 @@ async def delete_user(user_id: str, user=Depends(require_admin)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail='User not found')
     return {'message': 'User deleted'}
+
+# --------------- Staffed Hours Settings ---------------
+
+DEFAULT_STAFFED_HOURS = {
+    'monday':    {'enabled': True,  'open': '08:00', 'close': '19:00'},
+    'tuesday':   {'enabled': True,  'open': '08:00', 'close': '19:00'},
+    'wednesday': {'enabled': True,  'open': '08:00', 'close': '19:00'},
+    'thursday':  {'enabled': True,  'open': '08:00', 'close': '19:00'},
+    'friday':    {'enabled': True,  'open': '08:00', 'close': '19:00'},
+    'saturday':  {'enabled': True,  'open': '09:00', 'close': '14:00'},
+    'sunday':    {'enabled': False, 'open': '09:00', 'close': '14:00'},
+}
+
+@api_router.get('/staff/settings/staffed-hours')
+async def get_staffed_hours(user=Depends(require_staff)):
+    doc = await db.settings.find_one({'key': 'staffed_hours', 'location': 'santa_cruz'})
+    if doc:
+        return doc.get('value', DEFAULT_STAFFED_HOURS)
+    return DEFAULT_STAFFED_HOURS
+
+@api_router.put('/staff/settings/staffed-hours')
+async def update_staffed_hours(hours: dict, user=Depends(require_owner)):
+    await db.settings.update_one(
+        {'key': 'staffed_hours', 'location': 'santa_cruz'},
+        {'$set': {'key': 'staffed_hours', 'location': 'santa_cruz', 'value': hours, 'updated_at': now_utc().isoformat(), 'updated_by': user['name']}},
+        upsert=True
+    )
+    return {'message': 'Staffed hours updated', 'hours': hours}
 
 # --------------- Startup ---------------
 

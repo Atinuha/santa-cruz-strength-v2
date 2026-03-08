@@ -109,11 +109,21 @@ function KanbanCard({ lead, onStatusChange, movingId }) {
         </DropdownMenu>
       </div>
 
-      {/* Follow-up date */}
+      {/* Follow-up date + time */}
       {lead.next_follow_up_date && (
-        <div className="mt-2 flex items-center gap-1 text-[10px] text-[#7FCCA6]/70">
+        <div className="mt-2 flex items-center gap-1 text-[10px] text-[#7FCCA6]/70 flex-wrap">
           <Calendar size={9} />
-          Follow-up: {new Date(lead.next_follow_up_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          <span>{new Date(lead.next_follow_up_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+          {lead.next_follow_up_time && (
+            <span className="font-semibold text-[#7FCCA6]/90">
+              @ {(() => {
+                const [h, m] = lead.next_follow_up_time.split(':').map(Number);
+                const p = h >= 12 ? 'PM' : 'AM';
+                const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+                return `${h12}:${String(m).padStart(2,'0')} ${p}`;
+              })()}
+            </span>
+          )}
         </div>
       )}
     </div>

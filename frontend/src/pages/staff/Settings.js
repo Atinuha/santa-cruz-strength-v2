@@ -4,11 +4,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   getUsers, createUser, updateUser, deleteUser, updateMe,
   getInvites, createInvite, revokeInvite,
-  importLeadsCSV, downloadCSVTemplate
+  importLeadsCSV, downloadCSVTemplate,
+  getStaffedHours, updateStaffedHours
 } from '../../lib/api';
 import {
   ArrowLeft, Plus, Trash2, Loader2, LogOut, Shield, User,
-  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock
+  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock, CalendarDays
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
@@ -37,6 +38,8 @@ export default function Settings() {
   const [copied, setCopied] = useState(false);
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvResult, setCsvResult] = useState(null);
+  const [staffedHours, setStaffedHours] = useState(null);
+  const [hoursSaving, setHoursSaving] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', password: '', confirm_password: '' });
   const [profileSaving, setProfileSaving] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'staff', location: 'santa_cruz' });
@@ -46,9 +49,12 @@ export default function Settings() {
     if (!isAdmin) return;
     setLoadingUsers(true);
     try {
-      const [uRes, iRes] = await Promise.all([getUsers(), getInvites()]);
+      const calls = [getUsers(), getInvites()];
+      if (isOwner) calls.push(getStaffedHours());
+      const [uRes, iRes, hRes] = await Promise.all(calls);
       setUsers(uRes.data);
       setInvites(iRes.data);
+      if (hRes) setStaffedHours(hRes.data);
     } catch { toast.error('Failed to load staff data'); }
     finally { setLoadingUsers(false); }
   };
@@ -128,6 +134,16 @@ export default function Settings() {
       toast.success('User deleted');
       fetchAll();
     } catch (err) { toast.error(err.response?.data?.detail || 'Failed to delete user'); }
+  };
+
+  const handleSaveHours = async () => {
+    setHoursSaving(true);
+    try {
+      await updateStaffedHours(staffedHours);
+      toast.success('Staffed hours saved');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to save hours');
+    } finally { setHoursSaving(false); }
   };
 
   const handleCSVUpload = async (e) => {
@@ -362,6 +378,83 @@ export default function Settings() {
                 <span className="text-white/50">Staff</span> — view leads, update status, add notes. Cannot delete.
               </p>
             </div>
+          </section>
+        )}
+
+        {/* Staff Schedule — Owner Only */}
+        {isOwner && staffedHours && (
+          <section className="card-marketing p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <CalendarDays size={15} className="text-[#1B7A4A]" />
+                <h2 className="font-display text-xl text-white tracking-wide">STAFFED HOURS</h2>
+                <span className="text-white/30 text-xs">owner only</span>
+              </div>
+              <button
+                onClick={handleSaveHours}
+                disabled={hoursSaving}
+                className="btn-scs-primary px-3 py-2 rounded-md text-xs flex items-center gap-1.5"
+              >
+                {hoursSaving ? <><Loader2 size={12} className="animate-spin" /> Saving...</> : 'Save Hours'}
+              </button>
+            </div>
+
+            <p className="text-white/40 text-xs mb-4">
+              Set when staff are available. This shows on the follow-up scheduler so your team knows if someone will be around — but you can still schedule outside these hours.
+            </p>
+
+            <div className="space-y-2">
+              {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((day) => {
+                const d = staffedHours[day] || { enabled: false, open: '09:00', close: '17:00' };
+                return (
+                  <div key={day} className="flex items-center gap-3 p-3 bg-white/3 border border-white/7 rounded-lg">
+                    <div className="w-24 shrink-0">
+                      <p className="text-white text-sm capitalize font-medium">{day}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStaffedHours(p => ({ ...p, [day]: { ...d, enabled: !d.enabled } }))}
+                      className={`w-10 h-5 rounded-full transition-colors duration-200 shrink-0 relative ${d.enabled ? 'bg-[#1B7A4A]' : 'bg-white/15'}`}
+                    >
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all duration-200 ${d.enabled ? 'left-5' : 'left-0.5'}`} />
+                    </button>
+                    {d.enabled ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <input
+                          type="time"
+                          value={d.open}
+                          onChange={(e) => setStaffedHours(p => ({ ...p, [day]: { ...d, open: e.target.value } }))}
+                          className="bg-black/40 border border-white/10 text-white rounded px-2 py-1 text-xs w-24"
+                          style={{ colorScheme: 'dark' }}
+                        />
+                        <span className="text-white/30 text-xs">to</span>
+                        <input
+                          type="time"
+                          value={d.close}
+                          onChange={(e) => setStaffedHours(p => ({ ...p, [day]: { ...d, close: e.target.value } }))}
+                          className="bg-black/40 border border-white/10 text-white rounded px-2 py-1 text-xs w-24"
+                          style={{ colorScheme: 'dark' }}
+                        />
+                        <span className="text-white/40 text-xs">
+                          {(() => {
+                            const [oh, om] = d.open.split(':').map(Number);
+                            const [ch, cm] = d.close.split(':').map(Number);
+                            const hrs = ((ch * 60 + cm) - (oh * 60 + om)) / 60;
+                            return hrs > 0 ? `${hrs}h` : '';
+                          })()}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-white/25 text-xs">Closed / No staff</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-white/25 text-xs mt-3">
+              * After-hours slots are shown dimmed on the follow-up scheduler. You can still pick them — they'll be marked as outside staffed hours.
+            </p>
           </section>
         )}
 

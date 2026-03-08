@@ -13,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Separator } from '../../components/ui/separator';
 import { toast } from 'sonner';
+import TimeQuickSelect from '../../components/staff/TimeQuickSelect';
 
 function StatusBadge({ status }) {
   const found = LEAD_STATUSES.find((s) => s.value === status);
@@ -26,11 +27,22 @@ function StatusBadge({ status }) {
 
 const SOURCE_LABELS = {
   website_form: 'Website Form',
+  book_a_tour: 'Book a Tour',
   book_a_visit: 'Book a Visit',
   contact_page: 'Contact Page',
   personal_training_inquiry: 'PT Inquiry',
   manual_entry: 'Manual Entry',
+  csv_import: 'CSV Import',
+  walk_in: 'Walk-In',
 };
+
+function formatTime12(time24) {
+  if (!time24) return '';
+  const [h, m] = time24.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -257,30 +269,26 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
 
       {/* Follow-up date + time */}
       <div>
-        <label className="block text-xs text-white/50 mb-1.5">Follow-up / Tour Date & Time</label>
-        <div className="flex gap-2 mb-2">
-          <input
-            type="date"
-            value={followUpDate}
-            onChange={(e) => setFollowUpDate(e.target.value)}
-            className="flex-1 bg-black/40 border border-white/12 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/45"
-            style={{ colorScheme: 'dark' }}
-          />
-          <input
-            type="time"
-            value={followUpTime}
-            onChange={(e) => setFollowUpTime(e.target.value)}
-            className="w-28 bg-black/40 border border-white/12 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/45"
-            style={{ colorScheme: 'dark' }}
-          />
-        </div>
-        <button onClick={onSaveFollowUp} className="btn-scs-primary px-3 py-1.5 rounded-md text-xs w-full">
+        <label className="block text-xs text-white/50 mb-1.5">Follow-up / Tour — Date & Time</label>
+        <input
+          type="date"
+          value={followUpDate}
+          onChange={(e) => setFollowUpDate(e.target.value)}
+          className="w-full bg-black/40 border border-white/12 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 mb-2"
+          style={{ colorScheme: 'dark' }}
+        />
+        <TimeQuickSelect
+          value={followUpTime}
+          onChange={setFollowUpTime}
+          selectedDate={followUpDate}
+        />
+        <button onClick={onSaveFollowUp} className="btn-scs-primary px-3 py-1.5 rounded-md text-xs w-full mt-2">
           Save Follow-up
         </button>
         {(lead.next_follow_up_date) && (
           <p className="text-white/35 text-xs mt-1.5">
-            Set: {new Date(lead.next_follow_up_date).toLocaleDateString()}
-            {lead.next_follow_up_time && ` at ${lead.next_follow_up_time}`}
+            Saved: {new Date(lead.next_follow_up_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            {lead.next_follow_up_time && ` at ${formatTime12(lead.next_follow_up_time)}`}
           </p>
         )}
       </div>
