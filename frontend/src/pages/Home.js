@@ -13,7 +13,7 @@ import {
   Shield, ArrowRight, Clock, Mountain, Waves, Bike
 } from 'lucide-react';
 
-const HERO_IMG = 'https://images.unsplash.com/photo-1563387061879-ba036b025216?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1800';
+const HERO_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/78eczi55_348s.jpg';
 const GYM_IMG = 'https://images.unsplash.com/photo-1526408984842-5f1323d42469?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200';
 const DUMBBELL_IMG = 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=800';
 const COASTAL_IMG = 'https://images.unsplash.com/photo-1770670588301-2769fd50a060?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1800';
@@ -124,13 +124,13 @@ export default function Home() {
         style={{
           backgroundImage: `url(${HERO_IMG})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center center',
+          backgroundPosition: 'center 35%',
         }}
       >
-        {/* Stronger base overlay for readability */}
-        <div className="absolute inset-0 bg-[#0C1420]/82" />
-        {/* Left-heavy gradient to keep text fully readable */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0C1420]/75 via-[#0C1420]/40 to-[#0C1420]/15" />
+        {/* Strong base overlay */}
+        <div className="absolute inset-0 bg-[#0C1420]/75" />
+        {/* Left heavy — keep text area darker */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0C1420]/80 via-[#0C1420]/50 to-[#0C1420]/10" />
         {/* Subtle brand accent — barely visible */}
         <div className="absolute inset-0" style={{
           background: 'radial-gradient(600px circle at 8% 50%, rgba(27,122,74,0.06), transparent 50%)',
@@ -186,7 +186,7 @@ export default function Home() {
 
             {/* Right — Form */}
             <div ref={formRef} id="lead-form" className="animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-              <div className="bg-[#0C1420]/97 backdrop-blur-md border border-white/12 rounded-xl p-6 shadow-2xl">
+              <div className="bg-[#0C1420]/96 backdrop-blur-md border border-white/14 rounded-xl p-6 shadow-2xl">
                 <div className="mb-5">
                   <h2 className="font-display text-2xl text-white tracking-wide">BOOK A TOUR</h2>
                   <p className="text-white/62 text-sm mt-1">Tell us a bit about yourself. We\'ll reach out to schedule a visit.</p>
@@ -357,15 +357,14 @@ export default function Home() {
           backgroundPosition: 'center',
         }}
       >
-        <div className="absolute inset-0 bg-[var(--ink)]/85" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--ink)]/40 via-transparent to-[var(--ink)]/60" />
+        <div className="absolute inset-0 bg-[#0C1420]/92" />
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <span className="green-accent-line mx-auto" />
           <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-wide mb-3">
             STRENGTH IS THE
             <br />FOUNDATION.
           </h2>
-          <p className="text-white/55 text-base mb-8 max-w-lg mx-auto">
+          <p className="text-white/80 text-base mb-8 max-w-lg mx-auto">
             Whether you surf, climb, run trails, or just want to stay capable for life —
             it starts here.
           </p>
@@ -381,7 +380,7 @@ export default function Home() {
               Book a Tour First
             </button>
           </div>
-          <p className="text-white/42 text-xs mt-5">No commitment required for a tour.</p>
+          <p className="text-white/62 text-xs mt-5">No commitment required for a tour.</p>
         </div>
       </section>
 
