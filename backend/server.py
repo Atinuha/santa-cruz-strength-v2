@@ -766,7 +766,7 @@ async def startup():
             logger.info('[SEED] Upgraded management@ to owner role')
         else:
             admin_id = str(uuid.uuid4())
-            await db.users.insert_one({'id': admin_id, 'email': 'management@santacruzstrength.com', 'password_hash': hash_password('SCS@admin2024!'), 'name': 'Management', 'role': 'owner', 'location': 'santa_cruz', 'is_active': True, 'created_at': now_utc().isoformat()})
+            await db.users.insert_one({'id': admin_id, 'email': 'management@santacruzstrength.com', 'password_hash': hash_password('schuscle01'), 'name': 'Management', 'role': 'owner', 'location': 'santa_cruz', 'is_active': True, 'created_at': now_utc().isoformat()})
             logger.info('[SEED] Created owner: management@santacruzstrength.com')
     logger.info('[STARTUP] Santa Cruz Strength API ready')
 
