@@ -7,7 +7,7 @@ import KanbanBoard from '../../components/staff/KanbanBoard';
 import {
   Search, Download, Plus, LogOut, RefreshCw, Phone,
   ChevronRight, Users, TrendingUp, Calendar, Activity,
-  Loader2, LayoutGrid, List, Settings, Zap
+  Loader2, LayoutGrid, List, Settings, Zap, ArrowLeft
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -216,21 +216,30 @@ export default function Dashboard() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[var(--ink)]/96 backdrop-blur border-b border-white/8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 bg-[#1B7A4A] rounded flex items-center justify-center">
-              <span className="font-display text-white text-xs">S</span>
-            </div>
-            <span className="font-display text-white tracking-wider text-sm hidden sm:block">SANTA CRUZ STRENGTH</span>
-            <span className="font-display text-white tracking-wider text-sm sm:hidden">SCS</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link to="/" className="flex items-center gap-2 group" title="Back to website">
+              <div className="w-7 h-7 bg-[#1B7A4A] rounded flex items-center justify-center group-hover:bg-[#156038] transition-colors duration-200">
+                <span className="font-display text-white text-xs">S</span>
+              </div>
+              <span className="font-display text-white tracking-wider text-sm hidden sm:block">SANTA CRUZ STRENGTH</span>
+              <span className="font-display text-white tracking-wider text-sm sm:hidden">SCS</span>
+            </Link>
             <span className="text-white/38 hidden sm:block">|</span>
             <span className="text-white/58 text-xs hidden sm:block">Lead CRM</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-white/52 hover:text-white text-xs transition-colors duration-200 hidden sm:block">View Site</Link>
-            <Link to="/staff/settings" className="text-white/52 hover:text-white p-1.5 rounded transition-colors duration-200" title="Settings">
+          <div className="flex items-center gap-2">
+            {/* Website link — always visible on mobile */}
+            <Link
+              to="/"
+              className="flex items-center gap-1 text-white/58 hover:text-white text-xs font-medium border border-white/12 hover:border-white/28 px-2.5 py-1.5 rounded-md transition-colors duration-200"
+            >
+              <ArrowLeft size={11} />
+              <span>Website</span>
+            </Link>
+            <Link to="/staff/settings" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Settings">
               <Settings size={14} />
             </Link>
-            <span className="text-white/58 text-xs">{user?.name}</span>
+            <span className="text-white/58 text-xs hidden sm:block max-w-[80px] truncate">{user?.name}</span>
             <button onClick={() => { logout(); navigate('/staff/login'); }}
               className="text-white/52 hover:text-white/70 p-1.5 rounded transition-colors duration-200" title="Logout">
               <LogOut size={14} />

@@ -14,10 +14,10 @@ import {
 } from 'lucide-react';
 
 const HERO_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/78eczi55_348s.jpg';
-const GYM_IMG = 'https://images.unsplash.com/photo-1526408984842-5f1323d42469?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200';
-const DUMBBELL_IMG = 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=800';
-const COASTAL_IMG = 'https://images.unsplash.com/photo-1770670588301-2769fd50a060?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1800';
-const SURFER_IMG = 'https://images.unsplash.com/photo-1619303642113-fe8576da3f5b?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=900';
+const GYM_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/jba9w56u_images.jpeg';
+const DUMBBELL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/gum0tx3j_l.jpg';
+const COASTAL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/aw0t70q8_348s.jpg';
+const SURFER_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/timf8d48_images12.jpeg';
 
 const BENEFITS = [
   {
@@ -307,12 +307,12 @@ export default function Home() {
               </div>
             </div>
             <div className="relative rounded-xl overflow-hidden">
-              <img src={SURFER_IMG} alt="Surfer athlete walking on beach in Santa Cruz"
+              <img src={SURFER_IMG} alt="Santa Cruz Strength exterior — 151 Harvey West Blvd, Santa Cruz CA"
                 className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)]/70 to-transparent" />
               <div className="absolute bottom-5 left-5 right-5">
-                <p className="text-white font-display text-xl tracking-wide">TRAIN HARD.</p>
-                <p className="text-[#7FCCA6] font-display text-xl tracking-wide">PADDLE OUT. REPEAT.</p>
+                <p className="text-white font-display text-xl tracking-wide drop-shadow-lg">151 HARVEY WEST BLVD</p>
+                <p className="text-[#7FCCA6] font-display text-lg tracking-wide drop-shadow-lg">SANTA CRUZ, CA 95060</p>
               </div>
             </div>
           </div>

@@ -149,21 +149,28 @@ export default function LeadDetail() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[var(--ink)]/95 backdrop-blur border-b border-white/8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => navigate('/staff/dashboard')}
-              className="text-white/65 hover:text-white flex items-center gap-1.5 text-sm transition-colors duration-200"
+              className="text-white/65 hover:text-white flex items-center gap-1.5 text-sm transition-colors duration-200 shrink-0"
             >
-              <ArrowLeft size={15} /> Dashboard
+              <ArrowLeft size={14} /> Dashboard
             </button>
-            <span className="text-white/38">/</span>
-            <span className="text-white text-sm truncate max-w-[200px]">
+            <span className="text-white/38 shrink-0">/</span>
+            <span className="text-white text-sm truncate">
               {lead.first_name} {lead.last_name}
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {saving && <Loader2 size={14} className="text-white/58 animate-spin" />}
-            <span className="text-white/65 text-xs hidden sm:block">{user?.name}</span>
+            {/* Back to website */}
+            <Link
+              to="/"
+              className="flex items-center gap-1 text-white/58 hover:text-white text-xs font-medium border border-white/12 hover:border-white/28 px-2.5 py-1.5 rounded-md transition-colors duration-200"
+            >
+              <ArrowLeft size={11} />
+              <span>Website</span>
+            </Link>
             <button onClick={() => { logout(); navigate('/staff/login'); }} className="text-white/58 hover:text-white/70 p-1.5 rounded">
               <LogOut size={14} />
             </button>

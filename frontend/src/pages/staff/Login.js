@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { GYM_CONFIG } from '../../config';
 
 export default function StaffLogin() {
@@ -33,7 +34,19 @@ export default function StaffLogin() {
     transition-colors duration-200`;
 
   return (
-    <div className="min-h-screen bg-[var(--ink)] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[var(--ink)] flex flex-col px-4">
+      {/* Back to website — top of page, always visible */}
+      <div className="py-4">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-white/52 hover:text-white transition-colors duration-200 group"
+        >
+          <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
+          Back to website
+        </Link>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-[#1B7A4A] rounded-lg flex items-center justify-center mx-auto mb-4">
@@ -77,6 +90,7 @@ export default function StaffLogin() {
         </div>
 
         <p className="text-center text-white/38 text-xs mt-4">Staff access only.</p>
+      </div>
       </div>
     </div>
   );
