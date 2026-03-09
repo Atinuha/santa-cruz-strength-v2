@@ -32,7 +32,7 @@ export default function BlogPost() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--ink)] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--clr-bg)] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#1B7A4A] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -40,7 +40,7 @@ export default function BlogPost() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-[var(--ink)] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--clr-bg)] flex items-center justify-center">
         <div className="text-center">
           <p className="text-white/40 text-sm mb-4">Post not found.</p>
           <Link to="/blog" className="btn-scs-primary px-5 py-2.5 rounded-md text-sm font-semibold">← Back to Blog</Link>
@@ -52,7 +52,7 @@ export default function BlogPost() {
   const catColor = CATEGORY_COLORS[post?.category] || 'bg-white/10 text-white/70 border-white/12';
 
   return (
-    <div className="min-h-screen bg-[var(--ink)]">
+    <div className="min-h-screen bg-[var(--clr-bg)]">
       {/* SEO meta via helmet-ish approach — just set document title */}
       {post && (document.title = `${post.seo_title || post.title} | Santa Cruz Strength`)}
 
@@ -64,16 +64,16 @@ export default function BlogPost() {
           className="relative h-64 sm:h-80 mt-16 overflow-hidden"
           style={{ backgroundImage: `url(${post.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center 30%' }}
         >
-          <div className="absolute inset-0 bg-[#0C1420]/75" />
+          <div className="absolute inset-0 bg-white/40" />
         </div>
       )}
 
       <div className={`max-w-3xl mx-auto px-4 sm:px-6 ${post?.cover_image ? '-mt-16 relative z-10' : 'pt-28'}`}>
 
         {/* Article header card */}
-        <div className="card-marketing p-6 sm:p-8 mb-8">
+        <div className="card-light p-6 sm:p-8 mb-8">
           {/* Back link */}
-          <Link to="/blog" className="inline-flex items-center gap-1.5 text-white/48 hover:text-white text-sm transition-colors duration-200 mb-5 group">
+          <Link to="/blog" className="inline-flex items-center gap-1.5 text-[var(--clr-text-muted)] hover:text-white text-sm transition-colors duration-200 mb-5 group">
             <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             Back to Blog
           </Link>
@@ -84,13 +84,13 @@ export default function BlogPost() {
               {post?.category}
             </span>
             {post?.created_at && (
-              <span className="text-white/42 text-xs flex items-center gap-1">
+              <span className="text-[var(--clr-text-light)] text-xs flex items-center gap-1">
                 <Calendar size={11} />
                 {new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
             )}
             {post?.author && (
-              <span className="text-white/35 text-xs">by {post.author}</span>
+              <span className="text-[var(--clr-text-light)] text-xs">by {post.author}</span>
             )}
           </div>
 
@@ -99,16 +99,16 @@ export default function BlogPost() {
           </h1>
 
           {post?.excerpt && (
-            <p className="text-white/62 text-base leading-relaxed border-l-2 border-[#1B7A4A] pl-4">
+            <p className="text-[var(--clr-text)] text-base leading-relaxed border-l-2 border-[#1B7A4A] pl-4">
               {post.excerpt}
             </p>
           )}
         </div>
 
         {/* Article content */}
-        <article className="card-marketing p-6 sm:p-8 mb-8 prose-article">
+        <article className="card-light p-6 sm:p-8 mb-8 prose-article">
           <div
-            className="text-white/78 leading-relaxed"
+            className="text-[var(--clr-text)] leading-relaxed"
             style={{ fontSize: '1rem', lineHeight: '1.75' }}
             dangerouslySetInnerHTML={{ __html: post?.content || '' }}
           />
@@ -117,7 +117,7 @@ export default function BlogPost() {
         {/* Tags */}
         {post?.tags?.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mb-8">
-            <Tag size={13} className="text-white/35" />
+            <Tag size={13} className="text-[var(--clr-text-light)]" />
             {post.tags.map((tag, i) => (
               <span key={i} className="text-xs text-white/45 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
                 {tag}
@@ -127,7 +127,7 @@ export default function BlogPost() {
         )}
 
         {/* CTA */}
-        <div className="card-marketing p-6 sm:p-7 mb-12 border-[#1B7A4A]/25 bg-[#1B7A4A]/5">
+        <div className="card-light p-6 sm:p-7 mb-12 border-[#1B7A4A]/25 bg-[#1B7A4A]/5">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-[#1B7A4A] flex items-center justify-center shrink-0">
               <span className="font-display text-white text-lg">S</span>
@@ -152,7 +152,7 @@ export default function BlogPost() {
 
         {/* Back to blog */}
         <div className="text-center pb-12">
-          <Link to="/blog" className="inline-flex items-center gap-2 text-white/48 hover:text-white text-sm transition-colors duration-200">
+          <Link to="/blog" className="inline-flex items-center gap-2 text-[var(--clr-text-muted)] hover:text-white text-sm transition-colors duration-200">
             <ArrowLeft size={14} /> All Articles
           </Link>
         </div>

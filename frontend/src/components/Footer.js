@@ -3,66 +3,67 @@ import { Link } from 'react-router-dom';
 import { GYM_CONFIG } from '../config';
 import { MapPin, Phone, Mail, Instagram, Facebook } from 'lucide-react';
 
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg';
+
 export default function Footer() {
   return (
-    <footer className="bg-[var(--ink)] border-t border-white/8 pt-12 pb-8">
+    <footer className="bg-[var(--clr-green)] text-white pt-14 pb-8">
+      {/* Wave top */}
+      <div className="relative -mt-14 mb-8 overflow-hidden h-14">
+        <svg viewBox="0 0 1200 56" preserveAspectRatio="none" className="absolute bottom-0 w-full h-full">
+          <path d="M0,56 C300,0 900,56 1200,0 L1200,56 L0,56 Z" fill="var(--clr-green)" />
+        </svg>
+      </div>
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded overflow-hidden flex items-center justify-center">
-                <img
-                  src="https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg"
-                  alt="Santa Cruz Strength"
-                  className="w-full h-full object-contain"
-                  style={{ filter: 'invert(1)', mixBlendMode: 'screen' }}
-                />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                <img src={LOGO_URL} alt="SCS" className="w-full h-full object-contain rounded-full" />
               </div>
-              <span className="font-display text-white text-lg tracking-wider">SANTA CRUZ STRENGTH</span>
+              <span className="font-display text-white text-xl tracking-wider">SANTA CRUZ STRENGTH</span>
             </div>
-            <p className="text-white/62 text-sm leading-relaxed max-w-xs">
+            <p className="text-white/70 text-sm leading-relaxed max-w-xs">
               {GYM_CONFIG.tagline}
             </p>
-            <p className="text-white/48 text-xs mt-2 leading-relaxed max-w-xs">
+            <p className="text-white/50 text-xs mt-2 leading-relaxed">
               A focused training environment for athletes, lifters, and people who believe strength matters.
             </p>
             <div className="flex gap-3 mt-4">
               <a href={GYM_CONFIG.social.instagram} target="_blank" rel="noopener noreferrer"
-                className="text-white/52 hover:text-white transition-colors duration-200">
-                <Instagram size={17} />
+                className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors duration-200">
+                <Instagram size={15} />
               </a>
               <a href={GYM_CONFIG.social.facebook} target="_blank" rel="noopener noreferrer"
-                className="text-white/52 hover:text-white transition-colors duration-200">
-                <Facebook size={17} />
+                className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors duration-200">
+                <Facebook size={15} />
               </a>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Links */}
           <div>
-            <h3 className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-3">Navigate</h3>
-            <ul className="space-y-2">
+            <h3 className="text-white/90 text-xs font-bold uppercase tracking-widest mb-4">Navigate</h3>
+            <ul className="space-y-2.5">
               {[
                 { to: '/', label: 'Home' },
                 { to: '/join', label: 'Membership' },
                 { to: '/personal-training', label: 'Personal Training' },
                 { to: '/blog', label: 'Blog' },
                 { to: '/contact', label: 'Contact' },
-              ].map((link) => (
-                <li key={link.to}>
-                  <Link to={link.to} className="text-white/62 hover:text-white text-sm transition-colors duration-200">
-                    {link.label}
+              ].map(l => (
+                <li key={l.to}>
+                  <Link to={l.to} className="text-white/65 hover:text-white text-sm font-semibold transition-colors duration-200">
+                    {l.label}
                   </Link>
                 </li>
               ))}
               <li>
-                <a
-                  href="https://myiclubonline.com/iclub/members/signin"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#7FCCA6]/70 hover:text-[#7FCCA6] text-sm transition-colors duration-200 font-medium"
-                >
+                <a href="https://myiclubonline.com/iclub/members/signin" target="_blank" rel="noopener noreferrer"
+                  className="text-[var(--clr-seafoam)] hover:text-white text-sm font-bold transition-colors duration-200">
                   Member Portal →
                 </a>
               </li>
@@ -71,48 +72,37 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-3">Find Us</h3>
-            <ul className="space-y-2.5">
-              <li className="flex items-start gap-2 text-sm text-white/62">
-                <MapPin size={14} className="mt-0.5 shrink-0 text-[#1B7A4A]" />
-                <span>{GYM_CONFIG.address.full}</span>
+            <h3 className="text-white/90 text-xs font-bold uppercase tracking-widest mb-4">Find Us</h3>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-2.5">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-[var(--clr-seafoam)]" />
+                <span className="text-white/65 text-sm">{GYM_CONFIG.address.full}</span>
               </li>
               <li>
                 <a href={GYM_CONFIG.phoneHref}
-                  className="flex items-center gap-2 text-sm text-white/62 hover:text-white transition-colors duration-200">
-                  <Phone size={14} className="text-[#1B7A4A]" />{GYM_CONFIG.phone}
+                  className="flex items-center gap-2.5 text-white/65 hover:text-white text-sm font-semibold transition-colors duration-200">
+                  <Phone size={15} className="text-[var(--clr-seafoam)]" />{GYM_CONFIG.phone}
                 </a>
               </li>
               <li>
                 <a href={`mailto:${GYM_CONFIG.email}`}
-                  className="flex items-center gap-2 text-sm text-white/62 hover:text-white transition-colors duration-200">
-                  <Mail size={14} className="text-[#1B7A4A]" />{GYM_CONFIG.email}
+                  className="flex items-center gap-2.5 text-white/65 hover:text-white text-sm transition-colors duration-200">
+                  <Mail size={15} className="text-[var(--clr-seafoam)]" />{GYM_CONFIG.email}
                 </a>
               </li>
-              <li className="text-xs text-white/48 mt-1">
-                Members: 24/7 via app &bull; Day passes: 9am–6pm
+              <li className="text-white/45 text-xs pt-1">
+                Members: 24/7 via our app &bull; Day passes: 9am–6pm
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-white/8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-white/42 text-xs">
+        <div className="border-t border-white/15 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <p className="text-white/40 text-xs">
             &copy; {new Date().getFullYear()} Santa Cruz Strength. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
-            <a
-              href="https://myiclubonline.com/iclub/members/signin"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#7FCCA6]/80 hover:text-[#7FCCA6] text-xs transition-colors duration-200 font-medium"
-            >
-              Member Portal
-            </a>
-            <Link
-              to="/staff/login"
-              className="text-white/65 hover:text-white text-xs transition-colors duration-200 font-medium"
-            >
+            <Link to="/staff/login" className="text-white/50 hover:text-white text-xs font-semibold transition-colors duration-200">
               Staff / Admin Login
             </Link>
           </div>

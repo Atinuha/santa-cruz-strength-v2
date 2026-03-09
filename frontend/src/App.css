@@ -1,7 +1,5 @@
-/* Santa Cruz Strength — App-level styles */
-/* Do NOT add text-align: center here */
-
+/* Santa Cruz Strength — App container */
 #root {
   min-height: 100vh;
-  background-color: #0A0A0A;
+  background-color: var(--clr-bg);
 }

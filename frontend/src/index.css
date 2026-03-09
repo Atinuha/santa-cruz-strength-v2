@@ -2,74 +2,176 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;500;600;700;800;900&display=swap');
 
+/* ==========================================
+   LIGHT MARKETING THEME
+   ========================================== */
 :root {
-  /* Coastal dark slate — not pure black, feels warmer and more alive */
-  --background: 220 25% 8%;       /* #0C1420 dark coastal navy */
+  --clr-green:       #0D5D3E;
+  --clr-green-dark:  #094831;
+  --clr-green-light: #1A7A54;
+  --clr-green-muted: #E8F5EE;
+  --clr-seafoam:     #CDEAE0;
+  --clr-seafoam-dark:#A8D5C6;
+  --clr-coral:       #FA5A5C;
+  --clr-coral-dark:  #D94042;
+  --clr-charcoal:    #1C1C1C;
+  --clr-text:        #2A2A2A;
+  --clr-text-muted:  #5C6370;
+  --clr-text-light:  #8A909A;
+  --clr-bg:          #F7F5F0;
+  --clr-bg-white:    #FFFFFF;
+  --clr-bg-green:    #E8F5EE;
+  --clr-border:      rgba(28,28,28,0.10);
+  --clr-border-green: rgba(13,93,62,0.18);
+  --radius-sm: 0.75rem;
+  --radius-md: 1.25rem;
+  --radius-lg: 1.75rem;
+  --radius-xl: 2.25rem;
+  --shadow-sm: 0 2px 12px rgba(13,93,62,0.08), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-md: 0 8px 32px rgba(13,93,62,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 20px 60px rgba(13,93,62,0.14), 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-card: 0 4px 20px rgba(13,93,62,0.09), 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* DARK CRM VARIABLES (staff pages keep dark) */
+.theme-crm {
+  --background: 220 25% 8%;
   --foreground: 0 0% 96%;
-  --card: 220 22% 11%;            /* #131E30 dark slate card */
+  --card: 220 22% 11%;
   --card-foreground: 0 0% 96%;
-  --popover: 220 22% 10%;
-  --popover-foreground: 0 0% 96%;
-  --primary: 0 0% 96%;
-  --primary-foreground: 220 25% 8%;
-  --secondary: 220 20% 15%;
-  --secondary-foreground: 0 0% 96%;
-  --muted: 220 20% 14%;
-  --muted-foreground: 215 15% 62%;
-  --accent: 220 20% 15%;
-  --accent-foreground: 0 0% 96%;
-  --destructive: 0 65% 48%;
-  --destructive-foreground: 0 0% 96%;
   --border: 220 18% 20%;
   --input: 220 18% 18%;
-  --ring: 215 15% 75%;
-  --radius: 0.75rem;
-
-  /* SCS Brand */
-  --scs-green: #1B7A4A;
-  --scs-green-hover: #156038;
-  --scs-green-light: #7FCCA6;
-  --scs-coastal: #2E6B8F;
-  --scs-coastal-light: #8BC4DF;
-
-  /* Layout backgrounds */
-  --ink: #0C1420;           /* Main page background */
-  --surface: #111E30;       /* Slightly lighter */
-  --elevated: #162438;      /* Cards, raised panels */
-  --elevated-2: #1A2A40;    /* Hover/active state */
+  --ink: #0C1420;
+  --surface: #111E30;
+  --elevated: #162438;
+  --elevated-2: #1A2A40;
 }
 
-* {
-  border-color: hsl(var(--border));
-  box-sizing: border-box;
+/* SHARED SHADCN TOKENS (light marketing) */
+body:not(.crm-page) {
+  --background: 40 20% 97%;
+  --foreground: 0 0% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 11%;
+  --primary: 153 77% 21%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 160 40% 88%;
+  --secondary-foreground: 153 77% 21%;
+  --muted: 40 15% 93%;
+  --muted-foreground: 0 0% 36%;
+  --accent: 160 40% 88%;
+  --accent-foreground: 153 77% 21%;
+  --destructive: 0 84% 66%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 88%;
+  --input: 0 0% 94%;
+  --ring: 153 77% 21%;
+  --radius: 1rem;
 }
+
+* { box-sizing: border-box; border-color: hsl(var(--border)); }
 
 body {
-  background-color: var(--ink);
-  color: #F0F4FF;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .font-display {
   font-family: 'Bebas Neue', Impact, system-ui;
 }
 
-/* SCS Brand Buttons */
+/* ==========================================
+   MARKETING BUTTONS
+   ========================================== */
+.btn-primary {
+  background-color: var(--clr-green);
+  color: white;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 200ms, transform 150ms, box-shadow 200ms;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(13,93,62,0.25);
+}
+.btn-primary:hover {
+  background-color: var(--clr-green-light);
+  box-shadow: 0 6px 20px rgba(13,93,62,0.30);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: scale(0.98) translateY(0); }
+
+.btn-coral {
+  background-color: var(--clr-coral);
+  color: white;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 200ms, transform 150ms, box-shadow 200ms;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(250,90,92,0.25);
+}
+.btn-coral:hover {
+  background-color: var(--clr-coral-dark);
+  box-shadow: 0 6px 20px rgba(250,90,92,0.30);
+  transform: translateY(-1px);
+}
+
+.btn-outline-green {
+  background-color: transparent;
+  color: var(--clr-green);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 200ms;
+  text-decoration: none;
+  border: 2px solid var(--clr-green);
+  cursor: pointer;
+}
+.btn-outline-green:hover {
+  background-color: var(--clr-green);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Legacy CRM button (dark theme) */
 .btn-scs-primary {
-  background-color: var(--scs-green);
+  background-color: #1B7A4A;
   color: white;
   font-weight: 600;
   transition: background-color 200ms, transform 150ms;
 }
-.btn-scs-primary:hover { background-color: var(--scs-green-hover); }
+.btn-scs-primary:hover { background-color: #145F3A; }
 .btn-scs-primary:active { transform: scale(0.98); }
-
 .btn-scs-secondary {
   background: transparent;
   color: #F0F4FF;
@@ -81,34 +183,97 @@ body {
   background-color: rgba(240,244,255,0.06);
 }
 
-/* Card styles */
+/* ==========================================
+   MARKETING CARDS
+   ========================================== */
+.card-light {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--clr-border);
+}
+.card-seafoam {
+  background: var(--clr-seafoam);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.card-green {
+  background: var(--clr-bg-green);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--clr-border-green);
+}
+
+/* Legacy CRM card */
 .card-marketing {
-  background: var(--elevated);
+  background: var(--elevated, rgba(255,255,255,0.04));
   border: 1px solid rgba(240,244,255,0.09);
   border-radius: 0.875rem;
   box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-/* Green accent line */
-.green-accent-line {
-  width: 2.5rem;
-  height: 3px;
-  background-color: var(--scs-green);
+/* ==========================================
+   MARKETING ACCENT LINES
+   ========================================== */
+.green-accent-line,
+.red-accent-line {
+  width: 3rem;
+  height: 4px;
+  background: linear-gradient(90deg, var(--clr-green), var(--clr-seafoam-dark));
   display: block;
-  margin-bottom: 0.875rem;
+  margin-bottom: 1rem;
   border-radius: 2px;
 }
-/* Legacy alias */
-.red-accent-line {
-  width: 2.5rem;
-  height: 3px;
-  background-color: var(--scs-green);
+.coral-accent-line {
+  width: 3rem;
+  height: 4px;
+  background: var(--clr-coral);
   display: block;
-  margin-bottom: 0.875rem;
+  margin-bottom: 1rem;
   border-radius: 2px;
 }
 
-/* Kanban */
+/* ==========================================
+   INPUTS (light marketing)
+   ========================================== */
+.input-light {
+  width: 100%;
+  background: white;
+  border: 1.5px solid rgba(28,28,28,0.14);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  color: var(--clr-text);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: border-color 200ms, box-shadow 200ms;
+  outline: none;
+}
+.input-light:focus {
+  border-color: var(--clr-green);
+  box-shadow: 0 0 0 3px rgba(13,93,62,0.12);
+}
+.input-light::placeholder { color: var(--clr-text-light); }
+
+/* ==========================================
+   WAVE DIVIDERS
+   ========================================== */
+.wave-top {
+  position: relative;
+}
+.wave-top::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: inherit;
+  clip-path: ellipse(55% 100% at 50% 100%);
+}
+
+/* ==========================================
+   KANBAN (CRM)
+   ========================================== */
 .kanban-column {
   background: rgba(240,244,255,0.03);
   border: 1px solid rgba(240,244,255,0.07);
@@ -116,14 +281,14 @@ body {
   min-height: 200px;
 }
 .kanban-card {
-  background: var(--elevated);
+  background: var(--elevated, rgba(255,255,255,0.05));
   border: 1px solid rgba(240,244,255,0.09);
   border-radius: 0.625rem;
   transition: background-color 200ms, border-color 200ms, transform 150ms;
   cursor: pointer;
 }
 .kanban-card:hover {
-  background: var(--elevated-2);
+  background: var(--elevated-2, rgba(255,255,255,0.08));
   border-color: rgba(240,244,255,0.18);
   transform: translateY(-1px);
 }
@@ -137,27 +302,13 @@ body {
   color: rgba(240,244,255,0.45);
   background-color: rgba(0,0,0,0.2);
 }
-.crm-table tr:hover td {
-  background-color: rgba(240,244,255,0.03);
-}
+.crm-table tr:hover td { background-color: rgba(240,244,255,0.03); }
 
-/* Time picker dropdown */
-.time-picker-dropdown {
-  background: var(--elevated);
-  border: 1px solid rgba(240,244,255,0.14);
-  border-radius: 0.75rem;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--ink); }
-::-webkit-scrollbar-thumb { background: #2A3A50; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #374F6A; }
-
-/* Animations */
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
@@ -168,32 +319,61 @@ body {
 }
 .animate-fade-in { animation: fadeIn 0.35s ease-out forwards; }
 
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right { animation: slideInRight 0.35s ease-out forwards; }
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-left { animation: slideInLeft 0.35s ease-out forwards; }
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-up, .animate-fade-in { animation: none; }
+  .animate-fade-in-up, .animate-fade-in,
+  .animate-slide-in-right, .animate-slide-in-left { animation: none; }
 }
 
 /* Focus rings */
 *:focus-visible {
-  outline: 2px solid rgba(127,204,166,0.6);
+  outline: 2px solid var(--clr-green);
   outline-offset: 2px;
 }
 
-/* Remove default list styles */
+/* Scrollbar (light) */
+body:not(.crm-page) ::-webkit-scrollbar { width: 5px; height: 5px; }
+body:not(.crm-page) ::-webkit-scrollbar-track { background: var(--clr-bg); }
+body:not(.crm-page) ::-webkit-scrollbar-thumb { background: var(--clr-seafoam-dark); border-radius: 3px; }
+body:not(.crm-page) ::-webkit-scrollbar-thumb:hover { background: var(--clr-green-light); }
+
+/* CRM scrollbar (dark) */
+.crm-page ::-webkit-scrollbar { width: 5px; }
+.crm-page ::-webkit-scrollbar-track { background: #111; }
+.crm-page ::-webkit-scrollbar-thumb { background: #2A3A50; border-radius: 3px; }
+
+/* Default list reset */
 ul { list-style: none; padding: 0; margin: 0; }
+
+/* Time picker */
+.time-picker-dropdown {
+  background: white;
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
 
 /* Emergent badge */
 #emergent-badge-wrapper {
   display: flex !important;
   justify-content: flex-end !important;
   padding: 10px 16px 10px 0 !important;
-  background: var(--ink) !important;
+  background: var(--clr-bg) !important;
   width: 100% !important;
 }
 #emergent-badge {
   position: relative !important;
-  bottom: auto !important;
-  right: auto !important;
-  z-index: auto !important;
-  top: auto !important;
-  left: auto !important;
+  bottom: auto !important; right: auto !important;
+  z-index: auto !important; top: auto !important; left: auto !important;
 }

@@ -71,13 +71,13 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
           <label className="block text-xs font-medium text-white/60 mb-1.5">First Name *</label>
           <input name="first_name" value={form.first_name} onChange={handleChange} placeholder="Alex"
             data-testid="lead-form-name-input"
-            className={`${inputClass} ${errors.first_name ? 'border-red-500/50' : 'border-white/12'}`} />
+            className={`${inputClass} ${errors.first_name ? 'border-red-500/50' : 'border-[var(--clr-border)]'}`} />
           {errors.first_name && <p className={errorClass} data-testid="lead-form-error-message">{errors.first_name}</p>}
         </div>
         <div>
           <label className="block text-xs font-medium text-white/60 mb-1.5">Last Name *</label>
           <input name="last_name" value={form.last_name} onChange={handleChange} placeholder="Smith"
-            className={`${inputClass} ${errors.last_name ? 'border-red-500/50' : 'border-white/12'}`} />
+            className={`${inputClass} ${errors.last_name ? 'border-red-500/50' : 'border-[var(--clr-border)]'}`} />
           {errors.last_name && <p className={errorClass}>{errors.last_name}</p>}
         </div>
       </div>
@@ -86,7 +86,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
         <label className="block text-xs font-medium text-white/60 mb-1.5">Phone *</label>
         <input name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="(831) 555-0100"
           data-testid="lead-form-phone-input"
-          className={`${inputClass} ${errors.phone ? 'border-red-500/50' : 'border-white/12'}`} />
+          className={`${inputClass} ${errors.phone ? 'border-red-500/50' : 'border-[var(--clr-border)]'}`} />
         {errors.phone && <p className={errorClass}>{errors.phone}</p>}
       </div>
 
@@ -94,7 +94,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
         <label className="block text-xs font-medium text-white/60 mb-1.5">Email *</label>
         <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="alex@example.com"
           data-testid="lead-form-email-input"
-          className={`${inputClass} ${errors.email ? 'border-red-500/50' : 'border-white/12'}`} />
+          className={`${inputClass} ${errors.email ? 'border-red-500/50' : 'border-[var(--clr-border)]'}`} />
         {errors.email && <p className={errorClass}>{errors.email}</p>}
       </div>
 
@@ -104,7 +104,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
             <label className="block text-xs font-medium text-white/60 mb-1.5">What brings you in?</label>
             <div className="relative">
               <select name="interest_type" value={form.interest_type} onChange={handleChange}
-                className={`${inputClass} border-white/12 appearance-none pr-8 cursor-pointer`}
+                className={`${inputClass} border-[var(--clr-border)] appearance-none pr-8 cursor-pointer`}
                 style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                 {INTEREST_TYPES.map((t) => <option key={t} value={t} style={{ background: '#1A1A1A' }}>{t}</option>)}
               </select>
@@ -120,7 +120,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
                   onClick={() => setForm((p) => ({ ...p, start_timeline: t }))}
                   className={`py-2 px-3 rounded-md text-xs font-medium transition-colors duration-200 ${
                     form.start_timeline === t
-                      ? 'bg-[#1B7A4A] text-white'
+                      ? 'bg-[var(--clr-green)] text-white'
                       : 'bg-white/5 text-white/55 border border-white/10 hover:bg-white/8'
                   }`}>
                   {t}
@@ -134,7 +134,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
             <textarea name="training_goals" value={form.training_goals} onChange={handleChange}
               placeholder="Build strength, improve performance, stay capable..."
               rows={2} data-testid="lead-form-goals-textarea"
-              className={`${inputClass} border-white/12 resize-none`} />
+              className={`${inputClass} border-[var(--clr-border)] resize-none`} />
           </div>
 
           <div>
@@ -145,7 +145,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
                   onClick={() => setForm((p) => ({ ...p, preferred_contact: c.value }))}
                   className={`flex-1 py-2 px-2 rounded-md text-xs font-medium transition-colors duration-200 ${
                     form.preferred_contact === c.value
-                      ? 'bg-[#1B7A4A] text-white'
+                      ? 'bg-[var(--clr-green)] text-white'
                       : 'bg-white/5 text-white/55 border border-white/10 hover:bg-white/8'
                   }`}>
                   {c.label}
