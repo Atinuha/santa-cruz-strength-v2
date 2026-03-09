@@ -21,6 +21,6 @@
   },
   {
     "content": "Run frontend testing agent to confirm no regressions",
-    "status": "in_progress"
+    "status": "completed"
   }
 ]

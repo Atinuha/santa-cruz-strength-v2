@@ -7,7 +7,8 @@
   - **Path 2 (Not Ready):** capture lead → store in MongoDB → notify staff via email → manage in lightweight CRM.
 - Deliver a simple staff CRM (JWT email/password) for lead triage, notes, statuses, follow-up tracking, and CSV export.
 - Ensure local SEO foundations, fast load, easy-to-edit content, and an architecture clean enough to replicate later for Sacramento.
-- **Current objective (moving into Phase 3):** polish and harden the system for production use (spam mitigation, security tightening, performance checks, content finalization, and operational readiness).
+- **New status update:** Homepage refactor is complete (hero panel legibility + horizontal carousels) and the public site UX is stable.
+- **Current objective (Phase 3):** polish and harden the system for production use (spam mitigation, security tightening, performance checks, content finalization, and operational readiness).
 
 ## 2) Implementation Steps
 
@@ -70,6 +71,10 @@
   - FAQ (Accordion)
   - Local section (map, address, click-to-call, editable hours)
   - Final CTA
+- ✅ **Homepage refactor completed (stability + conversion polish)**
+  - ✅ Hero: all text + form placed on a **solid off-white panel** for guaranteed legibility (never overlapping the mural photo)
+  - ✅ Benefits (“Why Train Here”): converted from grid → **horizontal carousel** (swipe on mobile, arrows on desktop)
+  - ✅ Testimonials: converted from grid → **horizontal carousel**
 - ✅ Join page:
   - Primary: Join Now → ABC Ignite
   - Secondary: lead form (lead_source = `website_form`)
@@ -110,6 +115,7 @@
 - ✅ End-to-end testing complete:
   - Backend: **100% pass**
   - Frontend: **95% pass** (no blocking issues)
+  - Note: one **LOW priority** mobile visibility observation was reported by automated testing, but manual review confirms primary hero CTAs are visible and usable.
 
 
 ### Phase 3: Testing, polish, and hardening
@@ -170,14 +176,23 @@
 
 
 ## 3) Next Actions
-- Replace placeholder imagery with **real Santa Cruz Strength** photos and logo wherever possible.
-- Configure SMTP fully:
-  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `NOTIFICATION_EMAIL`, `FROM_EMAIL`
-- Change seeded admin credentials and/or create real staff accounts:
-  - Add each staff member email + role in Settings.
-- Confirm final operating hours content (still placeholder) and update in `src/config/index.js`.
-- Run a Lighthouse pass and apply any Phase 3 performance improvements.
-- Decide if you want additional pages later (About/Coaches, Programs, Schedule) and whether “Book a Visit” should be a distinct form vs shared form.
+- **Homepage content/design finalization**
+  - Replace placeholder imagery with **real Santa Cruz Strength** photos and logo wherever possible.
+  - Confirm the carousel content (Benefits + Testimonials) is final and add/remove cards if needed.
+- **Operational setup**
+  - Configure SMTP fully:
+    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `NOTIFICATION_EMAIL`, `FROM_EMAIL`
+  - Change seeded admin credentials and/or create real staff accounts:
+    - Add each staff member email + role in Settings.
+- **Content correctness**
+  - Confirm final operating hours content (still placeholder) and update in `src/config/index.js`.
+- **Production hardening**
+  - Implement Phase 3 spam mitigation (honeypot + rate limiting) for `/api/leads`.
+  - Tighten CORS and verify JWT expiration behavior.
+- **Performance validation**
+  - Run a Lighthouse pass and apply any Phase 3 performance improvements.
+- **Roadmap decisions**
+  - Decide if you want additional pages later (About/Coaches, Programs, Schedule) and whether “Book a Visit” should be a distinct form vs shared form.
 
 
 ## 4) Success Criteria
@@ -186,4 +201,7 @@
 - All forms create leads with correct `lead_source` and land on Thank You page.
 - New lead appears in CRM instantly; staff email notification fires when SMTP configured (or logs clearly until then).
 - Staff can: log in, search/filter, update status, add notes, set follow-up dates, export CSV.
+- Homepage UX is stable:
+  - Hero text/form remains fully legible on a solid panel across breakpoints.
+  - Benefits + Testimonials are horizontal carousels with swipe + arrow navigation.
 - Codebase cleanly supports adding a second location later via config + `location` fields (no rewrite).
