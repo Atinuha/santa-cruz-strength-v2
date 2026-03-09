@@ -38,7 +38,7 @@ export const GYM_CONFIG = {
   //   2. Connect your @santacruzstrength Instagram account
   //   3. Create a "Widget" feed → copy the Feed ID (looks like: abc123xyz)
   //   4. Paste it below and save
-  beholdFeedId: '',
+  beholdFeedId: 'IQB2fFQS1nAFKCbQ7SrH',
 };
 
 export const LEAD_SOURCES = [

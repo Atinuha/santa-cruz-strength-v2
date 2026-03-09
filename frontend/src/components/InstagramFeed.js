@@ -73,7 +73,7 @@ export default function InstagramFeed({ feedId, handle, profileUrl }) {
           className="rounded-[var(--radius-xl)] overflow-hidden"
           style={{ boxShadow: 'var(--shadow-sm)' }}
         >
-          <div id={`behold-widget-${feedId}`} />
+          <div data-behold-id={feedId} />
         </div>
       ) : (
         /* ─── PLACEHOLDER (shown until Behold ID is configured) ─── */
