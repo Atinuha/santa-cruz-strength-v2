@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import Carousel from '../components/Carousel';
+import InstagramFeed from '../components/InstagramFeed';
 import { GYM_CONFIG } from '../config';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap } from 'lucide-react';
@@ -285,6 +286,13 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Instagram feed — sits below the two-column block, still inside seafoam section */}
+          <InstagramFeed
+            feedId={GYM_CONFIG.beholdFeedId}
+            handle={GYM_CONFIG.instagramHandle}
+            profileUrl={GYM_CONFIG.social.instagram}
+          />
         </div>
       </section>
 

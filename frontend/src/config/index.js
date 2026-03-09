@@ -31,6 +31,14 @@ export const GYM_CONFIG = {
     instagram: 'https://www.instagram.com/santacruzstrength/',
     facebook: 'https://www.facebook.com/santacruzstrength',
   },
+  // Instagram handle (without @)
+  instagramHandle: 'santacruzstrength',
+  // Behold.so widget feed ID — get yours free at behold.so:
+  //   1. Sign up at https://behold.so (free)
+  //   2. Connect your @santacruzstrength Instagram account
+  //   3. Create a "Widget" feed → copy the Feed ID (looks like: abc123xyz)
+  //   4. Paste it below and save
+  beholdFeedId: '',
 };
 
 export const LEAD_SOURCES = [

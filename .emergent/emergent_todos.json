@@ -1,26 +1,22 @@
 [
   {
-    "content": "Inspect Home.js and Carousel.js to understand current state",
+    "content": "Add beholdFeedId + instagramHandle to GYM_CONFIG",
     "status": "completed"
   },
   {
-    "content": "Complete Hero section fix - text fully on solid background panel",
+    "content": "Create InstagramFeed.js component with placeholder + live Behold embed states",
     "status": "completed"
   },
   {
-    "content": "Convert Benefits (Why Train Here) section to horizontal carousel",
+    "content": "Add InstagramFeed to the Who It's For section in Home.js",
     "status": "completed"
   },
   {
-    "content": "Convert Testimonials section to horizontal carousel",
+    "content": "Verify build compiles clean",
     "status": "completed"
   },
   {
-    "content": "Screenshot & verify full homepage layout",
-    "status": "completed"
-  },
-  {
-    "content": "Run frontend testing agent to confirm no regressions",
+    "content": "Screenshot to verify layout",
     "status": "completed"
   }
 ]
