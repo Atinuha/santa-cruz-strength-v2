@@ -1,22 +1,26 @@
 [
   {
-    "content": "Add beholdFeedId + instagramHandle to GYM_CONFIG",
+    "content": "Install resend + pytrends packages in backend",
     "status": "completed"
   },
   {
-    "content": "Create InstagramFeed.js component with placeholder + live Behold embed states",
+    "content": "Add RESEND_API_KEY to backend .env",
     "status": "completed"
   },
   {
-    "content": "Add InstagramFeed to the Who It's For section in Home.js",
+    "content": "Rewrite email system in server.py to use Resend (lead confirmation + staff notification)",
     "status": "completed"
   },
   {
-    "content": "Verify build compiles clean",
+    "content": "Add /api/staff/blog/ideas endpoint using pytrends + LLM",
     "status": "completed"
   },
   {
-    "content": "Screenshot to verify layout",
+    "content": "Update BlogSEOPanel.js to call the dynamic ideas API with a Refresh button",
+    "status": "completed"
+  },
+  {
+    "content": "Test emails and blog ideas end-to-end",
     "status": "completed"
   }
 ]

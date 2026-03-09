@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   CheckCircle2, XCircle, AlertCircle, TrendingUp,
-  Lightbulb, Search, BookOpen, ArrowRight, ChevronDown, ChevronUp
+  Lightbulb, Search, BookOpen, ArrowRight, ChevronDown, ChevronUp,
+  RefreshCw, Loader2, Zap
 } from 'lucide-react';
 
 // ─── SEO SCORING ────────────────────────────────────────────────────────────
@@ -148,157 +149,70 @@ function ScoreRing({ percent }) {
   );
 }
 
-// ─── CONTENT SUGGESTIONS ────────────────────────────────────────────────────
-
-const SUGGESTIONS = [
-  {
-    category: 'Local SEO',
-    color: 'bg-[#1B7A4A]/12 text-[#7FCCA6] border-[#1B7A4A]/20',
-    ideas: [
-      {
-        title: 'Best Strength Gym Near Scotts Valley and Capitola',
-        keyword: 'strength gym Santa Cruz area',
-        volume: 'Medium',
-        outline: ['Compare options in the area', 'What to look for in a strength gym', 'Why SCS serves the broader region'],
-      },
-      {
-        title: 'Strength Training for UCSC Students in Santa Cruz',
-        keyword: 'gym near UCSC Santa Cruz',
-        volume: 'Medium',
-        outline: ['Why college is the best time to build a strength base', 'Student-friendly scheduling', 'Long-term health investment'],
-      },
-      {
-        title: "Why Harvey West Is Santa Cruz's Best Training Neighborhood",
-        keyword: 'gym Harvey West Santa Cruz',
-        volume: 'Low',
-        outline: ['Location advantages', 'Parking and access', 'Industrial park = serious gym culture'],
-      },
-      {
-        title: 'Training in Santa Cruz: A Guide for Remote Workers Who Lift',
-        keyword: 'gym Santa Cruz remote workers',
-        volume: 'Low',
-        outline: ['WFH + training routine', 'Why SCS fits a flexible schedule', '24/7 access benefits'],
-      },
-    ],
-  },
-  {
-    category: 'Outdoor Athletes',
-    color: 'bg-[#2E6B8F]/15 text-[#8BC4DF] border-[#2E6B8F]/20',
-    ideas: [
-      {
-        title: '5 Gym Exercises Every Santa Cruz Surfer Needs',
-        keyword: 'exercises for surfers',
-        volume: 'High',
-        outline: ['Hip hinge for pop-up power', 'Row variations for paddle strength', 'Core stability work'],
-      },
-      {
-        title: 'How to Build Strength for Rock Climbing Without Losing Grip Endurance',
-        keyword: 'strength training for rock climbers',
-        volume: 'High',
-        outline: ['The climbing imbalance problem', 'Push/pull balance', 'Programming around climbing sessions'],
-      },
-      {
-        title: 'Trail Running Strength Plan: 8-Week Program for Santa Cruz Runners',
-        keyword: 'strength training trail running',
-        volume: 'High',
-        outline: ["Why runners avoid the gym (and why they shouldn't)", 'Single-leg exercises', 'Scheduling around run volume'],
-      },
-      {
-        title: 'Mountain Bike Strength: What Cyclists Miss That the Weight Room Fixes',
-        keyword: 'strength training for cyclists',
-        volume: 'Medium',
-        outline: ['Quad dominance problem', 'Posterior chain work', 'Power on climbs'],
-      },
-    ],
-  },
-  {
-    category: 'FAQ Content',
-    color: 'bg-purple-500/12 text-purple-300 border-purple-500/18',
-    ideas: [
-      {
-        title: 'What Should I Eat Before a Morning Strength Training Session?',
-        keyword: 'what to eat before lifting',
-        volume: 'High',
-        outline: ['Fast vs. fed training', 'Simple pre-workout meals', 'Timing recommendations'],
-      },
-      {
-        title: "How Do I Know If I'm Lifting Too Heavy?",
-        keyword: 'how heavy should I lift',
-        volume: 'High',
-        outline: ['Form breakdown signals', 'RPE (rate of perceived exertion)', 'Progressive overload guide'],
-      },
-      {
-        title: 'Do I Need a Personal Trainer or Can I Learn on My Own?',
-        keyword: 'do I need a personal trainer',
-        volume: 'High',
-        outline: ['When PT accelerates results', 'What self-taught lifters miss', 'Finding the right coach'],
-      },
-      {
-        title: 'How Long Does It Take to See Results from Strength Training?',
-        keyword: 'how long to see results lifting',
-        volume: 'High',
-        outline: ['Neural adaptation (weeks 1–4)', 'Visible changes (months 2–4)', 'Managing expectations honestly'],
-      },
-      {
-        title: "Can Older Adults Start Strength Training? (Yes — Here's How)",
-        keyword: 'strength training over 40 50',
-        volume: 'High',
-        outline: ['Benefits increase with age', 'Starting safely after 40/50', 'What to expect in the first 3 months'],
-      },
-    ],
-  },
-  {
-    category: 'Gym Culture',
-    color: 'bg-amber-500/12 text-amber-300 border-amber-500/18',
-    ideas: [
-      {
-        title: 'What to Expect on Your First Day at Santa Cruz Strength',
-        keyword: 'what to expect first day gym',
-        volume: 'Low',
-        outline: ['Walk-through of the gym', 'How to ask for help', 'Common first-day mistakes'],
-      },
-      {
-        title: "Why We Don't Play Music in the Gym (And Why That's a Feature)",
-        keyword: 'quiet gym Santa Cruz',
-        volume: 'Low',
-        outline: ['Training focus benefits', 'Mental presence in lifting', 'Building gym culture intentionally'],
-      },
-      {
-        title: 'Member Spotlight: How [Name] Used Strength Training to Support Their Surf Career',
-        keyword: 'Santa Cruz strength member spotlight',
-        volume: 'Low',
-        outline: ['Member background', 'Training approach', 'Results and lifestyle changes'],
-      },
-    ],
-  },
-  {
-    category: 'Seasonal',
-    color: 'bg-white/8 text-white/75 border-white/12',
-    ideas: [
-      {
-        title: 'Winter Training Block: How Santa Cruz Athletes Stay Strong When the Surf Peaks',
-        keyword: 'winter strength training program',
-        volume: 'Medium',
-        outline: ['Why winter = best time to build', 'Block periodization basics', 'SCS 12-week winter program overview'],
-      },
-      {
-        title: 'Summer Strength: How to Maintain Your Lifts While Spending More Time Outside',
-        keyword: 'maintain strength summer outdoor activities',
-        volume: 'Medium',
-        outline: ['Minimum effective dose lifting', 'Programming around beach/trail days', '2-day strength maintenance template'],
-      },
-    ],
-  },
-];
-
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
+const CATEGORY_COLORS = {
+  'Local SEO':       'bg-[#1B7A4A]/12 text-[#7FCCA6] border-[#1B7A4A]/20',
+  'Outdoor Athletes':'bg-[#2E6B8F]/15 text-[#8BC4DF] border-[#2E6B8F]/20',
+  'How-To':          'bg-emerald-500/12 text-emerald-300 border-emerald-500/18',
+  'FAQ Content':     'bg-purple-500/12 text-purple-300 border-purple-500/18',
+  'Gym Culture':     'bg-amber-500/12 text-amber-300 border-amber-500/18',
+  'Trending':        'bg-pink-500/12 text-pink-300 border-pink-500/18',
+  'Seasonal':        'bg-white/8 text-white/75 border-white/12',
+};
+
+const DEFAULT_CATEGORY_COLOR = 'bg-white/8 text-white/55 border-white/12';
+
 export default function BlogSEOPanel({ form }) {
-  const [activeTab, setActiveTab] = useState('audit');
+  const [activeTab, setActiveTab]       = useState('audit');
   const [focusKeyword, setFocusKeyword] = useState('');
-  const [expandedCat, setExpandedCat] = useState('Local SEO');
+  const [expandedCat, setExpandedCat]   = useState(null);
+
+  // Dynamic ideas state
+  const [dynamicIdeas, setDynamicIdeas] = useState(null);   // null = not loaded yet
+  const [trendsUsed, setTrendsUsed]     = useState([]);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [ideasError, setIdeasError]     = useState('');
 
   const seo = useMemo(() => scorePost(form, focusKeyword), [form, focusKeyword]);
+
+  const fetchIdeas = useCallback(async () => {
+    setIdeasLoading(true);
+    setIdeasError('');
+    try {
+      const token = localStorage.getItem('scs_token');
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+      const res = await fetch(`${backendUrl}/api/staff/blog/ideas`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to generate ideas');
+      }
+      const data = await res.json();
+      setDynamicIdeas(data.ideas || []);
+      setTrendsUsed(data.trends_used || []);
+      // Auto-expand first category
+      if (data.ideas?.length) setExpandedCat(data.ideas[0].category);
+    } catch (e) {
+      setIdeasError(e.message || 'Something went wrong');
+    } finally {
+      setIdeasLoading(false);
+    }
+  }, []);
+
+  // Group dynamic ideas by category
+  const groupedIdeas = useMemo(() => {
+    if (!dynamicIdeas) return null;
+    const map = {};
+    dynamicIdeas.forEach(idea => {
+      const cat = idea.category || 'General';
+      if (!map[cat]) map[cat] = [];
+      map[cat].push(idea);
+    });
+    return Object.entries(map).map(([category, ideas]) => ({ category, ideas }));
+  }, [dynamicIdeas]);
 
   const CheckIcon = ({ check }) => {
     if (check.pass) return <CheckCircle2 size={14} className="text-[#1B7A4A] shrink-0" />;
@@ -391,58 +305,143 @@ export default function BlogSEOPanel({ form }) {
 
       {/* IDEAS TAB */}
       {activeTab === 'ideas' && (
-        <div className="divide-y divide-white/6">
-          {SUGGESTIONS.map((cat) => (
-            <div key={cat.category}>
+        <div>
+          {/* Header + Refresh button */}
+          <div className="px-4 pt-4 pb-3 border-b border-white/8">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-white/85 text-xs font-semibold mb-0.5">AI-Generated Ideas</p>
+                <p className="text-white/38 text-[10px] leading-relaxed">
+                  Pulls live Google Trends data for strength &amp; fitness, then generates ideas tailored to SCS's audience.
+                </p>
+              </div>
               <button
-                onClick={() => setExpandedCat(expandedCat === cat.category ? '' : cat.category)}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/3 transition-colors duration-200"
+                onClick={fetchIdeas}
+                disabled={ideasLoading}
+                data-testid="blog-refresh-ideas-btn"
+                className="flex items-center gap-1.5 bg-[#1B7A4A]/20 hover:bg-[#1B7A4A]/35 border border-[#1B7A4A]/30 text-[#7FCCA6] text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${cat.color}`}>
-                  {cat.category}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-white/30 text-xs">{cat.ideas.length} ideas</span>
-                  {expandedCat === cat.category
-                    ? <ChevronUp size={13} className="text-white/38" />
-                    : <ChevronDown size={13} className="text-white/38" />}
-                </div>
+                {ideasLoading
+                  ? <><Loader2 size={11} className="animate-spin" /> Generating…</>
+                  : <><RefreshCw size={11} /> {dynamicIdeas ? 'Refresh' : 'Generate Ideas'}</>
+                }
               </button>
+            </div>
 
-              {expandedCat === cat.category && (
-                <div className="px-4 pb-3 space-y-3">
-                  {cat.ideas.map((idea, i) => (
-                    <div key={i} className="bg-white/3 border border-white/7 rounded-lg p-3">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-white/85 text-xs font-medium leading-snug flex-1">{idea.title}</p>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded border shrink-0 ${
-                          idea.volume === 'High'
-                            ? 'bg-[#1B7A4A]/15 text-[#7FCCA6] border-[#1B7A4A]/20'
-                            : idea.volume === 'Medium'
-                            ? 'bg-amber-500/12 text-amber-300 border-amber-500/18'
-                            : 'bg-white/8 text-white/42 border-white/10'
-                        }`}>
-                          {idea.volume}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 mb-2">
-                        <Search size={10} className="text-white/28" />
-                        <span className="text-white/35 text-[10px] italic">{idea.keyword}</span>
-                      </div>
-                      <ul className="space-y-0.5">
-                        {idea.outline.map((point, j) => (
-                          <li key={j} className="text-white/42 text-[10px] flex items-start gap-1">
-                            <span className="text-[#1B7A4A]/60 shrink-0">•</span>
-                            {point}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+            {/* Trends used chips */}
+            {trendsUsed.length > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Zap size={10} className="text-amber-400" />
+                  <span className="text-[9px] text-white/35 font-semibold uppercase tracking-wider">Trending right now</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {trendsUsed.slice(0, 10).map((t, i) => (
+                    <span key={i} className="bg-white/5 border border-white/10 text-white/42 text-[9px] px-2 py-0.5 rounded-full">{t}</span>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+
+          {/* Error */}
+          {ideasError && (
+            <div className="mx-4 mt-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+              <p className="text-red-300 text-[10px]">{ideasError}</p>
             </div>
-          ))}
+          )}
+
+          {/* Empty / not loaded state */}
+          {!dynamicIdeas && !ideasLoading && !ideasError && (
+            <div className="px-4 py-10 flex flex-col items-center gap-3 text-center">
+              <div className="w-10 h-10 bg-[#1B7A4A]/15 rounded-full flex items-center justify-center">
+                <Lightbulb size={18} className="text-[#7FCCA6]" />
+              </div>
+              <p className="text-white/55 text-xs max-w-[180px] leading-relaxed">
+                Hit <strong className="text-white/75">Generate Ideas</strong> to pull live trends and get fresh blog ideas.
+              </p>
+            </div>
+          )}
+
+          {/* Loading skeleton */}
+          {ideasLoading && (
+            <div className="px-4 py-4 space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white/3 border border-white/7 rounded-lg p-3 animate-pulse">
+                  <div className="h-3 bg-white/10 rounded w-3/4 mb-2" />
+                  <div className="h-2 bg-white/6 rounded w-1/2 mb-3" />
+                  <div className="space-y-1">
+                    <div className="h-2 bg-white/5 rounded w-full" />
+                    <div className="h-2 bg-white/5 rounded w-5/6" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Dynamic results grouped by category */}
+          {groupedIdeas && !ideasLoading && (
+            <div className="divide-y divide-white/6">
+              {groupedIdeas.map((cat) => (
+                <div key={cat.category}>
+                  <button
+                    onClick={() => setExpandedCat(expandedCat === cat.category ? '' : cat.category)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/3 transition-colors duration-200"
+                  >
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${CATEGORY_COLORS[cat.category] || DEFAULT_CATEGORY_COLOR}`}>
+                      {cat.category}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/30 text-xs">{cat.ideas.length} ideas</span>
+                      {expandedCat === cat.category
+                        ? <ChevronUp size={13} className="text-white/38" />
+                        : <ChevronDown size={13} className="text-white/38" />}
+                    </div>
+                  </button>
+                  {expandedCat === cat.category && (
+                    <div className="px-4 pb-3 space-y-3">
+                      {cat.ideas.map((idea, i) => (
+                        <div key={i} className="bg-white/3 border border-white/7 rounded-lg p-3">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="text-white/85 text-xs font-medium leading-snug flex-1">{idea.title}</p>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded border shrink-0 ${
+                              idea.volume === 'High'
+                                ? 'bg-[#1B7A4A]/15 text-[#7FCCA6] border-[#1B7A4A]/20'
+                                : idea.volume === 'Medium'
+                                ? 'bg-amber-500/12 text-amber-300 border-amber-500/18'
+                                : 'bg-white/8 text-white/42 border-white/10'
+                            }`}>
+                              {idea.volume}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 mb-1.5">
+                            <Search size={10} className="text-white/28" />
+                            <span className="text-white/35 text-[10px] italic">{idea.keyword}</span>
+                          </div>
+                          {idea.trend_hook && (
+                            <div className="flex items-start gap-1 mb-2">
+                              <Zap size={10} className="text-amber-400/60 shrink-0 mt-0.5" />
+                              <span className="text-amber-300/60 text-[9px] leading-snug">{idea.trend_hook}</span>
+                            </div>
+                          )}
+                          {idea.outline && (
+                            <ul className="space-y-0.5">
+                              {idea.outline.map((point, j) => (
+                                <li key={j} className="text-white/42 text-[10px] flex items-start gap-1">
+                                  <span className="text-[#1B7A4A]/60 shrink-0">•</span>
+                                  {point}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

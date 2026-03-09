@@ -8,9 +8,8 @@ import os
 import logging
 import csv
 import io
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import asyncio
+import resend
 from pathlib import Path
 from pydantic import BaseModel
 from typing import List, Optional
@@ -112,52 +111,172 @@ async def require_owner(user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail='Owner access required')
     return user
 
-# --------------- Email ---------------
+# --------------- Email (Resend) ---------------
 
-def send_email(to_email, subject, html_body):
-    smtp_user = os.environ.get('SMTP_USER', '')
-    smtp_pass = os.environ.get('SMTP_PASSWORD', '')
-    smtp_host = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
-    smtp_port = int(os.environ.get('SMTP_PORT', 587))
-    from_email = os.environ.get('FROM_EMAIL', 'noreply@santacruzstrength.com')
-    if not smtp_user:
-        logger.info(f'[EMAIL] SMTP not configured — skipping email to {to_email}')
+resend.api_key = os.environ.get('RESEND_API_KEY', '')
+STAFF_EMAIL = os.environ.get('NOTIFICATION_EMAIL', 'management@santacruzstrength.com')
+FROM_EMAIL = os.environ.get('FROM_EMAIL', 'onboarding@resend.dev')
+
+async def send_resend_email(to: str, subject: str, html: str):
+    """Non-blocking Resend send — falls back gracefully if key not set."""
+    if not resend.api_key:
+        logger.info(f'[EMAIL] RESEND_API_KEY not set — skipping to {to}')
         return False
     try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = from_email
-        msg['To'] = to_email
-        msg.attach(MIMEText(html_body, 'html'))
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(from_email, to_email, msg.as_string())
-        logger.info(f'[EMAIL] Sent to {to_email}: {subject}')
+        params = {'from': FROM_EMAIL, 'to': [to], 'subject': subject, 'html': html}
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f'[EMAIL] Sent via Resend to {to} — id={result.get("id","?")}')
         return True
     except Exception as e:
-        logger.warning(f'[EMAIL] Failed: {e}')
+        logger.warning(f'[EMAIL] Resend failed to {to}: {e}')
         return False
 
-def send_lead_notification(lead):
-    notify = os.environ.get('NOTIFICATION_EMAIL', '')
-    if not notify:
-        return
-    html = f"""
-    <html><body style='font-family:sans-serif;background:#111;color:#fff;padding:24px;'>
-    <h2 style='color:#1B7A4A;'>New Lead — Santa Cruz Strength</h2>
-    <table style='border-collapse:collapse;width:100%;'>
-      <tr><td style='padding:8px;color:#aaa;'>Name</td><td style='padding:8px;'>{lead.get('first_name','')} {lead.get('last_name','')}</td></tr>
-      <tr><td style='padding:8px;color:#aaa;'>Phone</td><td style='padding:8px;'>{lead.get('phone','')}</td></tr>
-      <tr><td style='padding:8px;color:#aaa;'>Email</td><td style='padding:8px;'>{lead.get('email','')}</td></tr>
-      <tr><td style='padding:8px;color:#aaa;'>Interest</td><td style='padding:8px;'>{lead.get('interest_type','')}</td></tr>
-      <tr><td style='padding:8px;color:#aaa;'>Source</td><td style='padding:8px;'>{lead.get('lead_source','')}</td></tr>
-      <tr><td style='padding:8px;color:#aaa;'>Timeline</td><td style='padding:8px;'>{lead.get('start_timeline','')}</td></tr>
-    </table>
-    </body></html>
-    """
-    import threading
-    threading.Thread(target=send_email, args=(notify, f"New Lead: {lead.get('first_name','')} {lead.get('last_name','')}", html), daemon=True).start()
+def _lead_confirmation_html(lead: dict) -> str:
+    name = lead.get('first_name', 'there')
+    return f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5F0;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5F0;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08);">
+        <!-- Header -->
+        <tr>
+          <td style="background:#0D5D3E;padding:28px 36px;">
+            <p style="margin:0;color:#CDE4DF;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength</p>
+            <p style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:800;letter-spacing:1px;">151 Harvey West Blvd · Santa Cruz, CA</p>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:36px 36px 28px;">
+            <p style="margin:0 0 16px;font-size:17px;font-weight:700;color:#1a1a1a;">Hey {name},</p>
+            <p style="margin:0 0 14px;font-size:15px;color:#444;line-height:1.65;">
+              Thanks for reaching out to Santa Cruz Strength. We're stoked you're interested in checking out the space.
+            </p>
+            <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.65;">
+              Someone from the team will reach out shortly to set up a quick tour and answer any questions.
+            </p>
+            <!-- CTA -->
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background:#FA5A5C;border-radius:8px;">
+                  <a href="https://santacruzstrength.com" style="display:inline-block;padding:13px 28px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.3px;">
+                    Visit Our Website →
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Details recap -->
+        <tr>
+          <td style="padding:0 36px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5F0;border-radius:8px;padding:16px 20px;">
+              <tr><td style="padding:4px 0;font-size:12px;color:#666;"><strong style="color:#1a1a1a;">Interest:</strong> {lead.get('interest_type','General Membership')}</td></tr>
+              <tr><td style="padding:4px 0;font-size:12px;color:#666;"><strong style="color:#1a1a1a;">Timeline:</strong> {lead.get('start_timeline','Just exploring')}</td></tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1px solid #eee;padding:20px 36px;background:#fafaf9;">
+            <p style="margin:0;font-size:12px;color:#999;line-height:1.6;">
+              Santa Cruz Strength · 151 Harvey West Blvd Ste D, Santa Cruz CA 95060<br>
+              <a href="tel:+14083376709" style="color:#0D5D3E;text-decoration:none;">(408) 337-6709</a> ·
+              <a href="https://www.instagram.com/santacruzstrength/" style="color:#0D5D3E;text-decoration:none;">@santacruzstrength</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+def _staff_notification_html(lead: dict) -> str:
+    created = lead.get('created_at', '')[:16].replace('T', ' at ') if lead.get('created_at') else 'just now'
+    rows = [
+        ('Name', f"{lead.get('first_name','')} {lead.get('last_name','')}"),
+        ('Phone', lead.get('phone', '—')),
+        ('Email', lead.get('email', '—')),
+        ('Interest', lead.get('interest_type', '—')),
+        ('Timeline', lead.get('start_timeline', '—')),
+        ('Goals', lead.get('training_goals', '—') or '—'),
+        ('Source', lead.get('lead_source', '—')),
+        ('Preferred Contact', lead.get('preferred_contact', '—')),
+        ('Submitted', created),
+    ]
+    rows_html = ''.join(
+        f"<tr style='background:{'#1a2a1f' if i%2==0 else '#141e19'};'>"
+        f"<td style='padding:10px 16px;color:#8FBF9F;font-size:12px;font-weight:600;width:140px;'>{k}</td>"
+        f"<td style='padding:10px 16px;color:#e8f5ee;font-size:13px;font-weight:500;'>{v}</td>"
+        f"</tr>"
+        for i, (k, v) in enumerate(rows)
+    )
+    name = f"{lead.get('first_name','')} {lead.get('last_name','')}".strip()
+    crm_url = 'https://santacruzstrength.com/staff/leads'
+    return f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0f1a14;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1a14;padding:32px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#111f16;border-radius:12px;overflow:hidden;border:1px solid #1e3327;">
+        <!-- Header -->
+        <tr>
+          <td style="background:#0D5D3E;padding:22px 28px;">
+            <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength CRM</p>
+            <p style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:800;">🔔 New Lead: {name}</p>
+          </td>
+        </tr>
+        <!-- Table -->
+        <tr>
+          <td style="padding:0;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              {rows_html}
+            </table>
+          </td>
+        </tr>
+        <!-- CTA -->
+        <tr>
+          <td style="padding:24px 28px;border-top:1px solid #1e3327;">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background:#0D5D3E;border-radius:8px;">
+                  <a href="{crm_url}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:13px;font-weight:700;text-decoration:none;">
+                    Open in CRM →
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+async def send_lead_emails(lead: dict):
+    """Fire both emails concurrently — never blocks the lead save response."""
+    name = f"{lead.get('first_name','there')}".strip()
+    lead_email = lead.get('email', '')
+    tasks = []
+    if lead_email:
+        tasks.append(send_resend_email(
+            to=lead_email,
+            subject=f"Hey {name} — you're on our radar at Santa Cruz Strength",
+            html=_lead_confirmation_html(lead)
+        ))
+    tasks.append(send_resend_email(
+        to=STAFF_EMAIL,
+        subject=f"New Lead: {lead.get('first_name','')} {lead.get('last_name','')} — {lead.get('interest_type','General Membership')}",
+        html=_staff_notification_html(lead)
+    ))
+    await asyncio.gather(*tasks, return_exceptions=True)
 
 # --------------- Pydantic Models ---------------
 
@@ -324,7 +443,7 @@ async def create_invite(data: InviteCreate, user=Depends(require_admin)):
     <p style='color:#555;font-size:11px;'>Direct link: {invite_url}</p>
     </body></html>
     """
-    email_sent = send_email(data.email, 'Invitation to Santa Cruz Strength Staff Portal', html)
+    email_sent = await send_resend_email(data.email, 'Invitation to Santa Cruz Strength Staff Portal', html)
     return {
         'id': invite_doc['id'],
         'token': token,
@@ -380,10 +499,10 @@ async def create_lead_public(lead: LeadCreate):
             {'$set': {'phone': doc['phone'], 'interest_type': doc['interest_type'], 'training_goals': doc['training_goals'], 'updated_at': now.isoformat()},
              '$push': {'activity_log': {'action': 'Re-inquiry', 'note': f'Re-submitted via {lead.lead_source}', 'staff_id': None, 'staff_name': 'System', 'timestamp': now.isoformat()}}}
         )
-        send_lead_notification(doc)
+        await send_lead_emails(doc)
         return {'id': existing['id'], 'status': 'updated'}
     await db.leads.insert_one(doc)
-    send_lead_notification(doc)
+    await send_lead_emails(doc)
     return {'id': lead_id, 'status': 'created'}
 
 # --------------- Staff Lead Routes ---------------
@@ -871,8 +990,94 @@ async def delete_blog_post(post_id: str, user=Depends(require_admin)):
         raise HTTPException(status_code=404, detail='Post not found')
     return {'message': 'Post deleted'}
 
-# --------------- Startup ---------------
+# --------------- Blog Ideas (Google Trends + AI) ---------------
 
+@api_router.post('/staff/blog/ideas')
+async def generate_blog_ideas(user=Depends(require_admin)):
+    """
+    Fetches trending keywords in the strength/fitness niche via Google Trends (pytrends),
+    then asks the LLM to generate 8 specific, SEO-ready blog ideas for Santa Cruz Strength.
+    """
+    from pytrends.request import TrendReq
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    # 1. Pull Google Trends data for our niche keywords
+    trend_topics = []
+    try:
+        pytrends = TrendReq(hl='en-US', tz=360, timeout=(10, 25))
+        # Get related queries for our core niche terms
+        kw_list = ['strength training', 'powerlifting', 'gym workout']
+        pytrends.build_payload(kw_list, cat=44, timeframe='now 7-d', geo='US-CA')
+        related = pytrends.related_queries()
+        for kw in kw_list:
+            if related.get(kw) and related[kw].get('rising') is not None:
+                df = related[kw]['rising']
+                if df is not None and not df.empty:
+                    trend_topics += df['query'].head(5).tolist()
+            if related.get(kw) and related[kw].get('top') is not None:
+                df = related[kw]['top']
+                if df is not None and not df.empty:
+                    trend_topics += df['query'].head(3).tolist()
+        # Deduplicate
+        trend_topics = list(dict.fromkeys(trend_topics))[:20]
+        logger.info(f'[BLOG IDEAS] Trends fetched: {trend_topics}')
+    except Exception as e:
+        logger.warning(f'[BLOG IDEAS] pytrends failed: {e} — using fallback topics')
+        trend_topics = ['strength training beginners', 'powerlifting program', 'gym for surfers',
+                        'how to deadlift', 'strength training over 40', 'gym workout routine']
+
+    trends_str = ', '.join(trend_topics) if trend_topics else 'strength training, powerlifting, fitness for athletes'
+
+    # 2. Ask the LLM to generate targeted blog ideas
+    llm_key = os.environ.get('EMERGENT_LLM_KEY', '')
+    if not llm_key:
+        raise HTTPException(status_code=500, detail='LLM key not configured')
+
+    prompt = f"""You are a content strategist for Santa Cruz Strength, a serious strength gym in Santa Cruz, California at 151 Harvey West Blvd. 
+The gym serves surfers, climbers, trail runners, cyclists, powerlifters, and everyday athletes. 
+It has a gritty, authentic, community-driven identity — no fluff, no influencer culture, real training.
+
+Right now these topics are trending on Google in the fitness/strength space:
+{trends_str}
+
+Generate exactly 8 blog post ideas that:
+1. Are specific to Santa Cruz Strength's audience and location
+2. Tap into the trending topics above where relevant
+3. Target real search queries people use
+4. Mix local SEO, how-to, and athlete-specific content
+
+For each idea return a JSON object with:
+- "title": compelling, SEO-ready headline (50-65 chars ideal)
+- "keyword": primary focus keyword to target
+- "volume": one of "High", "Medium", or "Low" (based on likely search volume)
+- "category": one of "Local SEO", "Outdoor Athletes", "How-To", "FAQ Content", "Gym Culture", "Trending"
+- "outline": array of 3 short bullet points for the article structure
+- "trend_hook": one sentence explaining which trend this taps into
+
+Return a JSON array of 8 objects. Only return valid JSON, no markdown fences, no explanation text."""
+
+    try:
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f'blog-ideas-{uuid.uuid4()}',
+            system_message='You are a content strategist. Return only valid JSON arrays.'
+        ).with_model('openai', 'gpt-4o-mini')
+        msg = UserMessage(text=prompt)
+        response = await chat.send_message(msg)
+        raw = response.strip()
+        # Strip any accidental markdown fences
+        if raw.startswith('```'):
+            raw = raw.split('```')[1]
+            if raw.startswith('json'):
+                raw = raw[4:]
+        import json
+        ideas = json.loads(raw)
+        return {'ideas': ideas, 'trends_used': trend_topics}
+    except Exception as e:
+        logger.error(f'[BLOG IDEAS] LLM error: {e}')
+        raise HTTPException(status_code=500, detail=f'Failed to generate ideas: {str(e)}')
+
+# --------------- Startup ---------------
 async def seed_blog_posts():
     now = now_utc()
     posts = [
