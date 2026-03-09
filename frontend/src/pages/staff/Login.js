@@ -49,8 +49,10 @@ export default function StaffLogin() {
       <div className="flex-1 flex items-center justify-center">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-[#1B7A4A] rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="font-display text-white text-2xl">S</span>
+          <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center mx-auto mb-4">
+            <img src="https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg"
+              alt="Santa Cruz Strength" className="w-full h-full object-contain"
+              style={{ filter: 'invert(1)', mixBlendMode: 'screen' }} />
           </div>
           <h1 className="font-display text-2xl text-white tracking-wide">STAFF LOGIN</h1>
           <p className="text-white/52 text-sm mt-1">{GYM_CONFIG.name} — Lead CRM</p>

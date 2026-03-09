@@ -218,8 +218,10 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
             <Link to="/" className="flex items-center gap-2 group" title="Back to website">
-              <div className="w-7 h-7 bg-[#1B7A4A] rounded flex items-center justify-center group-hover:bg-[#156038] transition-colors duration-200">
-                <span className="font-display text-white text-xs">S</span>
+              <div className="w-7 h-7 rounded overflow-hidden flex items-center justify-center shrink-0">
+                <img src="https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg"
+                  alt="SCS" className="w-full h-full object-contain"
+                  style={{ filter: 'invert(1)', mixBlendMode: 'screen' }} />
               </div>
               <span className="font-display text-white tracking-wider text-sm hidden sm:block">SANTA CRUZ STRENGTH</span>
               <span className="font-display text-white tracking-wider text-sm sm:hidden">SCS</span>

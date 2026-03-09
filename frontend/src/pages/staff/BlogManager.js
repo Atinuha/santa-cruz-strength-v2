@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getStaffBlogPosts, getStaffBlogPost, createBlogPost,
   updateBlogPost, deleteBlogPost
 } from '../../lib/api';
+import BlogSEOPanel from '../../components/staff/BlogSEOPanel';
 import {
   ArrowLeft, Plus, Trash2, Edit3, Eye, EyeOff,
   Globe, FileText, LogOut, Loader2, Save, X, BookOpen
@@ -363,19 +364,8 @@ export default function BlogManager() {
                     </div>
                   </div>
 
-                  <div className="card-marketing p-4 space-y-3">
-                    <h3 className="text-white text-xs font-semibold uppercase tracking-wider">SEO</h3>
-                    <div>
-                      <label className="block text-xs text-white/52 mb-1">SEO Title</label>
-                      <input value={form.seo_title} onChange={(e) => handleChange('seo_title', e.target.value)}
-                        placeholder="Leave blank to use post title" className={inputClass} />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-white/52 mb-1">SEO Description</label>
-                      <textarea value={form.seo_description} onChange={(e) => handleChange('seo_description', e.target.value)}
-                        rows={2} placeholder="Leave blank to use excerpt" className={`${inputClass} resize-none`} />
-                    </div>
-                  </div>
+                  {/* SEO Audit + Article Ideas — live panel */}
+                  <BlogSEOPanel form={form} />
                 </div>
               </div>
             )}

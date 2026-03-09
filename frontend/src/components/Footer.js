@@ -11,8 +11,13 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 bg-[#1B7A4A] rounded flex items-center justify-center">
-                <span className="font-display text-white text-sm">S</span>
+              <div className="w-8 h-8 rounded overflow-hidden flex items-center justify-center">
+                <img
+                  src="https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg"
+                  alt="Santa Cruz Strength"
+                  className="w-full h-full object-contain"
+                  style={{ filter: 'invert(1)', mixBlendMode: 'screen' }}
+                />
               </div>
               <span className="font-display text-white text-lg tracking-wider">SANTA CRUZ STRENGTH</span>
             </div>

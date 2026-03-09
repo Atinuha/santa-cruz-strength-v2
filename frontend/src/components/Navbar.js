@@ -23,8 +23,13 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 bg-[#1B7A4A] rounded flex items-center justify-center transition-colors duration-200 group-hover:bg-[#145F3A]">
-              <span className="font-display text-white text-sm tracking-wider">S</span>
+            <div className="w-8 h-8 rounded overflow-hidden flex items-center justify-center">
+              <img
+                src="https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg"
+                alt="Santa Cruz Strength"
+                className="w-full h-full object-contain"
+                style={{ filter: 'invert(1)', mixBlendMode: 'screen' }}
+              />
             </div>
             <div className="hidden sm:block">
               <span className="font-display text-white text-xl tracking-wider">SANTA CRUZ STRENGTH</span>

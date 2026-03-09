@@ -1,30 +1,14 @@
 [
   {
-    "content": "Backend: blog model, CRUD endpoints, seed 7 posts",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: /blog listing page (card grid, categories)",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: /blog/:slug article page (full content, SEO)",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: /staff/blog management page (create/edit/delete/publish)",
-    "status": "completed"
-  },
-  {
-    "content": "Update Navbar + Footer with Blog link",
-    "status": "completed"
-  },
-  {
-    "content": "Update App.js routes",
-    "status": "completed"
-  },
-  {
-    "content": "End-to-end testing",
+    "content": "Apply SCS logo with CSS transparent background trick across navbar, footer, CRM",
     "status": "in_progress"
+  },
+  {
+    "content": "Add SEO audit panel to blog editor (real-time score, checklist)",
+    "status": "pending"
+  },
+  {
+    "content": "Add content suggestion tab to blog editor (niche article ideas)",
+    "status": "pending"
   }
 ]
