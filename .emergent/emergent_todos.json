@@ -1,14 +1,26 @@
 [
   {
-    "content": "Apply SCS logo with CSS transparent background trick across navbar, footer, CRM",
+    "content": "Inspect Home.js and Carousel.js to understand current state",
+    "status": "completed"
+  },
+  {
+    "content": "Complete Hero section fix - text fully on solid background panel",
+    "status": "completed"
+  },
+  {
+    "content": "Convert Benefits (Why Train Here) section to horizontal carousel",
+    "status": "completed"
+  },
+  {
+    "content": "Convert Testimonials section to horizontal carousel",
+    "status": "completed"
+  },
+  {
+    "content": "Screenshot & verify full homepage layout",
+    "status": "completed"
+  },
+  {
+    "content": "Run frontend testing agent to confirm no regressions",
     "status": "in_progress"
-  },
-  {
-    "content": "Add SEO audit panel to blog editor (real-time score, checklist)",
-    "status": "pending"
-  },
-  {
-    "content": "Add content suggestion tab to blog editor (niche article ideas)",
-    "status": "pending"
   }
 ]

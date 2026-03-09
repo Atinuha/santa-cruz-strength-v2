@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
+import Carousel from '../components/Carousel';
 import { GYM_CONFIG } from '../config';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap } from 'lucide-react';
@@ -87,60 +88,64 @@ export default function Home() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 w-full pt-8">
 
-          {/* Single grid: SCS mural left / all content right */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[calc(100vh-4rem)]">
+          {/* Grid: left = gym mural (transparent), right = solid white panel with all content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-start min-h-[calc(100vh-4rem)]">
 
-            {/* LEFT — empty: the mural + address pill sit here */}
-            <div className="hidden lg:flex flex-col justify-end h-full pb-8">
-              <div className="bg-white/75 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/80 w-fit"
-                style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.10)' }}>
+            {/* LEFT — transparent, shows gym photo + SCS logo mural */}
+            <div className="hidden lg:flex flex-col justify-end h-full pb-8 pr-6">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/90 w-fit"
+                style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
                 <p className="font-display text-sm tracking-widest text-[var(--clr-green)]">SANTA CRUZ STRENGTH</p>
                 <p className="text-[var(--clr-text-muted)] text-xs font-semibold">151 Harvey West Blvd · Santa Cruz, CA</p>
               </div>
             </div>
 
-            {/* RIGHT — headline + chips + CTAs + form stacked */}
-            <div className="animate-fade-in-up flex flex-col gap-0 pt-6">
+            {/* RIGHT — solid white panel, text is 100% legible regardless of photo */}
+            <div className="animate-fade-in-up flex flex-col"
+              style={{
+                backgroundColor: 'var(--clr-bg)',
+                minHeight: 'calc(100vh - 4rem)',
+                borderRadius: 'var(--radius-xl) 0 0 0',
+                padding: '2rem 2rem 2.5rem 2.5rem',
+                boxShadow: '-12px 0 40px rgba(247,245,240,0.6)',
+              }}>
 
-              {/* Headline block */}
-              <div className="mb-5">
-                <div className="inline-flex items-center gap-2 bg-[var(--clr-seafoam)] text-[var(--clr-green)] text-xs font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-widest">
-                  <MapPin size={12} /> Santa Cruz, California
-                </div>
-                <h1 className="font-display text-5xl sm:text-6xl lg:text-[5rem] leading-[0.92] tracking-wide mb-3"
-                  style={{ color: 'var(--clr-charcoal)' }}>
-                  SERIOUS<br />
-                  <span style={{ color: 'var(--clr-green)' }}>STRENGTH</span><br />
-                  TRAINING.
-                </h1>
-                <p className="text-[var(--clr-text)] text-base leading-relaxed mb-1 font-bold max-w-md">
-                  A focused gym for athletes, lifters, and people who believe strength matters.
-                </p>
-                <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-4 max-w-sm">
-                  Real training environment. Real community. Santa Cruz.
-                </p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {['24/7 via App', 'Flexible Membership', 'All Levels'].map(chip => (
-                    <span key={chip} className="bg-white text-[var(--clr-green)] text-xs font-bold px-3 py-1.5 rounded-full border border-[var(--clr-border-green)]">
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
-                    data-testid="home-hero-join-now-button" className="btn-coral px-6 py-3 text-sm">
-                    Join Now <ArrowRight size={14} />
-                  </a>
-                  <a href="#tour-form" data-testid="home-hero-book-visit-button"
-                    className="btn-outline-green px-6 py-3 text-sm"
-                    onClick={(e) => { e.preventDefault(); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
-                    Book a Tour
-                  </a>
-                  <a href={GYM_CONFIG.phoneHref}
-                    className="flex items-center gap-1.5 px-3 py-3 text-sm font-bold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200">
-                    <Phone size={13} style={{ color: 'var(--clr-green)' }} />{GYM_CONFIG.phone}
-                  </a>
-                </div>
+              <div className="inline-flex items-center gap-2 bg-[var(--clr-seafoam)] text-[var(--clr-green)] text-xs font-bold px-4 py-1.5 rounded-full mb-5 uppercase tracking-widest w-fit">
+                <MapPin size={12} /> Santa Cruz, California
+              </div>
+              <h1 className="font-display text-5xl sm:text-6xl lg:text-[5rem] leading-[0.92] tracking-wide mb-3"
+                style={{ color: 'var(--clr-charcoal)' }}>
+                SERIOUS<br />
+                <span style={{ color: 'var(--clr-green)' }}>STRENGTH</span><br />
+                TRAINING.
+              </h1>
+              <p className="text-[var(--clr-text)] text-base leading-relaxed mb-1 font-bold max-w-md">
+                A focused gym for athletes, lifters, and people who believe strength matters.
+              </p>
+              <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-5 max-w-sm">
+                Real training environment. Real community. Santa Cruz.
+              </p>
+              <div className="flex flex-wrap gap-2 mb-5">
+                {['24/7 via App', 'Flexible Membership', 'All Levels'].map(chip => (
+                  <span key={chip} className="bg-white text-[var(--clr-green)] text-xs font-bold px-3 py-1.5 rounded-full border border-[var(--clr-border-green)]">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-3 mb-7">
+                <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+                  data-testid="home-hero-join-now-button" className="btn-coral px-6 py-3 text-sm">
+                  Join Now <ArrowRight size={14} />
+                </a>
+                <a href="#tour-form" data-testid="home-hero-book-visit-button"
+                  className="btn-outline-green px-6 py-3 text-sm"
+                  onClick={(e) => { e.preventDefault(); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
+                  Book a Tour
+                </a>
+                <a href={GYM_CONFIG.phoneHref}
+                  className="flex items-center gap-1.5 px-3 py-3 text-sm font-bold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200">
+                  <Phone size={13} style={{ color: 'var(--clr-green)' }} />{GYM_CONFIG.phone}
+                </a>
               </div>
 
               {/* Form card */}
@@ -177,10 +182,10 @@ export default function Home() {
               No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <Carousel itemWidth="w-64 sm:w-72" className="px-6">
             {BENEFITS.map((b, i) => (
-              <div key={i} className={`${b.color} rounded-[var(--radius-lg)] p-6 transition-transform duration-200 hover:-translate-y-1`}
-                style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--clr-border)' }}>
+              <div key={i} className={`${b.color} rounded-[var(--radius-lg)] p-6 h-full transition-transform duration-200 hover:-translate-y-1`}
+                style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--clr-border)', minHeight: '180px' }}>
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-4 text-[var(--clr-green)]"
                   style={{ boxShadow: 'var(--shadow-sm)' }}>
                   {b.icon}
@@ -189,7 +194,7 @@ export default function Home() {
                 <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed">{b.desc}</p>
               </div>
             ))}
-          </div>
+          </Carousel>
         </div>
       </section>
 
@@ -294,20 +299,20 @@ export default function Home() {
             <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Member Stories</p>
             <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>HEAR IT FROM THE MEMBERS</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <Carousel itemWidth="w-72 sm:w-80 md:w-[360px]" className="px-6">
             {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="card-light p-6 hover:-translate-y-1 transition-transform duration-200">
+              <div key={i} className="card-light p-6 hover:-translate-y-1 transition-transform duration-200 h-full flex flex-col">
                 <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, j) => <Star key={j} size={14} fill="var(--clr-coral)" className="text-[var(--clr-coral)]" />)}
                 </div>
-                <p className="text-[var(--clr-text)] text-sm leading-relaxed mb-5">"{t.text}"</p>
+                <p className="text-[var(--clr-text)] text-sm leading-relaxed mb-5 flex-1">"{t.text}"</p>
                 <div className="border-t pt-4" style={{ borderColor: 'var(--clr-border)' }}>
                   <p className="text-[var(--clr-charcoal)] font-bold text-sm">{t.name}</p>
                   <p className="text-[var(--clr-text-light)] text-xs mt-0.5">{t.detail}</p>
                 </div>
               </div>
             ))}
-          </div>
+          </Carousel>
         </div>
       </section>
 

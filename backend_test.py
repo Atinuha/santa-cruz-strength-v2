@@ -5,7 +5,7 @@ import json
 import os
 
 class SantaCruzStrengthAPITester:
-    def __init__(self, base_url="https://local-gym-hub.preview.emergentagent.com"):
+    def __init__(self, base_url="https://santa-cruz-dev.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0

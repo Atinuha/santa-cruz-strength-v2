@@ -309,7 +309,7 @@ async def create_invite(data: InviteCreate, user=Depends(require_admin)):
     }
     await db.invites.insert_one(invite_doc)
     # Build invite URL
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://local-gym-hub.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://santa-cruz-dev.preview.emergentagent.com')
     invite_url = f"{frontend_url}/staff/accept-invite?token={token}"
     # Try to send email
     html = f"""
