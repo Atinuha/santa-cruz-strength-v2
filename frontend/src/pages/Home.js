@@ -7,7 +7,7 @@ import { GYM_CONFIG } from '../config';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap } from 'lucide-react';
 
-const HERO_IMG    = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/4ll7bzdl_IMG_4615.jpeg';
+const HERO_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/t5t2w92k_Screenshot_20260308_205652_Google.jpg';
 const GYM_IMG     = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/zexxrigp_IMG_1134.jpeg';
 const DUMBBELL_IMG= 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/idkicvp5_6502579888812714199.jpg';
 const COASTAL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/4ll7bzdl_IMG_4615.jpeg';
@@ -64,70 +64,101 @@ export default function Home() {
       <Navbar />
 
       {/* =========== HERO =========== */}
-      <section className="relative min-h-screen flex items-center pt-16"
-        style={{ backgroundImage: `url(${HERO_IMG})`, backgroundSize: 'cover', backgroundPosition: 'center 30%' }}>
-        {/* Left-heavy overlay — keep text always legible */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--clr-bg)]/98 via-[var(--clr-bg)]/80 to-[var(--clr-bg)]/30" />
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(600px circle at 5% 50%, rgba(205,234,224,0.5), transparent 55%)' }} />
+      <section className="relative min-h-screen flex items-start pt-16"
+        style={{
+          backgroundImage: `url(${HERO_IMG})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'left center',
+          backgroundAttachment: 'local',
+        }}>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        {/* Very subtle base darkening so the gym interior reads clearly */}
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.18)' }} />
 
-            {/* Left */}
-            <div className="animate-fade-in-up">
-              <div className="inline-flex items-center gap-2 bg-[var(--clr-seafoam)] text-[var(--clr-green)] text-xs font-bold px-4 py-1.5 rounded-full mb-5 uppercase tracking-widest">
-                <MapPin size={12} /> Santa Cruz, California
-              </div>
-              <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[1] tracking-wide mb-4"
-                style={{ color: 'var(--clr-charcoal)' }}>
-                SERIOUS<br />
-                <span style={{ color: 'var(--clr-green)' }}>STRENGTH</span><br />
-                TRAINING.
-              </h1>
-              <p className="text-[var(--clr-text)] text-base sm:text-lg leading-relaxed mb-2 max-w-lg font-semibold">
-                A focused gym for athletes, lifters, and people who believe strength matters.
-              </p>
-              <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-8 max-w-md">
-                Not a fitness club. Not a commercial chain. A real training environment built for the Santa Cruz community.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-8">
-                {['24/7 via Our App', 'Flexible Membership', 'All Levels Welcome'].map(chip => (
-                  <span key={chip} className="bg-white text-[var(--clr-green)] text-xs font-bold px-3.5 py-1.5 rounded-full border border-[var(--clr-border-green)]">
-                    {chip}
-                  </span>
-                ))}
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
-                  data-testid="home-hero-join-now-button"
-                  className="btn-coral px-6 py-3.5 text-sm">
-                  Join Now <ArrowRight size={15} />
-                </a>
-                <a href={`#tour-form`}
-                  data-testid="home-hero-book-visit-button"
-                  className="btn-outline-green px-6 py-3.5 text-sm"
-                  onClick={(e) => { e.preventDefault(); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
-                  Book a Tour
-                </a>
-                <a href={GYM_CONFIG.phoneHref}
-                  className="flex items-center gap-2 px-3 py-3.5 text-sm font-bold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200">
-                  <Phone size={14} style={{ color: 'var(--clr-green)' }} />{GYM_CONFIG.phone}
-                </a>
+        {/* Right-to-left gradient: solid on right for text legibility, transparent on left to show SCS logo mural */}
+        <div className="absolute inset-0" style={{
+          background: 'linear-gradient(to left, rgba(247,245,240,0.97) 0%, rgba(247,245,240,0.88) 35%, rgba(247,245,240,0.35) 60%, transparent 80%)'
+        }} />
+
+        {/* Subtle green tint on the right text area */}
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(700px circle at 90% 50%, rgba(205,234,224,0.30), transparent 65%)'
+        }} />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 w-full pt-8">
+
+          {/* Single grid: SCS mural left / all content right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[calc(100vh-4rem)]">
+
+            {/* LEFT — empty: the mural + address pill sit here */}
+            <div className="hidden lg:flex flex-col justify-end h-full pb-8">
+              <div className="bg-white/75 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/80 w-fit"
+                style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.10)' }}>
+                <p className="font-display text-sm tracking-widest text-[var(--clr-green)]">SANTA CRUZ STRENGTH</p>
+                <p className="text-[var(--clr-text-muted)] text-xs font-semibold">151 Harvey West Blvd · Santa Cruz, CA</p>
               </div>
             </div>
 
-            {/* Quiz Form Card */}
-            <div id="tour-form" className="animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-              <div className="bg-white rounded-[var(--radius-xl)] p-7" style={{ boxShadow: 'var(--shadow-lg)', border: '1.5px solid var(--clr-border-green)' }}>
-                <div className="mb-5">
-                  <h2 className="font-display text-2xl tracking-wide" style={{ color: 'var(--clr-green)' }}>BOOK A FREE TOUR</h2>
-                  <p className="text-[var(--clr-text-muted)] text-sm mt-1">30 seconds. No commitment. We love showing the gym off.</p>
+            {/* RIGHT — headline + chips + CTAs + form stacked */}
+            <div className="animate-fade-in-up flex flex-col gap-0 pt-6">
+
+              {/* Headline block */}
+              <div className="mb-5">
+                <div className="inline-flex items-center gap-2 bg-[var(--clr-seafoam)] text-[var(--clr-green)] text-xs font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-widest">
+                  <MapPin size={12} /> Santa Cruz, California
                 </div>
-                <QuizForm source="book_a_tour" />
+                <h1 className="font-display text-5xl sm:text-6xl lg:text-[5rem] leading-[0.92] tracking-wide mb-3"
+                  style={{ color: 'var(--clr-charcoal)' }}>
+                  SERIOUS<br />
+                  <span style={{ color: 'var(--clr-green)' }}>STRENGTH</span><br />
+                  TRAINING.
+                </h1>
+                <p className="text-[var(--clr-text)] text-base leading-relaxed mb-1 font-bold max-w-md">
+                  A focused gym for athletes, lifters, and people who believe strength matters.
+                </p>
+                <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-4 max-w-sm">
+                  Real training environment. Real community. Santa Cruz.
+                </p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {['24/7 via App', 'Flexible Membership', 'All Levels'].map(chip => (
+                    <span key={chip} className="bg-white text-[var(--clr-green)] text-xs font-bold px-3 py-1.5 rounded-full border border-[var(--clr-border-green)]">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+                    data-testid="home-hero-join-now-button" className="btn-coral px-6 py-3 text-sm">
+                    Join Now <ArrowRight size={14} />
+                  </a>
+                  <a href="#tour-form" data-testid="home-hero-book-visit-button"
+                    className="btn-outline-green px-6 py-3 text-sm"
+                    onClick={(e) => { e.preventDefault(); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
+                    Book a Tour
+                  </a>
+                  <a href={GYM_CONFIG.phoneHref}
+                    className="flex items-center gap-1.5 px-3 py-3 text-sm font-bold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200">
+                    <Phone size={13} style={{ color: 'var(--clr-green)' }} />{GYM_CONFIG.phone}
+                  </a>
+                </div>
               </div>
+
+              {/* Form card */}
+              <div id="tour-form">
+                <div className="bg-white rounded-[var(--radius-xl)] p-6"
+                  style={{ boxShadow: 'var(--shadow-lg)', border: '1.5px solid var(--clr-border-green)' }}>
+                  <div className="mb-3">
+                    <h2 className="font-display text-xl tracking-wide" style={{ color: 'var(--clr-green)' }}>BOOK A FREE TOUR</h2>
+                    <p className="text-[var(--clr-text-muted)] text-xs mt-0.5">30 seconds. No commitment. We love showing the gym off.</p>
+                  </div>
+                  <QuizForm source="book_a_tour" />
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
+
       </section>
 
       {/* Wave */}
