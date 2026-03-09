@@ -1,26 +1,22 @@
 [
   {
-    "content": "Install resend + pytrends packages in backend",
+    "content": "Update FROM_EMAIL to hello@santacruzstrength.com + add reply-to in Resend",
     "status": "completed"
   },
   {
-    "content": "Add RESEND_API_KEY to backend .env",
+    "content": "Add GA4 script to public/index.html",
     "status": "completed"
   },
   {
-    "content": "Rewrite email system in server.py to use Resend (lead confirmation + staff notification)",
+    "content": "Create analytics utility + wire up SPA route tracking in App.js",
     "status": "completed"
   },
   {
-    "content": "Add /api/staff/blog/ideas endpoint using pytrends + LLM",
+    "content": "Add conversion event tracking (form submit, Join Now, Book a Tour)",
     "status": "completed"
   },
   {
-    "content": "Update BlogSEOPanel.js to call the dynamic ideas API with a Refresh button",
-    "status": "completed"
-  },
-  {
-    "content": "Test emails and blog ideas end-to-end",
+    "content": "Verify build clean + test GA4 firing",
     "status": "completed"
   }
 ]

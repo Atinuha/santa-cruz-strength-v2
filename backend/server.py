@@ -117,13 +117,15 @@ resend.api_key = os.environ.get('RESEND_API_KEY', '')
 STAFF_EMAIL = os.environ.get('NOTIFICATION_EMAIL', 'management@santacruzstrength.com')
 FROM_EMAIL = os.environ.get('FROM_EMAIL', 'onboarding@resend.dev')
 
-async def send_resend_email(to: str, subject: str, html: str):
+async def send_resend_email(to: str, subject: str, html: str, reply_to: str = None):
     """Non-blocking Resend send — falls back gracefully if key not set."""
     if not resend.api_key:
         logger.info(f'[EMAIL] RESEND_API_KEY not set — skipping to {to}')
         return False
     try:
         params = {'from': FROM_EMAIL, 'to': [to], 'subject': subject, 'html': html}
+        if reply_to:
+            params['reply_to'] = [reply_to]
         result = await asyncio.to_thread(resend.Emails.send, params)
         logger.info(f'[EMAIL] Sent via Resend to {to} — id={result.get("id","?")}')
         return True
@@ -269,7 +271,8 @@ async def send_lead_emails(lead: dict):
         tasks.append(send_resend_email(
             to=lead_email,
             subject=f"Hey {name} — you're on our radar at Santa Cruz Strength",
-            html=_lead_confirmation_html(lead)
+            html=_lead_confirmation_html(lead),
+            reply_to='management@santacruzstrength.com'
         ))
     tasks.append(send_resend_email(
         to=STAFF_EMAIL,

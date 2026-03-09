@@ -1,9 +1,10 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import CRMLayout from './components/CRMLayout';
+import { trackPageView } from './utils/analytics';
 
 // Public Pages
 import Home from './pages/Home';
@@ -24,10 +25,23 @@ import BlogManager from './pages/staff/BlogManager';
 
 import './App.css';
 
+/** Fires a GA4 + Meta Pixel page_view on every client-side route change */
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    // Skip CRM staff pages — no need to track internal tool usage
+    if (!location.pathname.startsWith('/staff')) {
+      trackPageView(location.pathname + location.search);
+    }
+  }, [location]);
+  return null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <RouteTracker />
         <Routes>
           {/* Public */}
           <Route path="/" element={<Home />} />

@@ -41,6 +41,19 @@
           ]
         }
         </script>
+        <!-- Google Analytics GA4 -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-GJVM3NJVJH"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-GJVM3NJVJH', {
+            send_page_view: false,
+            cookie_flags: 'SameSite=None;Secure'
+          });
+        </script>
+        <!-- Meta Pixel placeholder — add pixel ID below when ready -->
+        <!-- <script>!function(f,b,e,v,n,t,s){...}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','YOUR_PIXEL_ID');fbq('track','PageView');</script> -->
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>

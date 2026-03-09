@@ -4,6 +4,7 @@ import { createLead } from '../lib/api';
 import { GYM_CONFIG, INTEREST_TYPES, PREFERRED_CONTACTS } from '../config';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { trackLeadSubmit } from '../utils/analytics';
 
 const STEPS = [
   {
@@ -134,6 +135,7 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess }) {
         interest_type: form.interest_type || 'General Membership',
         start_timeline: form.start_timeline || 'Just exploring',
       });
+      trackLeadSubmit({ interest_type: form.interest_type, lead_source: source || 'website_form' });
       if (onSuccess) onSuccess();
       else navigate('/thank-you', { state: { source } });
     } catch (err) {

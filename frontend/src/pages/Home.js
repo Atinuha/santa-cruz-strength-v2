@@ -6,6 +6,7 @@ import QuizForm from '../components/QuizForm';
 import Carousel from '../components/Carousel';
 import InstagramFeed from '../components/InstagramFeed';
 import { GYM_CONFIG } from '../config';
+import { trackJoinNowClick, trackBookTourClick, trackPhoneClick } from '../utils/analytics';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap } from 'lucide-react';
 
@@ -135,15 +136,17 @@ export default function Home() {
               </div>
               <div className="flex flex-wrap gap-3 mb-7">
                 <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
-                  data-testid="home-hero-join-now-button" className="btn-coral px-6 py-3 text-sm">
+                  data-testid="home-hero-join-now-button" className="btn-coral px-6 py-3 text-sm"
+                  onClick={() => trackJoinNowClick('hero')}>
                   Join Now <ArrowRight size={14} />
                 </a>
                 <a href="#tour-form" data-testid="home-hero-book-visit-button"
                   className="btn-outline-green px-6 py-3 text-sm"
-                  onClick={(e) => { e.preventDefault(); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
+                  onClick={(e) => { e.preventDefault(); trackBookTourClick('hero'); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
                   Book a Tour
                 </a>
                 <a href={GYM_CONFIG.phoneHref}
+                  onClick={() => trackPhoneClick()}
                   className="flex items-center gap-1.5 px-3 py-3 text-sm font-bold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200">
                   <Phone size={13} style={{ color: 'var(--clr-green)' }} />{GYM_CONFIG.phone}
                 </a>
@@ -339,12 +342,13 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
               data-testid="home-final-cta-join-now-button"
+              onClick={() => trackJoinNowClick('cta_block')}
               className="bg-[var(--clr-coral)] text-white font-bold rounded-[var(--radius-md)] px-8 py-4 text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:bg-[var(--clr-coral-dark)] hover:-translate-y-0.5"
               style={{ boxShadow: '0 4px 20px rgba(250,90,92,0.35)' }}>
               Join Santa Cruz Strength
             </a>
             <button
-              onClick={() => document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              onClick={() => { trackBookTourClick('cta_block'); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
               data-testid="home-final-cta-book-visit-button"
               className="bg-white/15 backdrop-blur text-white font-bold rounded-[var(--radius-md)] px-8 py-4 text-sm border-2 border-white/30 hover:bg-white/25 transition-all duration-200">
               Book a Tour First

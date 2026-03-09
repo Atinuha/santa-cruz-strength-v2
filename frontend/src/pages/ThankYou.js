@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { GYM_CONFIG } from '../config';
 import { CheckCircle2, ArrowRight, Phone } from 'lucide-react';
+import { trackThankYouPageView, trackJoinNowClick } from '../utils/analytics';
 
 export default function ThankYou() {
   const { state } = useLocation();
@@ -13,6 +14,9 @@ export default function ThankYou() {
     : source === 'personal_training_inquiry' ? 'Your coaching inquiry is in.'
     : source === 'contact_page' ? 'Your message is in.'
     : 'We received your info.';
+
+  // Fire confirmed-lead conversion on mount
+  useEffect(() => { trackThankYouPageView(); }, []);
   return (
     <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
       <Navbar />
