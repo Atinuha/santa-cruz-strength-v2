@@ -36,18 +36,70 @@
 }
 
 /* DARK CRM VARIABLES (staff pages keep dark) */
-.theme-crm {
+.theme-crm,
+.crm-page,
+.crm-root {
   --background: 220 25% 8%;
   --foreground: 0 0% 96%;
   --card: 220 22% 11%;
   --card-foreground: 0 0% 96%;
   --border: 220 18% 20%;
   --input: 220 18% 18%;
+  --muted-foreground: 215 15% 65%;
+  --popover: 220 22% 10%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 153 65% 30%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 20% 15%;
+  --secondary-foreground: 0 0% 96%;
+  --muted: 220 20% 14%;
+  --accent: 220 20% 15%;
+  --accent-foreground: 0 0% 96%;
+  --ring: 215 15% 75%;
+  --radius: 0.75rem;
   --ink: #0C1420;
   --surface: #111E30;
   --elevated: #162438;
   --elevated-2: #1A2A40;
+  background-color: #0C1420;
+  color: #F0F4FF;
 }
+
+.crm-root {
+  min-height: 100vh;
+  background-color: #0C1420 !important;
+  color: #F0F4FF !important;
+  font-family: 'Inter', 'Nunito', system-ui, sans-serif;
+}
+
+.crm-root .card-marketing {
+  background: #162438 !important;
+  border: 1px solid rgba(240,244,255,0.09) !important;
+  color: #F0F4FF !important;
+}
+
+.crm-root input:not([type="date"]):not([type="time"]):not([type="checkbox"]),
+.crm-root textarea,
+.crm-root select {
+  background-color: rgba(255,255,255,0.05) !important;
+  border-color: rgba(240,244,255,0.14) !important;
+  color: #F0F4FF !important;
+}
+
+.crm-root input::placeholder,
+.crm-root textarea::placeholder {
+  color: rgba(240,244,255,0.35) !important;
+}
+
+.crm-root header {
+  background-color: rgba(12,20,32,0.96) !important;
+  border-bottom-color: rgba(240,244,255,0.08) !important;
+}
+
+.crm-root ::-webkit-scrollbar { width: 5px; height: 5px; }
+.crm-root ::-webkit-scrollbar-track { background: #0C1420; }
+.crm-root ::-webkit-scrollbar-thumb { background: #2A3A50; border-radius: 3px; }
+.crm-root ::-webkit-scrollbar-thumb:hover { background: #374F6A; }
 
 /* SHARED SHADCN TOKENS (light marketing) */
 body:not(.crm-page) {

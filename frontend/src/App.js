@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import CRMLayout from './components/CRMLayout';
 
 // Public Pages
 import Home from './pages/Home';
@@ -38,21 +39,21 @@ export default function App() {
           <Route path="/blog/:slug" element={<BlogPost />} />
 
           {/* Staff Auth */}
-          <Route path="/staff/login" element={<StaffLogin />} />
-          <Route path="/staff/accept-invite" element={<AcceptInvite />} />
+          <Route path="/staff/login" element={<CRMLayout><StaffLogin /></CRMLayout>} />
+          <Route path="/staff/accept-invite" element={<CRMLayout><AcceptInvite /></CRMLayout>} />
 
           {/* Protected Staff CRM */}
           <Route path="/staff/dashboard" element={
-            <ProtectedRoute><Dashboard /></ProtectedRoute>
+            <CRMLayout><ProtectedRoute><Dashboard /></ProtectedRoute></CRMLayout>
           } />
           <Route path="/staff/leads/:id" element={
-            <ProtectedRoute><LeadDetail /></ProtectedRoute>
+            <CRMLayout><ProtectedRoute><LeadDetail /></ProtectedRoute></CRMLayout>
           } />
           <Route path="/staff/settings" element={
-            <ProtectedRoute><Settings /></ProtectedRoute>
+            <CRMLayout><ProtectedRoute><Settings /></ProtectedRoute></CRMLayout>
           } />
           <Route path="/staff/blog" element={
-            <ProtectedRoute><BlogManager /></ProtectedRoute>
+            <CRMLayout><ProtectedRoute><BlogManager /></ProtectedRoute></CRMLayout>
           } />
 
           {/* Fallback */}

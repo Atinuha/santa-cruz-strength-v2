@@ -26,8 +26,9 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--clr-green)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200">
-              <img src={LOGO_URL} alt="SCS" className="w-full h-full object-contain" />
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--clr-green)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200 p-0.5">
+              <img src={LOGO_URL} alt="SCS" className="w-full h-full object-contain rounded-full"
+                style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
             <div className="hidden sm:block">
               <span className="font-display text-[var(--clr-green)] text-lg tracking-wider">SANTA CRUZ STRENGTH</span>

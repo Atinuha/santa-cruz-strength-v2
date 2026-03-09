@@ -7,7 +7,7 @@ import { GYM_CONFIG } from '../config';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap } from 'lucide-react';
 
-const HERO_IMG    = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/hvzhmt0n_Chris_5.JPEG';
+const HERO_IMG    = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/4ll7bzdl_IMG_4615.jpeg';
 const GYM_IMG     = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/zexxrigp_IMG_1134.jpeg';
 const DUMBBELL_IMG= 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/idkicvp5_6502579888812714199.jpg';
 const COASTAL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/4ll7bzdl_IMG_4615.jpeg';
@@ -65,9 +65,9 @@ export default function Home() {
 
       {/* =========== HERO =========== */}
       <section className="relative min-h-screen flex items-center pt-16"
-        style={{ backgroundImage: `url(${HERO_IMG})`, backgroundSize: 'cover', backgroundPosition: 'center 20%' }}>
-        {/* Light airy overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--clr-bg)]/95 via-[var(--clr-bg)]/70 to-[var(--clr-bg)]/20" />
+        style={{ backgroundImage: `url(${HERO_IMG})`, backgroundSize: 'cover', backgroundPosition: 'center 30%' }}>
+        {/* Left-heavy overlay — keep text always legible */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--clr-bg)]/98 via-[var(--clr-bg)]/80 to-[var(--clr-bg)]/30" />
         <div className="absolute inset-0" style={{ background: 'radial-gradient(600px circle at 5% 50%, rgba(205,234,224,0.5), transparent 55%)' }} />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 w-full">
