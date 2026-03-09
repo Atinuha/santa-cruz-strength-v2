@@ -13,11 +13,11 @@ import {
   Shield, ArrowRight, Clock, Mountain, Waves, Bike
 } from 'lucide-react';
 
-const HERO_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/78eczi55_348s.jpg';
-const GYM_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/jba9w56u_images.jpeg';
-const DUMBBELL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/gum0tx3j_l.jpg';
-const COASTAL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/aw0t70q8_348s.jpg';
-const SURFER_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/timf8d48_images12.jpeg';
+const HERO_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/hvzhmt0n_Chris_5.JPEG';
+const GYM_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/zexxrigp_IMG_1134.jpeg';
+const DUMBBELL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/idkicvp5_6502579888812714199.jpg';
+const COASTAL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/4ll7bzdl_IMG_4615.jpeg';
+const SURFER_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/xco5o291_IMG_3041.jpeg';
 
 const BENEFITS = [
   {
@@ -124,13 +124,13 @@ export default function Home() {
         style={{
           backgroundImage: `url(${HERO_IMG})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center 35%',
+          backgroundPosition: 'center 20%',
         }}
       >
-        {/* Strong base overlay */}
-        <div className="absolute inset-0 bg-[#0C1420]/75" />
-        {/* Left heavy — keep text area darker */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0C1420]/80 via-[#0C1420]/50 to-[#0C1420]/10" />
+        {/* Lighter overlay so coach and SCS door logo show through */}
+        <div className="absolute inset-0 bg-[#0C1420]/55" />
+        {/* Text side stays readable, photo side opens up */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0C1420]/75 via-[#0C1420]/30 to-[#0C1420]/05" />
         {/* Subtle brand accent — barely visible */}
         <div className="absolute inset-0" style={{
           background: 'radial-gradient(600px circle at 8% 50%, rgba(27,122,74,0.06), transparent 50%)',
@@ -186,7 +186,7 @@ export default function Home() {
 
             {/* Right — Form */}
             <div ref={formRef} id="lead-form" className="animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-              <div className="bg-[#0C1420]/96 backdrop-blur-md border border-white/14 rounded-xl p-6 shadow-2xl">
+              <div className="bg-[#0A1020]/95 backdrop-blur-md border border-white/14 rounded-xl p-6 shadow-2xl">
                 <div className="mb-5">
                   <h2 className="font-display text-2xl text-white tracking-wide">BOOK A TOUR</h2>
                   <p className="text-white/62 text-sm mt-1">Tell us a bit about yourself. We\'ll reach out to schedule a visit.</p>
@@ -229,7 +229,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative rounded-xl overflow-hidden order-2 lg:order-1">
-              <img src={GYM_IMG} alt="Santa Cruz Strength gym equipment and training floor"
+              <img src={GYM_IMG} alt="Santa Cruz Strength member competing in a deadlift — real training, real competition"
                 className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)]/50 to-transparent" />
               <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur text-white px-3 py-1.5 rounded text-xs">
@@ -307,12 +307,12 @@ export default function Home() {
               </div>
             </div>
             <div className="relative rounded-xl overflow-hidden">
-              <img src={SURFER_IMG} alt="Santa Cruz Strength exterior — 151 Harvey West Blvd, Santa Cruz CA"
+              <img src={SURFER_IMG} alt="Santa Cruz Strength competition podium — members with medals in front of the SCS logo wall"
                 className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)]/70 to-transparent" />
               <div className="absolute bottom-5 left-5 right-5">
-                <p className="text-white font-display text-xl tracking-wide drop-shadow-lg">151 HARVEY WEST BLVD</p>
-                <p className="text-[#7FCCA6] font-display text-lg tracking-wide drop-shadow-lg">SANTA CRUZ, CA 95060</p>
+                <p className="text-white font-display text-xl tracking-wide drop-shadow-lg">REAL COMPETITION.</p>
+                <p className="text-[#7FCCA6] font-display text-lg tracking-wide drop-shadow-lg">REAL COMMUNITY.</p>
               </div>
             </div>
           </div>

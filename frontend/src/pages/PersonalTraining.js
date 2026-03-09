@@ -5,7 +5,7 @@ import LeadForm from '../components/LeadForm';
 import { GYM_CONFIG } from '../config';
 import { CheckCircle2, Target, Zap, Heart } from 'lucide-react';
 
-const PT_IMG = 'https://images.unsplash.com/photo-1750698545009-679820502908?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1400';
+const PT_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/hvzhmt0n_Chris_5.JPEG';
 
 const PT_BENEFITS = [
   { icon: <Target size={19} className="text-[#1B7A4A]" />, title: 'Goal-Specific Programming', desc: 'Every session is structured around your goals — strength development, injury recovery, performance, or competition preparation.' },

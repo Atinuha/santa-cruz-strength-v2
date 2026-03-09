@@ -5,7 +5,7 @@ import LeadForm from '../components/LeadForm';
 import { GYM_CONFIG } from '../config';
 import { ArrowRight, CheckCircle2, Users, Dumbbell, Clock, Key } from 'lucide-react';
 
-const JOIN_IMG = 'https://images.unsplash.com/photo-1688521010779-5a04998b6d1d?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1400';
+const JOIN_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/zexxrigp_IMG_1134.jpeg';
 
 const MEMBERSHIP_PERKS = [
   '24/7 facility access via our app',
