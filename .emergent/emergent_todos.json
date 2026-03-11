@@ -1,22 +1,30 @@
 [
   {
-    "content": "Update FROM_EMAIL to hello@santacruzstrength.com + add reply-to in Resend",
+    "content": "Install httpx + apscheduler, update requirements.txt",
     "status": "completed"
   },
   {
-    "content": "Add GA4 script to public/index.html",
+    "content": "Add MailerSend SMS config to .env",
     "status": "completed"
   },
   {
-    "content": "Create analytics utility + wire up SPA route tracking in App.js",
+    "content": "Add SMS engine + follow-up scheduler to server.py",
     "status": "completed"
   },
   {
-    "content": "Add conversion event tracking (form submit, Join Now, Book a Tour)",
+    "content": "Wire immediate SMS into lead creation + status-change triggers",
     "status": "completed"
   },
   {
-    "content": "Verify build clean + test GA4 firing",
+    "content": "Add SMS settings endpoints (GET/PUT staff numbers)",
+    "status": "completed"
+  },
+  {
+    "content": "Add SMS notification numbers UI to CRM Settings page",
+    "status": "completed"
+  },
+  {
+    "content": "Test SMS flows end-to-end",
     "status": "completed"
   }
 ]

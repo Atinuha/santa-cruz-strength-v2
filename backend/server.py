@@ -10,6 +10,8 @@ import csv
 import io
 import asyncio
 import resend
+import httpx
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pathlib import Path
 from pydantic import BaseModel
 from typing import List, Optional
@@ -281,6 +283,195 @@ async def send_lead_emails(lead: dict):
     ))
     await asyncio.gather(*tasks, return_exceptions=True)
 
+# --------------- SMS (MailerSend) ---------------
+
+MAILERSEND_API_KEY = os.environ.get('MAILERSEND_API_KEY', '')
+MAILERSEND_FROM   = os.environ.get('MAILERSEND_FROM_NUMBER', '')
+
+# ── Core send ─────────────────────────────────────────────────────────────────
+async def send_sms(to_numbers: list, text: str) -> bool:
+    """Send SMS via MailerSend REST API. Safe-guards when not configured."""
+    if not MAILERSEND_API_KEY or not MAILERSEND_FROM:
+        logger.info(f'[SMS] Not configured — skipping to {to_numbers}')
+        return False
+    # Clean numbers — keep only valid E.164
+    valid = [n.strip() for n in to_numbers if n and n.strip().startswith('+')]
+    if not valid:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                'https://api.mailersend.com/v1/sms',
+                headers={
+                    'Authorization': f'Bearer {MAILERSEND_API_KEY}',
+                    'Content-Type': 'application/json',
+                },
+                json={'from': MAILERSEND_FROM, 'to': valid, 'text': text},
+            )
+        if resp.status_code == 202:
+            logger.info(f'[SMS] Sent to {valid}')
+            return True
+        else:
+            logger.warning(f'[SMS] Failed {resp.status_code}: {resp.text[:200]}')
+            return False
+    except Exception as e:
+        logger.warning(f'[SMS] Error: {e}')
+        return False
+
+# ── Get staff SMS numbers (DB-managed so staff can update via CRM UI) ─────────
+async def get_sms_staff_numbers() -> list:
+    doc = await db.sms_settings.find_one({'_id': 'staff_numbers'})
+    if doc:
+        return doc.get('numbers', [])
+    # Seed from env on first call
+    seed = [n.strip() for n in os.environ.get('SMS_STAFF_NUMBERS', '').split(',') if n.strip()]
+    if seed:
+        await db.sms_settings.replace_one(
+            {'_id': 'staff_numbers'},
+            {'_id': 'staff_numbers', 'numbers': seed},
+            upsert=True,
+        )
+    return seed
+
+# ── Immediate flows ───────────────────────────────────────────────────────────
+async def send_lead_sms(lead: dict):
+    """Two immediate texts: confirmation to lead + alert to staff."""
+    name      = lead.get('first_name', 'there')
+    interest  = lead.get('interest_type', 'General Membership')
+    timeline  = lead.get('start_timeline', '')
+    lead_phone = lead.get('phone', '').strip()
+    staff_nums = await get_sms_staff_numbers()
+
+    tasks = []
+
+    # A) Confirmation to lead
+    if lead_phone and lead_phone.startswith('+'):
+        msg = (
+            f"Hey {name}, Santa Cruz Strength here 💪 "
+            f"Stoked you reached out! Someone from our team will hit you up shortly "
+            f"to set up a quick tour. Questions? Call us at (408) 337-6709. — SCS"
+        )
+        tasks.append(send_sms([lead_phone], msg))
+
+    # B) Alert to staff
+    if staff_nums:
+        full_name = f"{lead.get('first_name','')} {lead.get('last_name','')}".strip()
+        staff_msg = (
+            f"🔔 New SCS Lead: {full_name} | "
+            f"{lead_phone} | {interest}"
+            f"{' | ' + timeline if timeline else ''} | "
+            f"CRM: https://santacruzstrength.com/staff/dashboard"
+        )
+        tasks.append(send_sms(staff_nums, staff_msg))
+
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+# ── Status-change triggered SMS ────────────────────────────────────────────────
+async def send_status_change_sms(lead: dict, new_status: str):
+    """Fire a branded SMS when staff moves a lead to a milestone status."""
+    name      = lead.get('first_name', 'there')
+    lead_phone = lead.get('phone', '').strip()
+    if not lead_phone or not lead_phone.startswith('+'):
+        return
+
+    msg = None
+
+    if new_status == 'Booked Visit':
+        msg = (
+            f"Hey {name} 🎉 Your tour at Santa Cruz Strength is confirmed! "
+            f"We're at 151 Harvey West Blvd, Suite D, Santa Cruz. "
+            f"Any questions? Call (408) 337-6709. See you soon! — SCS"
+        )
+    elif new_status == 'Trial Scheduled':
+        msg = (
+            f"Hey {name}, your trial session at Santa Cruz Strength is locked in 💪 "
+            f"151 Harvey West Blvd, Suite D. Questions? (408) 337-6709. — SCS"
+        )
+    elif new_status == 'Joined':
+        msg = (
+            f"Welcome to Santa Cruz Strength, {name}! 🏋️ "
+            f"You're officially part of the crew. "
+            f"Download the app for 24/7 access and we'll see you in the gym. — SCS"
+        )
+
+    if msg:
+        await send_sms([lead_phone], msg)
+        # Track it
+        await db.leads.update_one(
+            {'id': lead.get('id', '')},
+            {'$push': {'sms_log': {'type': f'status_{new_status.lower().replace(" ","_")}',
+                                    'sent_at': now_utc().isoformat()}}}
+        )
+
+# ── Follow-up scheduler (runs every 30 min) ───────────────────────────────────
+STOP_STATUSES = {'Booked Visit', 'Trial Scheduled', 'Joined', 'Lost', 'No Response'}
+
+SMS_SEQUENCE = [
+    {
+        'key':   'day1',
+        'hours': 24,
+        'target_statuses': {'New'},
+        'text': (
+            "Hey {{name}}, following up from Santa Cruz Strength! "
+            "Still thinking about checking out the gym? "
+            "We'd love to show you around — zero pressure, totally free. "
+            "Reply back or call (408) 337-6709 🏋️ — SCS"
+        ),
+    },
+    {
+        'key':   'day3',
+        'hours': 72,
+        'target_statuses': {'New', 'Contacted', 'Attempted Call', 'Texted'},
+        'text': (
+            "Hey {{name}}, the SCS team here again. "
+            "We have open spots for tours this week — takes 20 min, free, no commitment. "
+            "Want to grab one? Reply or call (408) 337-6709 💪 — SCS"
+        ),
+    },
+    {
+        'key':   'day7',
+        'hours': 168,
+        'target_statuses': {'New', 'Contacted', 'Attempted Call', 'Texted'},
+        'text': (
+            "Last one from us, {{name}} — if strength training ever moves up the priority list, "
+            "Santa Cruz Strength will be here. "
+            "Come by anytime: 151 Harvey West Blvd, SC. (408) 337-6709 🤙 — SCS"
+        ),
+    },
+]
+
+async def run_sms_followup_job():
+    """Scheduled every 30 min: send follow-up SMS based on lead age + status."""
+    if not MAILERSEND_API_KEY or not MAILERSEND_FROM:
+        return
+    now = now_utc()
+    for seq in SMS_SEQUENCE:
+        cutoff_start = (now - timedelta(hours=seq['hours'] + 1)).isoformat()
+        cutoff_end   = (now - timedelta(hours=seq['hours'] - 1)).isoformat()
+        leads = await db.leads.find({
+            'created_at': {'$gte': cutoff_start, '$lte': cutoff_end},
+            'status':     {'$in': list(seq['target_statuses'])},
+            f'sms_log.type': {'$ne': seq['key']},   # hasn't already received this step
+        }, {'_id': 0}).to_list(500)
+
+        for lead in leads:
+            phone = lead.get('phone', '').strip()
+            if not phone or not phone.startswith('+'):
+                continue
+            # Skip if already in stop status
+            if lead.get('status') in STOP_STATUSES:
+                continue
+            # Build personalised text
+            text = seq['text'].replace('{{name}}', lead.get('first_name', 'there'))
+            ok = await send_sms([phone], text)
+            if ok:
+                await db.leads.update_one(
+                    {'id': lead['id']},
+                    {'$push': {'sms_log': {'type': seq['key'], 'sent_at': now.isoformat()}}}
+                )
+                logger.info(f"[SMS FOLLOWUP] {seq['key']} sent to {phone}")
+
+
 # --------------- Pydantic Models ---------------
 
 class LeadCreate(BaseModel):
@@ -502,10 +693,10 @@ async def create_lead_public(lead: LeadCreate):
             {'$set': {'phone': doc['phone'], 'interest_type': doc['interest_type'], 'training_goals': doc['training_goals'], 'updated_at': now.isoformat()},
              '$push': {'activity_log': {'action': 'Re-inquiry', 'note': f'Re-submitted via {lead.lead_source}', 'staff_id': None, 'staff_name': 'System', 'timestamp': now.isoformat()}}}
         )
-        await send_lead_emails(doc)
+        await asyncio.gather(send_lead_emails(doc), send_lead_sms(doc), return_exceptions=True)
         return {'id': existing['id'], 'status': 'updated'}
     await db.leads.insert_one(doc)
-    await send_lead_emails(doc)
+    await asyncio.gather(send_lead_emails(doc), send_lead_sms(doc), return_exceptions=True)
     return {'id': lead_id, 'status': 'created'}
 
 # --------------- Staff Lead Routes ---------------
@@ -750,6 +941,9 @@ async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(require_staff
     if log_entries: set_op['$push'] = {'activity_log': {'$each': log_entries}}
     await db.leads.update_one({'id': lead_id}, set_op)
     updated = await db.leads.find_one({'id': lead_id}, {'_id': 0})
+    # Fire status-change SMS for milestone statuses (non-blocking)
+    if data.status and data.status != lead.get('status'):
+        asyncio.ensure_future(send_status_change_sms(updated, data.status))
     return updated
 
 @api_router.post('/staff/leads/{lead_id}/notes')
@@ -863,6 +1057,25 @@ async def update_staffed_hours(hours: dict, user=Depends(require_owner)):
         upsert=True
     )
     return {'message': 'Staffed hours updated', 'hours': hours}
+
+# --------------- SMS Settings Routes ---------------
+
+@api_router.get('/staff/settings/sms-numbers')
+async def get_sms_numbers(user=Depends(require_staff)):
+    numbers = await get_sms_staff_numbers()
+    return {'numbers': numbers}
+
+@api_router.put('/staff/settings/sms-numbers')
+async def update_sms_numbers(data: dict, user=Depends(require_owner)):
+    numbers = data.get('numbers', [])
+    # Validate E.164 format
+    clean = [n.strip() for n in numbers if n and n.strip().startswith('+')]
+    await db.sms_settings.replace_one(
+        {'_id': 'staff_numbers'},
+        {'_id': 'staff_numbers', 'numbers': clean},
+        upsert=True,
+    )
+    return {'numbers': clean, 'message': 'SMS notification numbers updated'}
 
 # --------------- Blog Models ---------------
 
@@ -1438,9 +1651,17 @@ async def startup():
             await db.users.insert_one({'id': admin_id, 'email': 'management@santacruzstrength.com', 'password_hash': hash_password('schuscle01'), 'name': 'Management', 'role': 'owner', 'location': 'santa_cruz', 'is_active': True, 'created_at': now_utc().isoformat()})
             logger.info('[SEED] Created owner: management@santacruzstrength.com')
     logger.info('[STARTUP] Santa Cruz Strength API ready')
+    # Start SMS follow-up scheduler
+    scheduler = AsyncIOScheduler(timezone='America/Los_Angeles')
+    scheduler.add_job(run_sms_followup_job, 'interval', minutes=30, id='sms_followup', replace_existing=True)
+    scheduler.start()
+    app.state.scheduler = scheduler
+    logger.info('[STARTUP] SMS follow-up scheduler started (every 30 min)')
 
 @app.on_event('shutdown')
 async def shutdown_db_client():
+    if hasattr(app.state, 'scheduler'):
+        app.state.scheduler.shutdown(wait=False)
     client.close()
 
 app.include_router(api_router)

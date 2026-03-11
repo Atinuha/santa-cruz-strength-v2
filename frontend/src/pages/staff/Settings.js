@@ -9,7 +9,7 @@ import {
 } from '../../lib/api';
 import {
   ArrowLeft, Plus, Trash2, Loader2, LogOut, Shield, User,
-  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock, CalendarDays
+  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock, CalendarDays, MessageSquare, Phone as PhoneIcon
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
@@ -40,6 +40,10 @@ export default function Settings() {
   const [csvResult, setCsvResult] = useState(null);
   const [staffedHours, setStaffedHours] = useState(null);
   const [hoursSaving, setHoursSaving] = useState(false);
+  const [smsNumbers, setSmsNumbers] = useState([]);
+  const [smsLoading, setSmsLoading] = useState(false);
+  const [smsSaving, setSmsSaving] = useState(false);
+  const [newSmsNumber, setNewSmsNumber] = useState('');
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', password: '', confirm_password: '' });
   const [profileSaving, setProfileSaving] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'staff', location: 'santa_cruz' });
@@ -57,6 +61,19 @@ export default function Settings() {
       if (hRes) setStaffedHours(hRes.data);
     } catch { toast.error('Failed to load staff data'); }
     finally { setLoadingUsers(false); }
+    // Load SMS numbers separately (owner only)
+    if (isOwner) {
+      try {
+        setSmsLoading(true);
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+        const token = localStorage.getItem('scs_token');
+        const res = await fetch(`${backendUrl}/api/staff/settings/sms-numbers`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) { const d = await res.json(); setSmsNumbers(d.numbers || []); }
+      } catch { /* silent */ }
+      finally { setSmsLoading(false); }
+    }
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -144,6 +161,42 @@ export default function Settings() {
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to save hours');
     } finally { setHoursSaving(false); }
+  };
+
+  const saveSmsNumbers = async (numbers) => {
+    setSmsSaving(true);
+    try {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+      const token = localStorage.getItem('scs_token');
+      const res = await fetch(`${backendUrl}/api/staff/settings/sms-numbers`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numbers }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      const d = await res.json();
+      setSmsNumbers(d.numbers);
+      toast.success('SMS numbers updated');
+    } catch { toast.error('Failed to save SMS numbers'); }
+    finally { setSmsSaving(false); }
+  };
+
+  const handleAddSmsNumber = () => {
+    const num = newSmsNumber.trim();
+    if (!num.startsWith('+') || num.length < 10) {
+      toast.error('Enter a valid E.164 number (e.g. +15103616605)'); return;
+    }
+    if (smsNumbers.includes(num)) { toast.error('Number already added'); return; }
+    const updated = [...smsNumbers, num];
+    setSmsNumbers(updated);
+    setNewSmsNumber('');
+    saveSmsNumbers(updated);
+  };
+
+  const handleRemoveSmsNumber = (num) => {
+    const updated = smsNumbers.filter(n => n !== num);
+    setSmsNumbers(updated);
+    saveSmsNumbers(updated);
   };
 
   const handleCSVUpload = async (e) => {
@@ -386,6 +439,67 @@ export default function Settings() {
                 <span className="text-blue-300/70">Admin</span> — manage staff, delete leads.{' '}
                 <span className="text-white/65">Staff</span> — view leads, update status, add notes. Cannot delete.
               </p>
+            </div>
+          </section>
+        )}
+
+        {/* SMS Notification Numbers — Owner Only */}
+        {isOwner && (
+          <section className="card-marketing p-6" data-testid="sms-settings-section">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={15} className="text-[#1B7A4A]" />
+                <h2 className="font-display text-xl text-white tracking-wide">SMS ALERT NUMBERS</h2>
+                <span className="text-white/48 text-xs">owner only</span>
+              </div>
+              {smsSaving && <Loader2 size={13} className="animate-spin text-white/40" />}
+            </div>
+            <p className="text-white/45 text-xs mb-5 leading-relaxed">
+              These numbers receive an instant text whenever a new lead submits the form. Use E.164 format (e.g. <span className="text-white/70 font-mono">+15103616605</span>).
+            </p>
+
+            {/* Current numbers */}
+            {smsLoading ? (
+              <div className="flex gap-2 mb-4">
+                {[1,2].map(i => <div key={i} className="h-8 w-36 bg-white/8 rounded-full animate-pulse" />)}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {smsNumbers.length === 0 && (
+                  <p className="text-white/30 text-xs italic">No numbers added yet</p>
+                )}
+                {smsNumbers.map(num => (
+                  <div key={num} className="flex items-center gap-1.5 bg-[#1B7A4A]/12 border border-[#1B7A4A]/25 text-[#7FCCA6] text-xs font-mono px-3 py-1.5 rounded-full">
+                    <PhoneIcon size={10} />
+                    <span>{num}</span>
+                    <button onClick={() => handleRemoveSmsNumber(num)}
+                      className="ml-1 text-white/35 hover:text-red-400 transition-colors duration-150"
+                      data-testid={`sms-remove-${num}`}>
+                      <X size={11} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add number */}
+            <div className="flex gap-2">
+              <input
+                value={newSmsNumber}
+                onChange={e => setNewSmsNumber(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddSmsNumber()}
+                placeholder="+15103616605"
+                data-testid="sms-number-input"
+                className="flex-1 bg-white/5 border border-white/12 text-white placeholder:text-white/28 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#1B7A4A]/50"
+              />
+              <button
+                onClick={handleAddSmsNumber}
+                disabled={smsSaving}
+                data-testid="sms-add-number-btn"
+                className="flex items-center gap-1.5 btn-scs-primary px-4 py-2 text-sm rounded-lg"
+              >
+                <Plus size={14} /> Add
+              </button>
             </div>
           </section>
         )}
