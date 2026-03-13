@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { GYM_CONFIG } from '../config';
 import { MapPin, Phone, Mail, Instagram, Facebook } from 'lucide-react';
 
-const LOGO_URL = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg';
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_f0e6860d-0e81-45b1-9e0b-f7bb6a04df72/artifacts/uf08gcdo_20260313_151045_0000.png';
 
 export default function Footer() {
   return (

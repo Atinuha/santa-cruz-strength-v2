@@ -1,34 +1,18 @@
 [
   {
-    "content": "Create Privacy Policy page (/privacy)",
+    "content": "Update Navbar + Footer logo to new transparent PNG",
     "status": "completed"
   },
   {
-    "content": "Create Terms & Conditions page (/terms)",
+    "content": "Add favicon + OG image + full social meta to index.html",
     "status": "completed"
   },
   {
-    "content": "Update Footer + App.js with legal links + routes",
+    "content": "Create robots.txt (tells Google what to crawl)",
     "status": "completed"
   },
   {
-    "content": "Add SMS consent language to QuizForm",
-    "status": "completed"
-  },
-  {
-    "content": "Fix image object-position on Home.js for face centering",
-    "status": "completed"
-  },
-  {
-    "content": "Add ScrollToTop component to App.js",
-    "status": "completed"
-  },
-  {
-    "content": "Convert PT Benefits grid to Carousel",
-    "status": "completed"
-  },
-  {
-    "content": "Upgrade Carousel.js with auto-scroll + infinite loop",
+    "content": "Create sitemap.xml (ready for Google Search Console submission)",
     "status": "completed"
   },
   {

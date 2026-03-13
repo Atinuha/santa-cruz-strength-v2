@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { GYM_CONFIG } from '../config';
 import { Menu, X, Phone } from 'lucide-react';
 
-const LOGO_URL = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg';
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_f0e6860d-0e81-45b1-9e0b-f7bb6a04df72/artifacts/uf08gcdo_20260313_151045_0000.png';
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--clr-green)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200 p-0.5">
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200 p-0.5" style={{ border: '1.5px solid var(--clr-border-green)' }}>
               <img src={LOGO_URL} alt="SCS" className="w-full h-full object-contain rounded-full"
                 style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
