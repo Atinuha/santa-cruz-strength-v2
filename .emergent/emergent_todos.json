@@ -1,30 +1,22 @@
 [
   {
-    "content": "Fix navbar logo (invert filter on green background)",
+    "content": "Fix DB_NAME fallback mismatch (BLOCKER)",
     "status": "completed"
   },
   {
-    "content": "Backend: 2FA OTP + forgot/reset password endpoints",
+    "content": "Fix SMS follow-up query - add field projection",
     "status": "completed"
   },
   {
-    "content": "Frontend: Login.js OTP step + forgot password link",
+    "content": "Fix CSV export query - cap at 5000 with field projection",
     "status": "completed"
   },
   {
-    "content": "Frontend: ForgotPassword.js + ResetPassword.js pages",
+    "content": "Move @craco/craco to dependencies",
     "status": "completed"
   },
   {
-    "content": "Frontend: Settings.js owner send-reset-email button",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: api.js new auth endpoints + App.js routes",
-    "status": "completed"
-  },
-  {
-    "content": "Build + verify",
-    "status": "completed"
+    "content": "Restart + final health verify",
+    "status": "in_progress"
   }
 ]

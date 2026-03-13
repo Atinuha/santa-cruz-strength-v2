@@ -25,7 +25,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'scs_gym')]
+db = client[os.environ.get('DB_NAME', 'test_database')]
 
 app = FastAPI(title='Santa Cruz Strength API')
 api_router = APIRouter(prefix='/api')
@@ -452,7 +452,7 @@ async def run_sms_followup_job():
             'created_at': {'$gte': cutoff_start, '$lte': cutoff_end},
             'status':     {'$in': list(seq['target_statuses'])},
             f'sms_log.type': {'$ne': seq['key']},   # hasn't already received this step
-        }, {'_id': 0}).to_list(500)
+        }, {'_id': 0, 'id': 1, 'phone': 1, 'first_name': 1, 'status': 1, 'sms_log': 1}).to_list(500)
 
         for lead in leads:
             phone = lead.get('phone', '').strip()
@@ -947,7 +947,7 @@ async def export_leads_csv(status: Optional[str] = None, location: Optional[str]
     query = {}
     if status: query['status'] = status
     if location: query['location'] = location
-    leads = await db.leads.find(query, {'_id': 0}).sort('created_at', -1).to_list(10000)
+    leads = await db.leads.find(query, {'_id': 0}).sort('created_at', -1).to_list(5000)
     fieldnames = [
         'first_name', 'last_name', 'date_of_birth', 'email', 'phone',
         'address', 'city', 'state', 'zip_code',
