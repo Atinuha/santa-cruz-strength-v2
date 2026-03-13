@@ -2,6 +2,7 @@ import React from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
+import Carousel from '../components/Carousel';
 import { GYM_CONFIG } from '../config';
 import { CheckCircle2, Target, Zap, Heart } from 'lucide-react';
 
@@ -39,15 +40,15 @@ export default function PersonalTraining() {
 
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-16">
+          <Carousel itemWidth="w-72 sm:w-80" className="px-6 mb-16">
             {PT_BENEFITS.map((b, i) => (
-              <div key={i} className="card-light p-6">
+              <div key={i} className="card-light p-6 h-full">
                 <div className="w-10 h-10 bg-[var(--clr-bg-green)] rounded-xl flex items-center justify-center mb-3">{b.icon}</div>
                 <h3 className="text-[var(--clr-charcoal)] font-bold text-sm mb-2">{b.title}</h3>
                 <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed">{b.desc}</p>
               </div>
             ))}
-          </div>
+          </Carousel>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             <div>
               <span className="green-accent-line" />

@@ -102,8 +102,10 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Santa Cruz Strength. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
+            <Link to="/privacy" className="text-white/50 hover:text-white text-xs font-semibold transition-colors duration-200">Privacy Policy</Link>
+            <Link to="/terms" className="text-white/50 hover:text-white text-xs font-semibold transition-colors duration-200">Terms &amp; Conditions</Link>
             <Link to="/staff/login" className="text-white/50 hover:text-white text-xs font-semibold transition-colors duration-200">
-              Staff / Admin Login
+              Staff Login
             </Link>
           </div>
         </div>

@@ -1,30 +1,38 @@
 [
   {
-    "content": "Install httpx + apscheduler, update requirements.txt",
+    "content": "Create Privacy Policy page (/privacy)",
     "status": "completed"
   },
   {
-    "content": "Add MailerSend SMS config to .env",
+    "content": "Create Terms & Conditions page (/terms)",
     "status": "completed"
   },
   {
-    "content": "Add SMS engine + follow-up scheduler to server.py",
+    "content": "Update Footer + App.js with legal links + routes",
     "status": "completed"
   },
   {
-    "content": "Wire immediate SMS into lead creation + status-change triggers",
+    "content": "Add SMS consent language to QuizForm",
     "status": "completed"
   },
   {
-    "content": "Add SMS settings endpoints (GET/PUT staff numbers)",
+    "content": "Fix image object-position on Home.js for face centering",
     "status": "completed"
   },
   {
-    "content": "Add SMS notification numbers UI to CRM Settings page",
+    "content": "Add ScrollToTop component to App.js",
     "status": "completed"
   },
   {
-    "content": "Test SMS flows end-to-end",
+    "content": "Convert PT Benefits grid to Carousel",
+    "status": "completed"
+  },
+  {
+    "content": "Upgrade Carousel.js with auto-scroll + infinite loop",
+    "status": "completed"
+  },
+  {
+    "content": "Build + verify clean",
     "status": "completed"
   }
 ]

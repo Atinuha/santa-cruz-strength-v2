@@ -14,6 +14,8 @@ import Contact from './pages/Contact';
 import ThankYou from './pages/ThankYou';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 
 // Staff CRM Pages
 import StaffLogin from './pages/staff/Login';
@@ -29,7 +31,7 @@ import './App.css';
 function RouteTracker() {
   const location = useLocation();
   useEffect(() => {
-    // Skip CRM staff pages — no need to track internal tool usage
+    window.scrollTo({ top: 0, behavior: 'instant' });
     if (!location.pathname.startsWith('/staff')) {
       trackPageView(location.pathname + location.search);
     }
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="/thank-you" element={<ThankYou />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
 
           {/* Staff Auth */}
           <Route path="/staff/login" element={<CRMLayout><StaffLogin /></CRMLayout>} />

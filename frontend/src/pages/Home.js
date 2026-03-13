@@ -211,7 +211,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative rounded-[var(--radius-xl)] overflow-hidden order-2 lg:order-1" style={{ boxShadow: 'var(--shadow-lg)' }}>
               <img src={GYM_IMG} alt="Santa Cruz Strength member competing in a deadlift"
-                className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
+                className="w-full h-72 sm:h-96 object-cover" style={{ objectPosition: 'center top' }} loading="lazy" />
               <div className="absolute bottom-5 left-5">
                 <span className="bg-white text-[var(--clr-green)] text-xs font-bold px-4 py-2 rounded-full" style={{ boxShadow: 'var(--shadow-sm)' }}>
                   151 Harvey West Blvd · Santa Cruz
@@ -280,7 +280,7 @@ export default function Home() {
             </div>
             <div className="relative rounded-[var(--radius-xl)] overflow-hidden" style={{ boxShadow: 'var(--shadow-lg)' }}>
               <img src={SURFER_IMG} alt="Santa Cruz Strength competition podium — members with medals"
-                className="w-full h-72 sm:h-96 object-cover" loading="lazy" />
+                className="w-full h-72 sm:h-96 object-cover" style={{ objectPosition: 'center top' }} loading="lazy" />
               <div className="absolute bottom-5 left-5 right-5">
                 <div className="bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3">
                   <p className="font-display text-lg tracking-wide" style={{ color: 'var(--clr-green)' }}>REAL COMPETITION.</p>
