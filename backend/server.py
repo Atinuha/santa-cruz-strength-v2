@@ -771,7 +771,7 @@ async def create_invite(data: InviteCreate, user=Depends(require_admin)):
     }
     await db.invites.insert_one(invite_doc)
     # Build invite URL
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://santa-cruz-dev.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
     invite_url = f"{frontend_url}/staff/accept-invite?token={token}"
     # Try to send email
     html = f"""
@@ -1428,7 +1428,7 @@ Return a JSON array of 8 objects. Only return valid JSON, no markdown fences, no
             system_message='You are a content strategist. Return only valid JSON arrays.'
         ).with_model('openai', 'gpt-4o-mini')
         msg = UserMessage(text=prompt)
-        response = await chat.send_message(msg)
+        response = await asyncio.wait_for(chat.send_message(msg), timeout=45.0)
         raw = response.strip()
         # Strip any accidental markdown fences
         if raw.startswith('```'):
