@@ -35,11 +35,19 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email, password, prefetchedData = null) => {
     setLoading(true);
     try {
-      const res = await apiLogin(email, password);
-      const { access_token, user: userData } = res.data;
+      let access_token, userData;
+      if (prefetchedData) {
+        // OTP flow: token data already returned from verify-otp
+        access_token = prefetchedData.access_token;
+        userData     = prefetchedData.user;
+      } else {
+        const res = await apiLogin(email, password);
+        access_token = res.data.access_token;
+        userData     = res.data.user;
+      }
       localStorage.setItem('scs_token', access_token);
       localStorage.setItem('scs_user', JSON.stringify(userData));
       setUser(userData);

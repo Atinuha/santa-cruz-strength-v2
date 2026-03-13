@@ -9,7 +9,7 @@ import {
 } from '../../lib/api';
 import {
   ArrowLeft, Plus, Trash2, Loader2, LogOut, Shield, User,
-  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock, CalendarDays, MessageSquare, Phone as PhoneIcon
+  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock, CalendarDays, MessageSquare, Phone as PhoneIcon, KeyRound
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
@@ -151,6 +151,19 @@ export default function Settings() {
       toast.success('User deleted');
       fetchAll();
     } catch (err) { toast.error(err.response?.data?.detail || 'Failed to delete user'); }
+  };
+
+  const handleSendReset = async (u) => {
+    try {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+      const token = localStorage.getItem('scs_token');
+      const res = await fetch(`${backendUrl}/api/staff/users/${u.id}/send-reset`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed');
+      toast.success(`Password reset email sent to ${u.email}`);
+    } catch { toast.error('Failed to send reset email'); }
   };
 
   const handleSaveHours = async () => {
@@ -420,6 +433,14 @@ export default function Settings() {
                             className="text-white/52 hover:text-white text-xs btn-scs-secondary px-2 py-1 rounded">
                             {u.is_active ? 'Disable' : 'Enable'}
                           </button>
+                          {isOwner && (
+                            <button onClick={() => handleSendReset(u)}
+                              title="Send password reset email"
+                              data-testid={`send-reset-${u.id}`}
+                              className="text-[#7FCCA6]/60 hover:text-[#7FCCA6] p-1.5 rounded transition-colors duration-200">
+                              <KeyRound size={13} />
+                            </button>
+                          )}
                           <button onClick={() => handleDeleteUser(u)} data-testid="crm-settings-delete-account-button"
                             className="text-red-400/50 hover:text-red-400 p-1.5 rounded transition-colors duration-200">
                             <Trash2 size={13} />

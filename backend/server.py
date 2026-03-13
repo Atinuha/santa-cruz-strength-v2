@@ -532,6 +532,62 @@ class AcceptInvite(BaseModel):
 
 # --------------- Auth Routes ---------------
 
+def _otp_email_html(name: str, otp: str) -> str:
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5F0;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
+  <tr><td align="center">
+    <table width="480" cellpadding="0" cellspacing="0" style="background:#111f16;border-radius:12px;overflow:hidden;border:1px solid #1e3327;">
+      <tr><td style="background:#0D5D3E;padding:22px 32px;">
+        <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength — Staff Portal</p>
+        <p style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:800;">Your login code</p>
+      </td></tr>
+      <tr><td style="padding:32px;">
+        <p style="margin:0 0 16px;color:#e8f5ee;font-size:14px;">Hey {name}, here's your one-time login code:</p>
+        <div style="background:#0D5D3E;border-radius:10px;padding:20px 32px;text-align:center;margin:0 0 20px;">
+          <span style="font-family:monospace;font-size:38px;font-weight:900;color:#ffffff;letter-spacing:10px;">{otp}</span>
+        </div>
+        <p style="margin:0;color:#8FBF9F;font-size:12px;line-height:1.6;">
+          This code expires in <strong style="color:#CDE4DF;">10 minutes</strong>.<br>
+          If you didn't request this, someone may be attempting to access your account — contact your admin.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>"""
+
+def _reset_email_html(name: str, reset_url: str) -> str:
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5F0;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
+  <tr><td align="center">
+    <table width="480" cellpadding="0" cellspacing="0" style="background:#111f16;border-radius:12px;overflow:hidden;border:1px solid #1e3327;">
+      <tr><td style="background:#0D5D3E;padding:22px 32px;">
+        <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength — Staff Portal</p>
+        <p style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:800;">Reset your password</p>
+      </td></tr>
+      <tr><td style="padding:32px;">
+        <p style="margin:0 0 20px;color:#e8f5ee;font-size:14px;">Hey {name}, click the button below to set a new password. This link expires in <strong style="color:#CDE4DF;">1 hour</strong>.</p>
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="background:#0D5D3E;border-radius:8px;">
+            <a href="{reset_url}" style="display:inline-block;padding:13px 28px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;">
+              Reset Password →
+            </a>
+          </td>
+        </tr></table>
+        <p style="margin:20px 0 0;color:#8FBF9F;font-size:11px;">
+          Or copy this link: <span style="color:#CDE4DF;">{reset_url}</span><br><br>
+          If you didn't request a password reset, ignore this email — your password will not change.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>"""
+
+import random, string
+
 @api_router.post('/auth/login')
 async def login(req: LoginRequest):
     user = await db.users.find_one({'email': req.email.lower().strip()})
@@ -539,18 +595,111 @@ async def login(req: LoginRequest):
         raise HTTPException(status_code=401, detail='Invalid email or password')
     if not user.get('is_active', True):
         raise HTTPException(status_code=403, detail='Account disabled')
+    # Generate 6-digit OTP and send via email
+    otp = ''.join(random.choices(string.digits, k=6))
+    expires = now_utc() + timedelta(minutes=10)
+    await db.auth_otps.delete_many({'email': user['email']})  # clear old OTPs
+    await db.auth_otps.insert_one({
+        'email': user['email'],
+        'otp': otp,
+        'expires_at': expires.isoformat(),
+        'used': False,
+    })
+    await send_resend_email(
+        to=user['email'],
+        subject='Your Santa Cruz Strength login code',
+        html=_otp_email_html(user.get('name', 'there'), otp),
+    )
+    return {'step': 'otp_required', 'message': f'Code sent to {user["email"]}'}
+
+@api_router.post('/auth/verify-otp')
+async def verify_otp(req: dict):
+    email = (req.get('email') or '').lower().strip()
+    otp   = (req.get('otp') or '').strip()
+    record = await db.auth_otps.find_one({'email': email, 'used': False})
+    if not record:
+        raise HTTPException(status_code=401, detail='Invalid or expired code')
+    expires = datetime.fromisoformat(record['expires_at'].replace('Z', '+00:00'))
+    if now_utc() > expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires:
+        await db.auth_otps.delete_one({'_id': record['_id']})
+        raise HTTPException(status_code=401, detail='Code has expired — please log in again')
+    if record['otp'] != otp:
+        raise HTTPException(status_code=401, detail='Incorrect code')
+    await db.auth_otps.update_one({'_id': record['_id']}, {'$set': {'used': True}})
+    user = await db.users.find_one({'email': email})
+    if not user or not user.get('is_active', True):
+        raise HTTPException(status_code=401, detail='Account not found')
     token = create_token({'sub': user['id']})
     return {
         'access_token': token,
         'token_type': 'bearer',
-        'user': {
-            'id': user['id'],
-            'name': user['name'],
-            'email': user['email'],
-            'role': user['role'],
-            'location': user.get('location', 'santa_cruz')
-        }
+        'user': {'id': user['id'], 'name': user['name'], 'email': user['email'], 'role': user['role'], 'location': user.get('location', 'santa_cruz')}
     }
+
+@api_router.post('/auth/forgot-password')
+async def forgot_password(req: dict):
+    email = (req.get('email') or '').lower().strip()
+    user = await db.users.find_one({'email': email})
+    # Always return success to prevent email enumeration
+    if not user or not user.get('is_active', True):
+        return {'message': 'If that email exists, a reset link has been sent'}
+    reset_token = str(uuid.uuid4())
+    expires = now_utc() + timedelta(hours=1)
+    await db.password_resets.delete_many({'email': email})
+    await db.password_resets.insert_one({
+        'email': email,
+        'token': reset_token,
+        'expires_at': expires.isoformat(),
+        'used': False,
+    })
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+    reset_url = f"{frontend_url}/staff/reset-password?token={reset_token}"
+    await send_resend_email(
+        to=email,
+        subject='Reset your Santa Cruz Strength staff password',
+        html=_reset_email_html(user.get('name', 'there'), reset_url),
+    )
+    return {'message': 'If that email exists, a reset link has been sent'}
+
+@api_router.post('/auth/reset-password')
+async def reset_password(req: dict):
+    token    = (req.get('token') or '').strip()
+    password = (req.get('password') or '').strip()
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail='Password must be at least 8 characters')
+    record = await db.password_resets.find_one({'token': token, 'used': False})
+    if not record:
+        raise HTTPException(status_code=400, detail='Invalid or expired reset link')
+    expires = datetime.fromisoformat(record['expires_at'].replace('Z', '+00:00'))
+    if now_utc() > expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires:
+        await db.password_resets.delete_one({'_id': record['_id']})
+        raise HTTPException(status_code=400, detail='Reset link has expired — please request a new one')
+    await db.users.update_one({'email': record['email']}, {'$set': {'password_hash': hash_password(password)}})
+    await db.password_resets.update_one({'_id': record['_id']}, {'$set': {'used': True}})
+    return {'message': 'Password updated — you can now log in'}
+
+@api_router.post('/staff/users/{user_id}/send-reset')
+async def owner_send_reset(user_id: str, caller=Depends(require_owner)):
+    target = await db.users.find_one({'id': user_id})
+    if not target:
+        raise HTTPException(status_code=404, detail='User not found')
+    reset_token = str(uuid.uuid4())
+    expires = now_utc() + timedelta(hours=24)
+    await db.password_resets.delete_many({'email': target['email']})
+    await db.password_resets.insert_one({
+        'email': target['email'],
+        'token': reset_token,
+        'expires_at': expires.isoformat(),
+        'used': False,
+    })
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+    reset_url = f"{frontend_url}/staff/reset-password?token={reset_token}"
+    await send_resend_email(
+        to=target['email'],
+        subject=f'Password reset sent by {caller["name"]} — Santa Cruz Strength',
+        html=_reset_email_html(target.get('name', 'there'), reset_url),
+    )
+    return {'message': f'Password reset email sent to {target["email"]}'}
 
 @api_router.post('/auth/accept-invite')
 async def accept_invite(req: AcceptInvite):
@@ -1634,6 +1783,10 @@ async def startup():
     await db.blog.create_index('slug', unique=True)
     await db.blog.create_index([('published', 1), ('created_at', -1)])
     await db.blog.create_index('category')
+    await db.auth_otps.create_index('email')
+    await db.auth_otps.create_index('expires_at', expireAfterSeconds=0)
+    await db.password_resets.create_index('token', unique=True)
+    await db.password_resets.create_index('email')
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
     if blog_count == 0:

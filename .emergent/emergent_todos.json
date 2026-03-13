@@ -1,22 +1,30 @@
 [
   {
-    "content": "Update Navbar + Footer logo to new transparent PNG",
+    "content": "Fix navbar logo (invert filter on green background)",
     "status": "completed"
   },
   {
-    "content": "Add favicon + OG image + full social meta to index.html",
+    "content": "Backend: 2FA OTP + forgot/reset password endpoints",
     "status": "completed"
   },
   {
-    "content": "Create robots.txt (tells Google what to crawl)",
+    "content": "Frontend: Login.js OTP step + forgot password link",
     "status": "completed"
   },
   {
-    "content": "Create sitemap.xml (ready for Google Search Console submission)",
+    "content": "Frontend: ForgotPassword.js + ResetPassword.js pages",
     "status": "completed"
   },
   {
-    "content": "Build + verify clean",
+    "content": "Frontend: Settings.js owner send-reset-email button",
+    "status": "completed"
+  },
+  {
+    "content": "Frontend: api.js new auth endpoints + App.js routes",
+    "status": "completed"
+  },
+  {
+    "content": "Build + verify",
     "status": "completed"
   }
 ]

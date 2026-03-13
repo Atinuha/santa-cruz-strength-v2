@@ -24,6 +24,8 @@ import LeadDetail from './pages/staff/LeadDetail';
 import Settings from './pages/staff/Settings';
 import AcceptInvite from './pages/staff/AcceptInvite';
 import BlogManager from './pages/staff/BlogManager';
+import ForgotPassword from './pages/staff/ForgotPassword';
+import ResetPassword from './pages/staff/ResetPassword';
 
 import './App.css';
 
@@ -59,6 +61,8 @@ export default function App() {
           {/* Staff Auth */}
           <Route path="/staff/login" element={<CRMLayout><StaffLogin /></CRMLayout>} />
           <Route path="/staff/accept-invite" element={<CRMLayout><AcceptInvite /></CRMLayout>} />
+          <Route path="/staff/forgot-password" element={<CRMLayout><ForgotPassword /></CRMLayout>} />
+          <Route path="/staff/reset-password" element={<CRMLayout><ResetPassword /></CRMLayout>} />
 
           {/* Protected Staff CRM */}
           <Route path="/staff/dashboard" element={

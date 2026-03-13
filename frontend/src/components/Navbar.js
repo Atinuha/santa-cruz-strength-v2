@@ -26,8 +26,8 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200 p-0.5" style={{ border: '1.5px solid var(--clr-border-green)' }}>
-              <img src={LOGO_URL} alt="SCS" className="w-full h-full object-contain rounded-full"
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--clr-green)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200" style={{ padding: '3px' }}>
+              <img src={LOGO_URL} alt="SCS" className="w-full h-full object-contain rounded-full" style={{ filter: 'invert(1) brightness(2)' }}
                 style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
             <div className="hidden sm:block">
