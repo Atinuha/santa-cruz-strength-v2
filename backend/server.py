@@ -347,9 +347,9 @@ async def send_lead_sms(lead: dict):
     # A) Confirmation to lead
     if lead_phone and lead_phone.startswith('+'):
         msg = (
-            f"Hey {name}, Santa Cruz Strength here 💪 "
-            f"Stoked you reached out! Someone from our team will hit you up shortly "
-            f"to set up a quick tour. Questions? Call us at (408) 337-6709. — SCS"
+            f"Hey {name}, Santa Cruz Strength here! "
+            f"Stoked you reached out. Someone from our team will hit you up shortly "
+            f"to set up a quick tour. Questions? Call (408) 337-6709. - SCS"
         )
         tasks.append(send_sms([lead_phone], msg))
 
@@ -357,7 +357,7 @@ async def send_lead_sms(lead: dict):
     if staff_nums:
         full_name = f"{lead.get('first_name','')} {lead.get('last_name','')}".strip()
         staff_msg = (
-            f"🔔 New SCS Lead: {full_name} | "
+            f"New SCS Lead: {full_name} | "
             f"{lead_phone} | {interest}"
             f"{' | ' + timeline if timeline else ''} | "
             f"CRM: https://santacruzstrength.com/staff/dashboard"
@@ -378,20 +378,20 @@ async def send_status_change_sms(lead: dict, new_status: str):
 
     if new_status == 'Booked Visit':
         msg = (
-            f"Hey {name} 🎉 Your tour at Santa Cruz Strength is confirmed! "
-            f"We're at 151 Harvey West Blvd, Suite D, Santa Cruz. "
-            f"Any questions? Call (408) 337-6709. See you soon! — SCS"
+            f"Hey {name}! Your tour at Santa Cruz Strength is confirmed. "
+            f"We are at 151 Harvey West Blvd, Suite D, Santa Cruz. "
+            f"Any questions? Call (408) 337-6709. See you soon! - SCS"
         )
     elif new_status == 'Trial Scheduled':
         msg = (
-            f"Hey {name}, your trial session at Santa Cruz Strength is locked in 💪 "
-            f"151 Harvey West Blvd, Suite D. Questions? (408) 337-6709. — SCS"
+            f"Hey {name}, your trial session at Santa Cruz Strength is locked in! "
+            f"151 Harvey West Blvd, Suite D. Questions? (408) 337-6709. - SCS"
         )
     elif new_status == 'Joined':
         msg = (
-            f"Welcome to Santa Cruz Strength, {name}! 🏋️ "
-            f"You're officially part of the crew. "
-            f"Download the app for 24/7 access and we'll see you in the gym. — SCS"
+            f"Welcome to Santa Cruz Strength, {name}! "
+            f"You are officially part of the crew. "
+            f"Download the app for 24/7 access and we will see you in the gym. - SCS"
         )
 
     if msg:
@@ -414,8 +414,8 @@ SMS_SEQUENCE = [
         'text': (
             "Hey {{name}}, following up from Santa Cruz Strength! "
             "Still thinking about checking out the gym? "
-            "We'd love to show you around — zero pressure, totally free. "
-            "Reply back or call (408) 337-6709 🏋️ — SCS"
+            "We would love to show you around - zero pressure, totally free. "
+            "Reply back or call (408) 337-6709. - SCS"
         ),
     },
     {
@@ -424,8 +424,8 @@ SMS_SEQUENCE = [
         'target_statuses': {'New', 'Contacted', 'Attempted Call', 'Texted'},
         'text': (
             "Hey {{name}}, the SCS team here again. "
-            "We have open spots for tours this week — takes 20 min, free, no commitment. "
-            "Want to grab one? Reply or call (408) 337-6709 💪 — SCS"
+            "We have open spots for tours this week - takes 20 min, free, no commitment. "
+            "Want to grab one? Reply or call (408) 337-6709. - SCS"
         ),
     },
     {
@@ -433,9 +433,9 @@ SMS_SEQUENCE = [
         'hours': 168,
         'target_statuses': {'New', 'Contacted', 'Attempted Call', 'Texted'},
         'text': (
-            "Last one from us, {{name}} — if strength training ever moves up the priority list, "
+            "Last one from us, {{name}} - if strength training ever moves up the priority list, "
             "Santa Cruz Strength will be here. "
-            "Come by anytime: 151 Harvey West Blvd, SC. (408) 337-6709 🤙 — SCS"
+            "Come by anytime: 151 Harvey West Blvd, Santa Cruz. (408) 337-6709. - SCS"
         ),
     },
 ]
