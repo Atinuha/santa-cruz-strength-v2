@@ -2,10 +2,38 @@ import React, { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { login as apiLogin, verifyOtp as apiVerifyOtp } from '../../lib/api';
-import { Loader2, Eye, EyeOff, ArrowLeft, KeyRound, ShieldCheck } from 'lucide-react';
+import { Loader2, Eye, EyeOff, ArrowLeft, KeyRound, ShieldCheck, Monitor } from 'lucide-react';
 import { GYM_CONFIG } from '../../config';
 
 const LOGO_URL = 'https://customer-assets.emergentagent.com/job_f0e6860d-0e81-45b1-9e0b-f7bb6a04df72/artifacts/uf08gcdo_20260313_151045_0000.png';
+const DEVICE_TOKEN_KEY = 'scs_device_token';
+const DEVICE_EMAIL_KEY = 'scs_device_email';
+
+/** Read stored device token for this email, or null if missing/expired */
+function getStoredDeviceToken(email) {
+  try {
+    const stored = localStorage.getItem(DEVICE_TOKEN_KEY);
+    const storedEmail = localStorage.getItem(DEVICE_EMAIL_KEY);
+    if (!stored || storedEmail !== email.toLowerCase()) return null;
+    return stored;
+  } catch { return null; }
+}
+
+/** Persist device token (server validates expiry, but we also store it locally) */
+function saveDeviceToken(email, token) {
+  try {
+    localStorage.setItem(DEVICE_TOKEN_KEY, token);
+    localStorage.setItem(DEVICE_EMAIL_KEY, email.toLowerCase());
+  } catch { /* storage blocked */ }
+}
+
+/** Clear device token (logout / use different account) */
+function clearDeviceToken() {
+  try {
+    localStorage.removeItem(DEVICE_TOKEN_KEY);
+    localStorage.removeItem(DEVICE_EMAIL_KEY);
+  } catch { /* ignore */ }
+}
 
 export default function StaffLogin() {
   const { login, user } = useAuth();
@@ -21,6 +49,7 @@ export default function StaffLogin() {
   // Step 2 — OTP
   const [step, setStep]             = useState('credentials');
   const [otp, setOtp]               = useState('');
+  const [rememberDevice, setRememberDevice] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError]     = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
@@ -37,12 +66,22 @@ export default function StaffLogin() {
     setError('');
     setLoading(true);
     try {
-      const res = await apiLogin(email, password);
-      if (res.data?.step === 'otp_required') {
+      // Include remembered device token if available for this email
+      const deviceToken = getStoredDeviceToken(email);
+      const res = await apiLogin(email, password, deviceToken);
+
+      if (res.data?.step === 'authenticated') {
+        // Device remembered — skip OTP entirely
+        const { access_token, user: userData } = res.data;
+        await login(null, null, { access_token, user: userData });
+        navigate('/staff/dashboard', { replace: true });
+      } else if (res.data?.step === 'otp_required') {
         setPendingEmail(email);
         setStep('otp');
       }
     } catch (err) {
+      // Clear invalid device token on auth failure
+      clearDeviceToken();
       setError(err.response?.data?.detail || 'Invalid email or password');
     } finally {
       setLoading(false);
@@ -55,9 +94,14 @@ export default function StaffLogin() {
     setOtpError('');
     setOtpLoading(true);
     try {
-      const res = await apiVerifyOtp(pendingEmail, otp);
-      const { access_token, user: userData } = res.data;
-      // Store session directly — no second API call needed
+      const res = await apiVerifyOtp(pendingEmail, otp, rememberDevice);
+      const { access_token, user: userData, device_token } = res.data;
+
+      // Store device token if server issued one (remember_device was true)
+      if (device_token) {
+        saveDeviceToken(pendingEmail, device_token);
+      }
+
       await login(null, null, { access_token, user: userData });
       navigate('/staff/dashboard', { replace: true });
     } catch (err) {
@@ -175,6 +219,30 @@ export default function StaffLogin() {
                   }`} data-testid="otp-error">{otpError}</p>
                 )}
 
+                {/* Remember device checkbox */}
+                <label className="flex items-center gap-2.5 cursor-pointer group" data-testid="remember-device-checkbox">
+                  <div
+                    onClick={() => setRememberDevice(v => !v)}
+                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all duration-150 ${
+                      rememberDevice
+                        ? 'bg-[#1B7A4A] border-[#1B7A4A]'
+                        : 'bg-white/5 border-white/20 group-hover:border-white/40'
+                    }`}
+                  >
+                    {rememberDevice && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <div onClick={() => setRememberDevice(v => !v)} className="flex items-center gap-1.5">
+                    <Monitor size={12} className="text-white/40" />
+                    <span className="text-xs text-white/55 group-hover:text-white/75 transition-colors duration-150">
+                      Remember this device for 7 days
+                    </span>
+                  </div>
+                </label>
+
                 <button type="submit"
                   disabled={otpLoading || otp.length !== 6}
                   data-testid="otp-verify-button"
@@ -186,7 +254,7 @@ export default function StaffLogin() {
 
                 <div className="flex items-center justify-between pt-1">
                   <button type="button"
-                    onClick={() => { setStep('credentials'); setOtp(''); setOtpError(''); }}
+                    onClick={() => { setStep('credentials'); setOtp(''); setOtpError(''); clearDeviceToken(); }}
                     className="text-xs text-white/40 hover:text-white transition-colors duration-200">
                     ← Use different account
                   </button>

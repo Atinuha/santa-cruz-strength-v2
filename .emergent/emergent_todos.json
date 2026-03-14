@@ -1,22 +1,14 @@
 [
   {
-    "content": "Fix DB_NAME fallback mismatch (BLOCKER)",
-    "status": "completed"
+    "content": "Backend: add device_token to login (skip OTP if valid) + verify-otp returns token if remember=true",
+    "status": "in_progress"
   },
   {
-    "content": "Fix SMS follow-up query - add field projection",
-    "status": "completed"
+    "content": "Frontend: add Remember Device checkbox on OTP step + store/send device token",
+    "status": "pending"
   },
   {
-    "content": "Fix CSV export query - cap at 5000 with field projection",
-    "status": "completed"
-  },
-  {
-    "content": "Move @craco/craco to dependencies",
-    "status": "completed"
-  },
-  {
-    "content": "Restart + final health verify",
-    "status": "completed"
+    "content": "Build + test full flow",
+    "status": "pending"
   }
 ]

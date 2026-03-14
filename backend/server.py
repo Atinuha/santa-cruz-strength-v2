@@ -519,6 +519,7 @@ class UserUpdate(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+    device_token: Optional[str] = None
 
 class InviteCreate(BaseModel):
     email: str
@@ -595,10 +596,38 @@ async def login(req: LoginRequest):
         raise HTTPException(status_code=401, detail='Invalid email or password')
     if not user.get('is_active', True):
         raise HTTPException(status_code=403, detail='Account disabled')
-    # Generate 6-digit OTP and send via email
+
+    # Check if a valid remembered device token was supplied
+    device_token = (getattr(req, 'device_token', None) or '').strip()
+    if device_token:
+        device_record = await db.device_tokens.find_one({
+            'email': user['email'],
+            'token': device_token,
+            'used': False,
+        })
+        if device_record:
+            exp = datetime.fromisoformat(device_record['expires_at'].replace('Z', '+00:00'))
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if now_utc() < exp:
+                # Valid remembered device — skip OTP, issue JWT directly
+                token = create_token({'sub': user['id']})
+                logger.info(f'[AUTH] Device token valid for {user["email"]} — OTP skipped')
+                return {
+                    'access_token': token,
+                    'token_type': 'bearer',
+                    'step': 'authenticated',
+                    'user': {'id': user['id'], 'name': user['name'], 'email': user['email'],
+                             'role': user['role'], 'location': user.get('location', 'santa_cruz')}
+                }
+            else:
+                # Expired — clean it up
+                await db.device_tokens.delete_one({'_id': device_record['_id']})
+
+    # No valid device token — require OTP
     otp = ''.join(random.choices(string.digits, k=6))
     expires = now_utc() + timedelta(minutes=10)
-    await db.auth_otps.delete_many({'email': user['email']})  # clear old OTPs
+    await db.auth_otps.delete_many({'email': user['email']})
     await db.auth_otps.insert_one({
         'email': user['email'],
         'otp': otp,
@@ -614,27 +643,52 @@ async def login(req: LoginRequest):
 
 @api_router.post('/auth/verify-otp')
 async def verify_otp(req: dict):
-    email = (req.get('email') or '').lower().strip()
-    otp   = (req.get('otp') or '').strip()
+    email         = (req.get('email') or '').lower().strip()
+    otp           = (req.get('otp') or '').strip()
+    remember      = bool(req.get('remember_device', False))
+
     record = await db.auth_otps.find_one({'email': email, 'used': False})
     if not record:
         raise HTTPException(status_code=401, detail='Invalid or expired code')
     expires = datetime.fromisoformat(record['expires_at'].replace('Z', '+00:00'))
-    if now_utc() > expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires:
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if now_utc() > expires:
         await db.auth_otps.delete_one({'_id': record['_id']})
         raise HTTPException(status_code=401, detail='Code has expired — please log in again')
     if record['otp'] != otp:
         raise HTTPException(status_code=401, detail='Incorrect code')
     await db.auth_otps.update_one({'_id': record['_id']}, {'$set': {'used': True}})
+
     user = await db.users.find_one({'email': email})
     if not user or not user.get('is_active', True):
         raise HTTPException(status_code=401, detail='Account not found')
-    token = create_token({'sub': user['id']})
-    return {
-        'access_token': token,
+
+    jwt_token = create_token({'sub': user['id']})
+    response = {
+        'access_token': jwt_token,
         'token_type': 'bearer',
-        'user': {'id': user['id'], 'name': user['name'], 'email': user['email'], 'role': user['role'], 'location': user.get('location', 'santa_cruz')}
+        'user': {'id': user['id'], 'name': user['name'], 'email': user['email'],
+                 'role': user['role'], 'location': user.get('location', 'santa_cruz')}
     }
+
+    # Issue a 7-day device token if user chose "remember this device"
+    if remember:
+        device_token = str(uuid.uuid4())
+        device_expires = now_utc() + timedelta(days=7)
+        await db.device_tokens.delete_many({'email': email})   # one remembered device at a time
+        await db.device_tokens.insert_one({
+            'email': email,
+            'token': device_token,
+            'expires_at': device_expires.isoformat(),
+            'used': False,
+            'created_at': now_utc().isoformat(),
+        })
+        response['device_token'] = device_token
+        response['device_token_expires'] = device_expires.isoformat()
+        logger.info(f'[AUTH] Device token issued for {email} — expires {device_expires.date()}')
+
+    return response
 
 @api_router.post('/auth/forgot-password')
 async def forgot_password(req: dict):
@@ -1787,6 +1841,9 @@ async def startup():
     await db.auth_otps.create_index('expires_at', expireAfterSeconds=0)
     await db.password_resets.create_index('token', unique=True)
     await db.password_resets.create_index('email')
+    await db.device_tokens.create_index('token')
+    await db.device_tokens.create_index('email')
+    await db.device_tokens.create_index('expires_at', expireAfterSeconds=0)
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
     if blog_count == 0:
