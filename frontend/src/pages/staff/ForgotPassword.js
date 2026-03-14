@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
+import { forgotPassword as apiForgotPassword } from '../../lib/api';
 import { GYM_CONFIG } from '../../config';
 
 export default function ForgotPassword() {
@@ -18,16 +19,11 @@ export default function ForgotPassword() {
     setError('');
     setLoading(true);
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const res = await fetch(`${backendUrl}/api/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) throw new Error('Request failed');
+      await apiForgotPassword(email);
       setSent(true);
     } catch {
-      setError('Something went wrong. Please try again.');
+      // Always show success to prevent email enumeration
+      setSent(true);
     } finally {
       setLoading(false);
     }

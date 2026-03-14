@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader2, Eye, EyeOff, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { resetPassword as apiResetPassword } from '../../lib/api';
 import { GYM_CONFIG } from '../../config';
 
 export default function ResetPassword() {
@@ -26,18 +27,11 @@ export default function ResetPassword() {
     setError('');
     setLoading(true);
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const res = await fetch(`${backendUrl}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Reset failed');
+      await apiResetPassword(token, password);
       setSuccess(true);
       setTimeout(() => navigate('/staff/login'), 3000);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || 'Reset failed — link may have expired');
     } finally {
       setLoading(false);
     }

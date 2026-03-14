@@ -36,6 +36,9 @@ export const createLead = (data) => api.post('/leads', data);
 
 // Auth
 export const login = (email, password) => api.post('/auth/login', { email, password });
+export const verifyOtp = (email, otp) => api.post('/auth/verify-otp', { email, otp });
+export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
+export const resetPassword = (token, password) => api.post('/auth/reset-password', { token, password });
 export const getMe = () => api.get('/staff/me');
 export const updateMe = (data) => api.put('/staff/me', data);
 

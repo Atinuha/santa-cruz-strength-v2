@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { login as apiLogin, verifyOtp as apiVerifyOtp } from '../../lib/api';
 import { Loader2, Eye, EyeOff, ArrowLeft, KeyRound, ShieldCheck } from 'lucide-react';
 import { GYM_CONFIG } from '../../config';
 
@@ -18,10 +19,10 @@ export default function StaffLogin() {
   const [error, setError]       = useState('');
 
   // Step 2 — OTP
-  const [step, setStep]         = useState('credentials'); // 'credentials' | 'otp'
-  const [otp, setOtp]           = useState('');
+  const [step, setStep]             = useState('credentials');
+  const [otp, setOtp]               = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
-  const [otpError, setOtpError] = useState('');
+  const [otpError, setOtpError]     = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
 
   if (user) return <Navigate to="/staff/dashboard" replace />;
@@ -36,20 +37,13 @@ export default function StaffLogin() {
     setError('');
     setLoading(true);
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const res = await fetch(`${backendUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Login failed');
-      if (data.step === 'otp_required') {
+      const res = await apiLogin(email, password);
+      if (res.data?.step === 'otp_required') {
         setPendingEmail(email);
         setStep('otp');
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -61,37 +55,26 @@ export default function StaffLogin() {
     setOtpError('');
     setOtpLoading(true);
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const res = await fetch(`${backendUrl}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: pendingEmail, otp }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Invalid code');
-      // Use auth context to store session
-      await login(null, null, data); // pass pre-fetched token data
-      navigate('/staff/dashboard');
+      const res = await apiVerifyOtp(pendingEmail, otp);
+      const { access_token, user: userData } = res.data;
+      // Store session directly — no second API call needed
+      await login(null, null, { access_token, user: userData });
+      navigate('/staff/dashboard', { replace: true });
     } catch (err) {
-      setOtpError(err.message);
+      setOtpError(err.response?.data?.detail || 'Incorrect or expired code');
     } finally {
       setOtpLoading(false);
     }
   };
 
-  const resendOtp = async () => {
+  const handleResend = async () => {
     setOtpError('');
     setOtp('');
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      await fetch(`${backendUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      await apiLogin(email, password);
       setOtpError('New code sent — check your email.');
     } catch {
-      setOtpError('Failed to resend — go back and try again.');
+      setOtpError('Could not resend. Go back and try again.');
     }
   };
 
@@ -124,7 +107,7 @@ export default function StaffLogin() {
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1.5">Email Address</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                    placeholder="you@santacruzstrength.com" required
+                    placeholder="you@santacruzstrength.com" required autoComplete="email"
                     data-testid="staff-login-email-input" className={inputClass} />
                 </div>
                 <div>
@@ -137,7 +120,8 @@ export default function StaffLogin() {
                   <div className="relative">
                     <input type={showPass ? 'text' : 'password'} value={password}
                       onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-                      required data-testid="staff-login-password-input" className={`${inputClass} pr-10`} />
+                      required autoComplete="current-password"
+                      data-testid="staff-login-password-input" className={`${inputClass} pr-10`} />
                     <button type="button" onClick={() => setShowPass(!showPass)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-white/52 hover:text-white/65 transition-colors duration-200">
                       {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -146,10 +130,12 @@ export default function StaffLogin() {
                 </div>
 
                 {error && (
-                  <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/18 rounded px-3 py-2">{error}</p>
+                  <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/18 rounded px-3 py-2"
+                    data-testid="login-error">{error}</p>
                 )}
 
-                <button type="submit" disabled={loading} data-testid="staff-login-submit-button"
+                <button type="submit" disabled={loading}
+                  data-testid="staff-login-submit-button"
                   className="w-full btn-scs-primary py-3 rounded-md font-semibold text-sm flex items-center justify-center gap-2">
                   {loading ? <><Loader2 size={14} className="animate-spin" /> Signing in...</> : 'Sign In'}
                 </button>
@@ -172,8 +158,9 @@ export default function StaffLogin() {
                     <KeyRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
                     <input
                       type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6}
-                      value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="000000" required autoFocus
+                      value={otp}
+                      onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000" required autoFocus autoComplete="one-time-code"
                       data-testid="otp-input"
                       className={`${inputClass} pl-9 text-center text-2xl tracking-[0.5em] font-mono`}
                     />
@@ -182,22 +169,28 @@ export default function StaffLogin() {
 
                 {otpError && (
                   <p className={`text-xs rounded px-3 py-2 ${
-                    otpError.includes('sent') ? 'text-[#7FCCA6] bg-[#1B7A4A]/10 border border-[#1B7A4A]/20' : 'text-red-400 bg-red-500/10 border border-red-500/18'
-                  }`}>{otpError}</p>
+                    otpError.includes('sent')
+                      ? 'text-[#7FCCA6] bg-[#1B7A4A]/10 border border-[#1B7A4A]/20'
+                      : 'text-red-400 bg-red-500/10 border border-red-500/18'
+                  }`} data-testid="otp-error">{otpError}</p>
                 )}
 
-                <button type="submit" disabled={otpLoading || otp.length !== 6}
-                  className="w-full btn-scs-primary py-3 rounded-md font-semibold text-sm flex items-center justify-center gap-2"
-                  data-testid="otp-verify-button">
-                  {otpLoading ? <><Loader2 size={14} className="animate-spin" /> Verifying...</> : 'Verify & Sign In'}
+                <button type="submit"
+                  disabled={otpLoading || otp.length !== 6}
+                  data-testid="otp-verify-button"
+                  className="w-full btn-scs-primary py-3 rounded-md font-semibold text-sm flex items-center justify-center gap-2">
+                  {otpLoading
+                    ? <><Loader2 size={14} className="animate-spin" /> Verifying...</>
+                    : 'Verify & Sign In'}
                 </button>
 
                 <div className="flex items-center justify-between pt-1">
-                  <button type="button" onClick={() => { setStep('credentials'); setOtp(''); setOtpError(''); }}
+                  <button type="button"
+                    onClick={() => { setStep('credentials'); setOtp(''); setOtpError(''); }}
                     className="text-xs text-white/40 hover:text-white transition-colors duration-200">
                     ← Use different account
                   </button>
-                  <button type="button" onClick={resendOtp}
+                  <button type="button" onClick={handleResend}
                     className="text-xs text-white/40 hover:text-[#7FCCA6] transition-colors duration-200">
                     Resend code
                   </button>
