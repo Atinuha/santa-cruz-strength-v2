@@ -763,8 +763,11 @@ async def accept_invite(req: AcceptInvite):
     expires = invite.get('expires_at')
     if isinstance(expires, str):
         expires = datetime.fromisoformat(expires.replace('Z', '+00:00'))
-    if expires and now_utc() > expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires:
-        raise HTTPException(status_code=400, detail='Invite link has expired')
+    if expires:
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if now_utc() > expires:
+            raise HTTPException(status_code=400, detail='Invite link has expired')
     existing = await db.users.find_one({'email': invite['email']})
     if existing:
         raise HTTPException(status_code=400, detail='An account with this email already exists')
