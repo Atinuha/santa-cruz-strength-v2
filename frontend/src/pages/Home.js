@@ -35,9 +35,36 @@ const WHO_FOR = [
 ];
 
 const TESTIMONIALS = [
-  { name: 'Marcus T.', detail: 'Member since 2022 · Trail runner', text: 'Best gym in Santa Cruz, full stop. The equipment is legit, the coaches know their stuff, and nobody here is performing for an audience. Switched from a commercial gym and never looked back.' },
-  { name: 'Keiko R.', detail: 'Member · Surfer + Lifter', text: 'I was intimidated at first but everyone here is genuinely supportive. My strength has improved more in 6 months here than in 2 years anywhere else.' },
-  { name: 'Jake M.', detail: 'Member · Engineer, Santa Cruz', text: 'After years of commercial gym chaos, this place feels like a reset. Clean equipment, respectful members, coaching that doesn\'t waste your time.' },
+  {
+    name: 'Jeremy Ball',
+    detail: 'Member · Powerlifter',
+    text: 'Hands down best gym in Santa Cruz if you\'re serious about powerlifting or bodybuilding. The gym gives old school vibes and is definitely barebones which is pretty sick. Open 24/7 — everything you need to get stronger.',
+  },
+  {
+    name: 'Ella Desmond',
+    detail: 'Member · 2 years',
+    text: 'I have been going to this gym for about 2 years now and was greeted with the most amazing community ever. The people here are kind and supportive and are always happy to spot you and give tips. This gym has been foundational in my life.',
+  },
+  {
+    name: 'Brooke Rodriguez',
+    detail: 'Member · Santa Cruz',
+    text: 'Amazing gym! Has everything you need with a super open and accepting environment. Owner is great, accommodating and knows his stuff! Gym is roomy and in a perfect location!',
+  },
+  {
+    name: 'Taryn',
+    detail: 'Member · Strength Athlete',
+    text: 'Strength gyms should serve all types of athletes, and that\'s what Santa Cruz Strength does. From weightlifting to powerlifting to strongman to conditioning, whether you prefer solo or group training — this is a great place to be.',
+  },
+  {
+    name: 'Ember Lichtenberg',
+    detail: 'Member · Personal Training',
+    text: 'I highly recommend Santa Cruz Strength and Lexi Medeiros as a personal trainer. She makes strength training feel welcoming, safe, and empowering. I\'ve built strength, stayed injury-free, and feel fully supported in my goals.',
+  },
+  {
+    name: 'Sierra Flow Fitness',
+    detail: 'Event · Forge Your Story Powerlifting Meet',
+    text: 'This gym had an incredible atmosphere and the staff was so welcoming! Thank you Michael and team for putting on an incredible and well organized event for our first time powerlifter. We hope to be back someday!',
+  },
 ];
 
 const FAQ_ITEMS = [
