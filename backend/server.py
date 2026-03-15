@@ -471,6 +471,27 @@ async def run_sms_followup_job():
                 )
                 logger.info(f"[SMS FOLLOWUP] {seq['key']} sent to {phone}")
 
+async def run_review_request_job():
+    """Scheduled every 30 min: send review request 3 days after member joined (up to 7 days)."""
+    now = now_utc()
+    now_iso     = now.isoformat()
+    cutoff_iso  = (now - timedelta(days=4)).isoformat()   # window: 3–7 days after joining
+
+    # Find leads where review is due (review_send_at <= now) and within 7-day window
+    leads = await db.leads.find({
+        'review_send_at':  {'$lte': now_iso, '$gte': cutoff_iso},
+        'review_sent':     False,
+        'status':          'Joined',
+    }, {'_id': 0}).to_list(100)
+
+    for lead in leads:
+        try:
+            await _send_review_request(lead)
+            await db.leads.update_one({'id': lead['id']}, {'$set': {'review_sent': True}})
+            logger.info(f"[REVIEW] Sent to {lead.get('first_name', '')} {lead.get('last_name', '')}")
+        except Exception as e:
+            logger.warning(f"[REVIEW] Failed for lead {lead.get('id')}: {e}")
+
 
 # --------------- Pydantic Models ---------------
 
@@ -1147,11 +1168,17 @@ async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(require_staff
     if log_entries: set_op['$push'] = {'activity_log': {'$each': log_entries}}
     await db.leads.update_one({'id': lead_id}, set_op)
     updated = await db.leads.find_one({'id': lead_id}, {'_id': 0})
-    # Fire status-change SMS + review request for milestone statuses (non-blocking)
+    # Fire status-change SMS + schedule review request for milestone statuses
     if data.status and data.status != lead.get('status'):
         asyncio.ensure_future(send_status_change_sms(updated, data.status))
         if data.status == 'Joined':
-            asyncio.ensure_future(_send_review_request(updated))
+            # Schedule review request for 3 days from now
+            review_send_at = (now_utc() + timedelta(days=3)).isoformat()
+            await db.leads.update_one(
+                {'id': lead_id},
+                {'$set': {'review_send_at': review_send_at, 'review_sent': False}}
+            )
+            logger.info(f'[REVIEW] Scheduled for {updated.get("first_name","")} at {review_send_at}')
     return updated
 
 @api_router.post('/staff/leads/{lead_id}/notes')
@@ -1687,7 +1714,7 @@ async def get_event_rsvps(event_id: str, user=Depends(require_admin)):
 
 # --------------- Review Flow ---------------
 
-GOOGLE_REVIEW_URL = 'https://search.google.com/local/writereview?placeid=ChIJP9aFMjTgjoARI8w0e3s0c04'
+GOOGLE_REVIEW_URL = 'https://g.page/r/CUj8NPJ7NHNOEAE/review'
 FRONTEND_URL_DEFAULT = 'https://santacruzstrength.com'
 
 async def _send_review_request(lead: dict):
@@ -2198,9 +2225,10 @@ async def startup():
     # Start SMS follow-up scheduler
     scheduler = AsyncIOScheduler(timezone='America/Los_Angeles')
     scheduler.add_job(run_sms_followup_job, 'interval', minutes=30, id='sms_followup', replace_existing=True)
+    scheduler.add_job(run_review_request_job, 'interval', minutes=30, id='review_requests', replace_existing=True)
     scheduler.start()
     app.state.scheduler = scheduler
-    logger.info('[STARTUP] SMS follow-up scheduler started (every 30 min)')
+    logger.info('[STARTUP] SMS follow-up + review schedulers started (every 30 min)')
 
 @app.on_event('shutdown')
 async def shutdown_db_client():

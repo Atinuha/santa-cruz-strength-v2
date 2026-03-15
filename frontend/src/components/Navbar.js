@@ -10,13 +10,13 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const isActive = (p) => pathname === p;
 
+  // 5 clean links — logo already handles "Home"
   const links = [
-    { to: '/', label: 'Home' },
-    { to: '/join', label: 'Membership' },
+    { to: '/join',              label: 'Membership' },
     { to: '/personal-training', label: 'Training' },
-    { to: '/events', label: 'Events' },
-    { to: '/blog', label: 'Blog' },
-    { to: '/contact', label: 'Contact' },
+    { to: '/events',            label: 'Events' },
+    { to: '/blog',              label: 'Blog' },
+    { to: '/contact',           label: 'Contact' },
   ];
 
   return (
@@ -25,25 +25,25 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
+          {/* Logo → Home */}
+          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
             <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--clr-green)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200" style={{ padding: '3px' }}>
-              <img src={LOGO_URL} alt="SCS" className="w-full h-full object-contain rounded-full" style={{ filter: 'invert(1) brightness(2)' }}
+              <img src={LOGO_URL} alt="SCS" className="w-full h-full object-contain"
                 style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
-            <div className="hidden sm:block">
-              <span className="font-display text-[var(--clr-green)] text-lg tracking-wider">SANTA CRUZ STRENGTH</span>
-            </div>
-            <div className="block sm:hidden">
-              <span className="font-display text-[var(--clr-green)] text-lg tracking-wider">SCS</span>
-            </div>
+            <span className="font-display text-[var(--clr-green)] text-lg tracking-wider hidden sm:block">
+              SANTA CRUZ STRENGTH
+            </span>
+            <span className="font-display text-[var(--clr-green)] text-base tracking-wider block sm:hidden">
+              SCS
+            </span>
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-0.5">
             {links.map(l => (
               <Link key={l.to} to={l.to}
-                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
+                className={`px-3 py-2 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${
                   isActive(l.to)
                     ? 'bg-[var(--clr-bg-green)] text-[var(--clr-green)]'
                     : 'text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] hover:bg-[var(--clr-seafoam)]/40'
@@ -53,25 +53,21 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* CTAs */}
-          <div className="hidden md:flex items-center gap-2.5">
-            <a href="https://myiclubonline.com/iclub/members/signin" target="_blank" rel="noopener noreferrer"
-              className="text-sm font-bold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200">
-              Member Login
-            </a>
+          {/* Right side — phone + Join Now only (clean) */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             <a href={GYM_CONFIG.phoneHref}
-              className="flex items-center gap-1 text-sm font-bold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200">
+              className="flex items-center gap-1.5 text-sm font-semibold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200 px-2 py-1.5 rounded-lg hover:bg-[var(--clr-seafoam)]/40">
               <Phone size={13} />
               <span className="hidden lg:block">{GYM_CONFIG.phone}</span>
             </a>
             <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
-              data-testid="home-hero-join-now-button"
+              data-testid="navbar-join-btn"
               className="btn-primary px-5 py-2 text-sm">
               Join Now
             </a>
           </div>
 
-          {/* Mobile toggle */}
+          {/* Mobile hamburger */}
           <button className="md:hidden p-2 rounded-xl text-[var(--clr-green)] hover:bg-[var(--clr-seafoam)]/40 transition-colors duration-200"
             onClick={() => setOpen(!open)} aria-label="Menu">
             {open ? <X size={22} /> : <Menu size={22} />}
@@ -79,7 +75,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile drawer */}
       {open && (
         <div className="md:hidden bg-white border-t border-[var(--clr-border)] animate-fade-in">
           <div className="px-4 py-4 space-y-1">
@@ -95,15 +91,17 @@ export default function Navbar() {
             ))}
             <div className="pt-3 border-t border-[var(--clr-border)] flex flex-col gap-2">
               <a href="https://myiclubonline.com/iclub/members/signin" target="_blank" rel="noopener noreferrer"
-                className="block px-4 py-3 rounded-xl text-sm font-bold text-[var(--clr-text-muted)]">
-                Member Login
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-[var(--clr-text-muted)] hover:bg-[var(--clr-seafoam)]/40">
+                Member Portal →
               </a>
               <a href={GYM_CONFIG.phoneHref}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-[var(--clr-text-muted)]">
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-[var(--clr-text-muted)]">
                 <Phone size={14} /> {GYM_CONFIG.phone}
               </a>
               <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
-                className="btn-primary w-full text-center text-sm py-3">
+                onClick={() => setOpen(false)}
+                className="btn-primary w-full text-center text-sm py-3 block">
                 Join Now
               </a>
             </div>
