@@ -26,6 +26,7 @@ import AcceptInvite from './pages/staff/AcceptInvite';
 import BlogManager from './pages/staff/BlogManager';
 import ForgotPassword from './pages/staff/ForgotPassword';
 import ResetPassword from './pages/staff/ResetPassword';
+import MobilePortal from './pages/staff/MobilePortal';
 
 import './App.css';
 
@@ -76,6 +77,9 @@ export default function App() {
           } />
           <Route path="/staff/blog" element={
             <CRMLayout><ProtectedRoute><BlogManager /></ProtectedRoute></CRMLayout>
+          } />
+          <Route path="/staff/mobile" element={
+            <ProtectedRoute><MobilePortal /></ProtectedRoute>
           } />
 
           {/* Fallback */}

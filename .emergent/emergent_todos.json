@@ -1,14 +1,22 @@
 [
   {
-    "content": "Backend: add device_token to login (skip OTP if valid) + verify-otp returns token if remember=true",
+    "content": "Add PWA manifest.json + update index.html meta tags",
+    "status": "completed"
+  },
+  {
+    "content": "Backend: /api/staff/mobile/dashboard endpoint (stats + today's follow-ups)",
     "status": "in_progress"
   },
   {
-    "content": "Frontend: add Remember Device checkbox on OTP step + store/send device token",
+    "content": "Build MobilePortal.js - Home, Follow-ups, Walk-in tabs + action sheet",
     "status": "pending"
   },
   {
-    "content": "Build + test full flow",
+    "content": "Add voice-to-text note entry + Google Voice call links",
+    "status": "pending"
+  },
+  {
+    "content": "Add route to App.js + build verify",
     "status": "pending"
   }
 ]

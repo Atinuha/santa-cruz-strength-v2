@@ -1185,6 +1185,60 @@ async def get_stats(user=Depends(require_staff)):
     sources = {item['_id']: item['count'] for item in await db.leads.aggregate(source_pipeline).to_list(100)}
     return {'total': total, 'new_7d': new_7d, 'today': today, 'by_status': status_counts, 'by_source': sources}
 
+@api_router.get('/staff/mobile/dashboard')
+async def mobile_dashboard(user=Depends(require_staff)):
+    """Single endpoint for the mobile portal — stats + today's follow-ups + recent new leads."""
+    import re as _re
+    today = now_utc().date().isoformat()          # e.g. "2026-03-14"
+    today_start = now_utc().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+    # Stats
+    total = await db.leads.count_documents({})
+    new_today = await db.leads.count_documents({'created_at': {'$gte': today_start}})
+    follow_up_today = await db.leads.count_documents({
+        'next_follow_up_date': today,
+        'status': {'$nin': ['Joined', 'Lost', 'No Response']},
+    })
+    joined_month_start = now_utc().replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    joined_month = await db.leads.count_documents({'status': 'Joined', 'updated_at': {'$gte': joined_month_start}})
+
+    # Today's follow-ups (full lead data)
+    follow_ups = await db.leads.find(
+        {'next_follow_up_date': today, 'status': {'$nin': ['Joined', 'Lost', 'No Response']}},
+        {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'phone': 1, 'email': 1,
+         'status': 1, 'interest_type': 1, 'next_follow_up_date': 1, 'next_follow_up_time': 1,
+         'notes': 1, 'created_at': 1}
+    ).sort('next_follow_up_time', 1).to_list(100)
+
+    # Overdue follow-ups (past dates, not completed)
+    overdue = await db.leads.find(
+        {'next_follow_up_date': {'$lt': today, '$exists': True, '$ne': None, '$ne': ''},
+         'status': {'$nin': ['Joined', 'Lost', 'No Response']}},
+        {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'phone': 1, 'email': 1,
+         'status': 1, 'interest_type': 1, 'next_follow_up_date': 1, 'notes': 1}
+    ).sort('next_follow_up_date', -1).limit(20).to_list(20)
+
+    # Recent new leads (last 48h)
+    two_days_ago = (now_utc() - timedelta(hours=48)).isoformat()
+    recent = await db.leads.find(
+        {'created_at': {'$gte': two_days_ago}},
+        {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'phone': 1, 'email': 1,
+         'status': 1, 'interest_type': 1, 'created_at': 1, 'lead_source': 1}
+    ).sort('created_at', -1).limit(20).to_list(20)
+
+    return {
+        'stats': {
+            'new_today': new_today,
+            'follow_up_today': follow_up_today,
+            'joined_month': joined_month,
+            'total': total,
+        },
+        'follow_ups': follow_ups,
+        'overdue': overdue,
+        'recent_leads': recent,
+        'staff_name': user.get('name', ''),
+    }
+
 # --------------- Staff User Management ---------------
 
 @api_router.get('/staff/users')
