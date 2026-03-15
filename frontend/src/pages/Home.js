@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -8,7 +8,9 @@ import InstagramFeed from '../components/InstagramFeed';
 import { GYM_CONFIG } from '../config';
 import { trackJoinNowClick, trackBookTourClick, trackPhoneClick } from '../utils/analytics';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
-import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap } from 'lucide-react';
+import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap, Calendar, Ticket, Check } from 'lucide-react';
+
+const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 
 const HERO_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/t5t2w92k_Screenshot_20260308_205652_Google.jpg';
 const GYM_IMG     = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/zexxrigp_IMG_1134.jpeg';
@@ -89,6 +91,13 @@ function WaveDivider({ flip = false, from = '#F7F5F0', to = '#FFFFFF' }) {
 }
 
 export default function Home() {
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+
+  useEffect(() => {
+    fetch(`${BACKEND}/api/events?upcoming=true`)
+      .then(r => r.json()).then(d => setUpcomingEvents((d || []).slice(0, 3))).catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
       <Navbar />
@@ -353,6 +362,56 @@ export default function Home() {
           </Carousel>
         </div>
       </section>
+
+      {/* =========== UPCOMING EVENTS =========== */}
+      {upcomingEvents.length > 0 && (
+        <>
+          <div className="py-14 bg-white" data-testid="home-events-section">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <span className="green-accent-line" />
+                  <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-2">Community</p>
+                  <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>WHAT'S HAPPENING</h2>
+                </div>
+                <Link to="/events" className="btn-outline-green px-4 py-2 text-sm shrink-0 hidden sm:flex items-center gap-1.5">
+                  All Events <ChevronRight size={14} />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {upcomingEvents.map(event => (
+                  <div key={event.id} className="card-light overflow-hidden flex flex-col">
+                    {event.image_url
+                      ? <img src={event.image_url} alt={event.title} className="w-full h-36 object-cover" loading="lazy" />
+                      : <div className="h-36 flex items-center justify-center" style={{ background: 'var(--clr-bg-green)' }}><Calendar size={28} style={{ color: 'var(--clr-green)', opacity: 0.4 }} /></div>
+                    }
+                    <div className="p-4 flex flex-col flex-1">
+                      <span className="text-[10px] font-bold text-[var(--clr-green)] uppercase tracking-wider mb-1">{event.category}</span>
+                      <h3 className="font-bold text-[var(--clr-charcoal)] text-sm mb-1 leading-snug">{event.title}</h3>
+                      <p className="text-[var(--clr-text-muted)] text-xs mb-3 flex items-center gap-1.5">
+                        <Calendar size={10} style={{ color: 'var(--clr-green)' }} />
+                        {new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{event.time ? ` · ${event.time}` : ''}
+                      </p>
+                      <div className="mt-auto">
+                        {event.ticket_type === 'external' && event.ticket_url
+                          ? <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" className="btn-coral w-full py-2 text-xs flex items-center justify-center gap-1.5"><Ticket size={11} /> Get Tickets</a>
+                          : event.ticket_type === 'rsvp'
+                            ? <Link to="/events" className="btn-primary w-full py-2 text-xs flex items-center justify-center gap-1.5"><Users size={11} /> RSVP</Link>
+                            : <span className="flex items-center justify-center gap-1.5 text-xs font-bold text-[var(--clr-green)] bg-[var(--clr-bg-green)] py-2 rounded-lg border border-[var(--clr-border-green)]"><Check size={11} /> Free Event</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-center mt-6 sm:hidden">
+                <Link to="/events" className="btn-outline-green px-5 py-2.5 text-sm inline-flex items-center gap-1.5">All Events <ChevronRight size={14} /></Link>
+              </div>
+            </div>
+          </div>
+          <div className="h-px" style={{ background: 'var(--clr-border)' }} />
+        </>
+      )}
 
       {/* =========== CTA BLOCK =========== */}
       <section className="py-16 sm:py-20 relative overflow-hidden"

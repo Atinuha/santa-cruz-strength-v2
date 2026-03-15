@@ -244,6 +244,9 @@ export default function Dashboard() {
             <Link to="/staff/blog" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Blog Manager">
               <BookOpen size={14} />
             </Link>
+            <Link to="/staff/events" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Events Manager">
+              <Calendar size={14} />
+            </Link>
             <span className="text-white/58 text-xs hidden sm:block max-w-[80px] truncate">{user?.name}</span>
             <button onClick={() => { logout(); navigate('/staff/login'); }}
               className="text-white/52 hover:text-white/70 p-1.5 rounded transition-colors duration-200" title="Logout">

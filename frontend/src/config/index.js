@@ -23,9 +23,11 @@ export const GYM_CONFIG = {
     { days: 'Day Passes', hours: '9:00 AM – 6:00 PM', note: 'Monday – Sunday' },
     { days: 'Staffed Hours', hours: 'Mon–Fri: 8 AM – 7 PM', note: 'Sat–Sun: 9 AM – 2 PM' },
   ],
-  // Google Maps embed
-  mapEmbedUrl:
-    'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3189.9!2d-122.0308!3d36.9741!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808e41b53c63b4c1%3A0xf0d70e1a3b4c6a7b!2s151+Harvey+West+Blvd%2C+Santa+Cruz%2C+CA+95060!5e0!3m2!1sen!2sus!4v1234567890',
+  // Google Review direct link
+  // Get this from: google.com/business → "Get more reviews" → copy link
+  googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJP9aFMjTgjoARI8w0e3s0c04',
+  googleMapsUrl: 'https://maps.app.goo.gl/cBFaKiDgratKXp1m6',
+  mapEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3189.9!2d-122.0308!3d36.9741!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808e41b53c63b4c1%3A0xf0d70e1a3b4c6a7b!2s151+Harvey+West+Blvd%2C+Santa+Cruz%2C+CA+95060!5e0!3m2!1sen!2sus!4v1234567890',
   // Social
   social: {
     instagram: 'https://www.instagram.com/santacruzstrength/',

@@ -1,22 +1,30 @@
 [
   {
-    "content": "Add PWA manifest.json + update index.html meta tags",
+    "content": "Backend: Events CRUD + RSVP endpoints + review request/submit endpoints",
     "status": "completed"
   },
   {
-    "content": "Backend: /api/staff/mobile/dashboard endpoint (stats + today's follow-ups)",
-    "status": "in_progress"
+    "content": "Frontend: /events public page + homepage preview strip",
+    "status": "completed"
   },
   {
-    "content": "Build MobilePortal.js - Home, Follow-ups, Walk-in tabs + action sheet",
-    "status": "pending"
+    "content": "Frontend: /staff/events admin management page",
+    "status": "completed"
   },
   {
-    "content": "Add voice-to-text note entry + Google Voice call links",
-    "status": "pending"
+    "content": "Frontend: /review/:token star rating + dynamic questionnaire page",
+    "status": "completed"
   },
   {
-    "content": "Add route to App.js + build verify",
-    "status": "pending"
+    "content": "Wire review request trigger when lead → Joined status",
+    "status": "completed"
+  },
+  {
+    "content": "Update Navbar/Footer with Events link + config with review URL",
+    "status": "completed"
+  },
+  {
+    "content": "Build + verify",
+    "status": "completed"
   }
 ]

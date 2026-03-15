@@ -1147,9 +1147,11 @@ async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(require_staff
     if log_entries: set_op['$push'] = {'activity_log': {'$each': log_entries}}
     await db.leads.update_one({'id': lead_id}, set_op)
     updated = await db.leads.find_one({'id': lead_id}, {'_id': 0})
-    # Fire status-change SMS for milestone statuses (non-blocking)
+    # Fire status-change SMS + review request for milestone statuses (non-blocking)
     if data.status and data.status != lead.get('status'):
         asyncio.ensure_future(send_status_change_sms(updated, data.status))
+        if data.status == 'Joined':
+            asyncio.ensure_future(_send_review_request(updated))
     return updated
 
 @api_router.post('/staff/leads/{lead_id}/notes')
@@ -1553,7 +1555,276 @@ Return a JSON array of 8 objects. Only return valid JSON, no markdown fences, no
         logger.error(f'[BLOG IDEAS] LLM error: {e}')
         raise HTTPException(status_code=500, detail=f'Failed to generate ideas: {str(e)}')
 
-# --------------- Startup ---------------
+        logger.error(f'[BLOG IDEAS] LLM error: {e}')
+        raise HTTPException(status_code=500, detail=f'Failed to generate ideas: {str(e)}')
+
+# --------------- Events Models ---------------
+
+class EventCreate(BaseModel):
+    title: str
+    description: str
+    date: str                      # ISO date string "2026-04-12"
+    time: Optional[str] = ''       # "6:00 PM"
+    end_time: Optional[str] = ''
+    image_url: Optional[str] = ''
+    category: str = 'General'
+    location: Optional[str] = ''
+    ticket_type: str = 'free'      # 'free' | 'external' | 'rsvp'
+    ticket_url: Optional[str] = '' # for external tickets
+    ticket_price: Optional[str] = ''
+    max_capacity: Optional[int] = None
+    published: bool = True
+
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    end_time: Optional[str] = None
+    image_url: Optional[str] = None
+    category: Optional[str] = None
+    location: Optional[str] = None
+    ticket_type: Optional[str] = None
+    ticket_url: Optional[str] = None
+    ticket_price: Optional[str] = None
+    max_capacity: Optional[int] = None
+    published: Optional[bool] = None
+
+class RSVPCreate(BaseModel):
+    name: str
+    email: str
+    phone: Optional[str] = ''
+
+# --------------- Events Routes (Public) ---------------
+
+@api_router.get('/events')
+async def list_events(upcoming: bool = True):
+    today = now_utc().date().isoformat()
+    query = {'published': True}
+    if upcoming:
+        query['date'] = {'$gte': today}
+    events = await db.events.find(query, {'_id': 0}).sort('date', 1).to_list(100)
+    # Attach RSVP count to each event
+    for e in events:
+        if e.get('ticket_type') == 'rsvp':
+            e['rsvp_count'] = await db.event_rsvps.count_documents({'event_id': e['id']})
+    return events
+
+@api_router.get('/events/{event_id}')
+async def get_event(event_id: str):
+    event = await db.events.find_one({'id': event_id, 'published': True}, {'_id': 0})
+    if not event:
+        raise HTTPException(status_code=404, detail='Event not found')
+    if event.get('ticket_type') == 'rsvp':
+        event['rsvp_count'] = await db.event_rsvps.count_documents({'event_id': event_id})
+        event['rsvps'] = []  # don't expose attendee list publicly
+    return event
+
+@api_router.post('/events/{event_id}/rsvp')
+async def rsvp_event(event_id: str, data: RSVPCreate):
+    event = await db.events.find_one({'id': event_id, 'published': True})
+    if not event:
+        raise HTTPException(status_code=404, detail='Event not found')
+    if event.get('ticket_type') != 'rsvp':
+        raise HTTPException(status_code=400, detail='This event does not use RSVP')
+    max_cap = event.get('max_capacity')
+    if max_cap:
+        current = await db.event_rsvps.count_documents({'event_id': event_id})
+        if current >= max_cap:
+            raise HTTPException(status_code=400, detail='Event is at capacity')
+    # Check duplicate
+    existing = await db.event_rsvps.find_one({'event_id': event_id, 'email': data.email.lower().strip()})
+    if existing:
+        return {'message': 'Already registered', 'id': existing['id']}
+    rsvp_id = str(uuid.uuid4())
+    await db.event_rsvps.insert_one({
+        'id': rsvp_id, 'event_id': event_id, 'event_title': event.get('title', ''),
+        'name': data.name.strip(), 'email': data.email.lower().strip(),
+        'phone': data.phone.strip(), 'created_at': now_utc().isoformat(),
+    })
+    return {'message': 'RSVP confirmed', 'id': rsvp_id}
+
+# --------------- Events Routes (Staff) ---------------
+
+@api_router.get('/staff/events')
+async def list_all_events(user=Depends(require_admin)):
+    events = await db.events.find({}, {'_id': 0}).sort('date', -1).to_list(200)
+    for e in events:
+        if e.get('ticket_type') == 'rsvp':
+            e['rsvp_count'] = await db.event_rsvps.count_documents({'event_id': e['id']})
+    return events
+
+@api_router.post('/staff/events')
+async def create_event(data: EventCreate, user=Depends(require_admin)):
+    event_id = str(uuid.uuid4())
+    doc = {'id': event_id, **data.dict(), 'created_by': user['id'], 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()}
+    await db.events.insert_one(doc)
+    doc.pop('_id', None)
+    return doc
+
+@api_router.put('/staff/events/{event_id}')
+async def update_event(event_id: str, data: EventUpdate, user=Depends(require_admin)):
+    event = await db.events.find_one({'id': event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail='Event not found')
+    update = {k: v for k, v in data.dict().items() if v is not None}
+    update['updated_at'] = now_utc().isoformat()
+    await db.events.update_one({'id': event_id}, {'$set': update})
+    return await db.events.find_one({'id': event_id}, {'_id': 0})
+
+@api_router.delete('/staff/events/{event_id}')
+async def delete_event(event_id: str, user=Depends(require_admin)):
+    result = await db.events.delete_one({'id': event_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail='Event not found')
+    await db.event_rsvps.delete_many({'event_id': event_id})
+    return {'message': 'Event deleted'}
+
+@api_router.get('/staff/events/{event_id}/rsvps')
+async def get_event_rsvps(event_id: str, user=Depends(require_admin)):
+    rsvps = await db.event_rsvps.find({'event_id': event_id}, {'_id': 0}).sort('created_at', 1).to_list(500)
+    return rsvps
+
+# --------------- Review Flow ---------------
+
+GOOGLE_REVIEW_URL = 'https://search.google.com/local/writereview?placeid=ChIJP9aFMjTgjoARI8w0e3s0c04'
+FRONTEND_URL_DEFAULT = 'https://santacruzstrength.com'
+
+async def _send_review_request(lead: dict):
+    """Create review token + send branded email + SMS to new member."""
+    name  = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or 'there'
+    email = lead.get('email', '')
+    phone = lead.get('phone', '')
+    lead_id = lead.get('id', '')
+    if not email and not phone:
+        return
+    token = str(uuid.uuid4())
+    expires = now_utc() + timedelta(days=30)
+    await db.review_requests.insert_one({
+        'id': str(uuid.uuid4()), 'token': token, 'lead_id': lead_id,
+        'name': name, 'email': email, 'phone': phone,
+        'expires_at': expires.isoformat(), 'submitted': False, 'created_at': now_utc().isoformat(),
+    })
+    frontend_url = os.environ.get('FRONTEND_URL', FRONTEND_URL_DEFAULT)
+    review_page_url = f"{frontend_url}/review/{token}"
+    if email:
+        await send_resend_email(
+            to=email,
+            subject=f"Welcome to Santa Cruz Strength, {name}! Share your experience",
+            html=_review_email_html(name, review_page_url),
+        )
+    if phone and phone.startswith('+') and MAILERSEND_FROM:
+        sms = (f"Hey {name.split()[0]}, welcome to Santa Cruz Strength! "
+               f"We'd love to hear about your experience — takes 10 seconds: {review_page_url} - SCS")
+        await send_sms([phone], sms)
+    logger.info(f'[REVIEW] Request sent to {name} — token {token}')
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5F0;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
+  <tr><td align="center">
+    <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <tr><td style="background:#0D5D3E;padding:28px 36px;text-align:center;">
+        <p style="margin:0;color:#CDE4DF;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength</p>
+        <p style="margin:8px 0 0;color:#ffffff;font-size:24px;font-weight:800;">Welcome to the family, {name}!</p>
+      </td></tr>
+      <tr><td style="padding:36px;text-align:center;">
+        <p style="margin:0 0 8px;font-size:32px;">🏋️</p>
+        <p style="margin:0 0 16px;font-size:17px;font-weight:700;color:#1a1a1a;">You're officially part of the crew.</p>
+        <p style="margin:0 0 28px;font-size:14px;color:#555;line-height:1.65;">
+          Stoked to have you at Santa Cruz Strength. We'd love to hear how your first experience has been — it only takes 10 seconds.
+        </p>
+        <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+          <tr><td style="background:#0D5D3E;border-radius:10px;">
+            <a href="{review_url}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:0.3px;">
+              Share Your Experience ★
+            </a>
+          </td></tr>
+        </table>
+        <p style="margin:0;font-size:12px;color:#999;">Takes less than 10 seconds. Your feedback helps us get better.</p>
+      </td></tr>
+      <tr><td style="border-top:1px solid #eee;padding:16px 36px;background:#fafaf9;text-align:center;">
+        <p style="margin:0;font-size:11px;color:#aaa;">Santa Cruz Strength · 151 Harvey West Blvd Ste D, Santa Cruz CA</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table></body></html>"""
+
+def _feedback_email_html(name: str, rating: int, category: str, follow_up: str, extra: str) -> str:
+    stars = '★' * rating + '☆' * (5 - rating)
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0f1a14;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 20px;">
+  <tr><td align="center">
+    <table width="520" cellpadding="0" cellspacing="0" style="background:#111f16;border-radius:12px;overflow:hidden;border:1px solid #1e3327;">
+      <tr><td style="background:#8B1A1A;padding:20px 28px;">
+        <p style="margin:0;color:#ffcccc;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Member Feedback Alert</p>
+        <p style="margin:6px 0 0;color:#ffffff;font-size:18px;font-weight:800;">{name} left a {rating}-star review</p>
+      </td></tr>
+      <tr><td style="padding:28px;">
+        <p style="margin:0 0 6px;color:#8FBF9F;font-size:13px;font-weight:600;">Rating</p>
+        <p style="margin:0 0 20px;font-size:28px;color:#FA5A5C;letter-spacing:4px;">{stars}</p>
+        <p style="margin:0 0 6px;color:#8FBF9F;font-size:13px;font-weight:600;">Area needing improvement</p>
+        <p style="margin:0 0 20px;color:#e8f5ee;font-size:14px;">{category or 'Not specified'}</p>
+        <p style="margin:0 0 6px;color:#8FBF9F;font-size:13px;font-weight:600;">Specific feedback</p>
+        <p style="margin:0 0 20px;color:#e8f5ee;font-size:14px;line-height:1.6;">{follow_up or 'Not provided'}</p>
+        <p style="margin:0 0 6px;color:#8FBF9F;font-size:13px;font-weight:600;">Additional comments</p>
+        <p style="margin:0;color:#e8f5ee;font-size:14px;line-height:1.6;">{extra or 'None'}</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table></body></html>"""
+
+@api_router.post('/review/request/{lead_id}')
+async def create_review_request(lead_id: str):
+    """Internal — called when lead status changes to Joined."""
+    lead = await db.leads.find_one({'id': lead_id})
+    if not lead:
+        return {'message': 'Lead not found'}
+    token = str(uuid.uuid4())
+    expires = now_utc() + timedelta(days=30)
+    await db.review_requests.insert_one({
+        'id': str(uuid.uuid4()), 'token': token, 'lead_id': lead_id,
+        'name': f"{lead.get('first_name','')} {lead.get('last_name','')}".strip(),
+        'email': lead.get('email', ''), 'phone': lead.get('phone', ''),
+        'expires_at': expires.isoformat(), 'submitted': False, 'created_at': now_utc().isoformat(),
+    })
+    return {'token': token}
+
+@api_router.get('/review/{token}')
+async def get_review_request(token: str):
+    req = await db.review_requests.find_one({'token': token}, {'_id': 0})
+    if not req:
+        raise HTTPException(status_code=404, detail='Review link not found')
+    if req.get('submitted'):
+        raise HTTPException(status_code=400, detail='Already submitted')
+    expires = datetime.fromisoformat(req['expires_at'].replace('Z', '+00:00'))
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if now_utc() > expires:
+        raise HTTPException(status_code=400, detail='This link has expired')
+    return {'name': req['name'], 'token': token}
+
+@api_router.post('/review/{token}/submit')
+async def submit_review(token: str, data: dict):
+    req = await db.review_requests.find_one({'token': token})
+    if not req or req.get('submitted'):
+        raise HTTPException(status_code=400, detail='Invalid or already submitted')
+    rating   = int(data.get('rating', 0))
+    category = data.get('category', '')
+    follow_up = data.get('follow_up', '')
+    extra    = data.get('extra', '')
+    await db.review_requests.update_one({'token': token}, {'$set': {
+        'submitted': True, 'submitted_at': now_utc().isoformat(),
+        'rating': rating, 'category': category, 'follow_up': follow_up, 'extra': extra,
+    }})
+    # If negative, email management
+    if rating <= 3:
+        await send_resend_email(
+            to='management@santacruzstrength.com',
+            subject=f'⚠️ {rating}-Star Member Feedback — {req["name"]}',
+            html=_feedback_email_html(req['name'], rating, category, follow_up, extra),
+        )
+    return {'message': 'Thank you for your feedback!', 'rating': rating}
 async def seed_blog_posts():
     now = now_utc()
     posts = [
@@ -1901,6 +2172,12 @@ async def startup():
     await db.device_tokens.create_index('token')
     await db.device_tokens.create_index('email')
     await db.device_tokens.create_index('expires_at', expireAfterSeconds=0)
+    await db.events.create_index('id', unique=True)
+    await db.events.create_index([('published', 1), ('date', 1)])
+    await db.event_rsvps.create_index('event_id')
+    await db.event_rsvps.create_index([('event_id', 1), ('email', 1)], unique=True)
+    await db.review_requests.create_index('token', unique=True)
+    await db.review_requests.create_index('lead_id')
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
     if blog_count == 0:

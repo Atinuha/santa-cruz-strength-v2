@@ -14,6 +14,7 @@ export default function Navbar() {
     { to: '/', label: 'Home' },
     { to: '/join', label: 'Membership' },
     { to: '/personal-training', label: 'Training' },
+    { to: '/events', label: 'Events' },
     { to: '/blog', label: 'Blog' },
     { to: '/contact', label: 'Contact' },
   ];

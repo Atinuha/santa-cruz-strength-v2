@@ -16,6 +16,8 @@ import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import Events from './pages/Events';
+import ReviewPage from './pages/ReviewPage';
 
 // Staff CRM Pages
 import StaffLogin from './pages/staff/Login';
@@ -27,6 +29,7 @@ import BlogManager from './pages/staff/BlogManager';
 import ForgotPassword from './pages/staff/ForgotPassword';
 import ResetPassword from './pages/staff/ResetPassword';
 import MobilePortal from './pages/staff/MobilePortal';
+import EventsManager from './pages/staff/EventsManager';
 
 import './App.css';
 
@@ -58,6 +61,8 @@ export default function App() {
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/review/:token" element={<ReviewPage />} />
 
           {/* Staff Auth */}
           <Route path="/staff/login" element={<CRMLayout><StaffLogin /></CRMLayout>} />
@@ -80,6 +85,9 @@ export default function App() {
           } />
           <Route path="/staff/mobile" element={
             <ProtectedRoute><MobilePortal /></ProtectedRoute>
+          } />
+          <Route path="/staff/events" element={
+            <CRMLayout><ProtectedRoute><EventsManager /></ProtectedRoute></CRMLayout>
           } />
 
           {/* Fallback */}
