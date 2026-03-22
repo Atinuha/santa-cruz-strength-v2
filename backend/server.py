@@ -746,7 +746,9 @@ async def reset_password(req: dict):
     if not record:
         raise HTTPException(status_code=400, detail='Invalid or expired reset link')
     expires = datetime.fromisoformat(record['expires_at'].replace('Z', '+00:00'))
-    if now_utc() > expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires:
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if now_utc() > expires:
         await db.password_resets.delete_one({'_id': record['_id']})
         raise HTTPException(status_code=400, detail='Reset link has expired — please request a new one')
     await db.users.update_one({'email': record['email']}, {'$set': {'password_hash': hash_password(password)}})
