@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateLead, addNote, createManualLead } from '../../lib/api';
 import { gvCall, gvText } from '../../utils/googleVoice';
+import { formatPhone } from '../../utils/phone';
 import {
   Home, ListChecks, UserPlus, LogOut, Phone, MessageSquare,
   ChevronRight, Check, X, Mic, MicOff, Send, RefreshCw,

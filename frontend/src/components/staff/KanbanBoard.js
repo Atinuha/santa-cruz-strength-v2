@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { updateLead } from '../../lib/api';
 import { KANBAN_COLUMNS, LEAD_STATUSES } from '../../config';
 import { Phone, Mail, ChevronRight, Calendar, ArrowRight, Loader2 } from 'lucide-react';
+import { gvCall } from '../../utils/googleVoice';
+import { formatPhone } from '../../utils/phone';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '../../components/ui/dropdown-menu';
@@ -51,10 +53,10 @@ function KanbanCard({ lead, onStatusChange, movingId }) {
       {/* Contact */}
       <div className="space-y-1 mb-3">
         {lead.phone && (
-          <a href={`tel:${lead.phone}`} onClick={(e) => e.stopPropagation()}
+          <button onClick={(e) => { e.stopPropagation(); gvCall(lead.phone); }}
             className="flex items-center gap-1.5 text-white/65 hover:text-[#7FCCA6] text-xs transition-colors duration-200">
-            <Phone size={10} />{lead.phone}
-          </a>
+            <Phone size={10} />{formatPhone(lead.phone)}
+          </button>
         )}
         {lead.email && (
           <p className="text-white/52 text-xs truncate">{lead.email}</p>

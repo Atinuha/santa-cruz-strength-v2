@@ -4,6 +4,7 @@ import { getLead, updateLead, addNote } from '../../lib/api';
 import { LEAD_STATUSES, LEAD_SOURCES, GYM_CONFIG, PREFERRED_CONTACTS } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import { gvCall, gvText } from '../../utils/googleVoice';
+import { formatPhone } from '../../utils/phone';
 import {
   ArrowLeft, Phone, Mail, Calendar, Clock, Loader2,
   MessageSquare, User, ChevronRight, Tag, LogOut
@@ -230,7 +231,7 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
             <button onClick={() => gvCall(lead.phone)}
               data-testid="lead-call-btn"
               className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-200 flex-1">
-              <Phone size={14} className="text-[#1B7A4A] shrink-0" />{lead.phone}
+              <Phone size={14} className="text-[#1B7A4A] shrink-0" />{formatPhone(lead.phone)}
             </button>
             <button onClick={() => gvCall(lead.phone)}
               title="Call via Google Voice"

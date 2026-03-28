@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatPhone } from '../../utils/phone';
 import {
   Plus, Trash2, Loader2, ArrowLeft, Calendar, Pencil, Eye, EyeOff,
   ExternalLink, Users, Ticket, X, Check, ChevronDown
@@ -353,7 +354,7 @@ export default function EventsManager() {
                       <span className="text-white/25 text-xs w-5">{i + 1}</span>
                       <div className="flex-1">
                         <p className="text-white text-sm font-semibold">{r.name}</p>
-                        <p className="text-white/40 text-xs">{r.email}{r.phone ? ` · ${r.phone}` : ''}</p>
+                        <p className="text-white/40 text-xs">{r.email}{r.phone ? ` · ${formatPhone(r.phone)}` : ''}</p>
                       </div>
                     </div>
                   ))}

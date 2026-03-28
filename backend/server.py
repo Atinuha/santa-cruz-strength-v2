@@ -116,18 +116,24 @@ async def require_owner(user=Depends(get_current_user)):
 # --------------- Email (Resend) ---------------
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
-STAFF_EMAIL = os.environ.get('NOTIFICATION_EMAIL', 'management@santacruzstrength.com')
-FROM_EMAIL = os.environ.get('FROM_EMAIL', 'onboarding@resend.dev')
+STAFF_EMAIL       = os.environ.get('NOTIFICATION_EMAIL', 'management@santacruzstrength.com')
+FROM_EMAIL        = os.environ.get('FROM_EMAIL', 'hello@santacruzstrength.com')
+SECURITY_FROM     = os.environ.get('SECURITY_FROM_EMAIL', 'security@santacruzstrength.com')
+CC_EMAIL          = os.environ.get('CC_EMAIL', '')   # e.g. teresa@santacruzstrength.com
 
-async def send_resend_email(to: str, subject: str, html: str, reply_to: str = None):
+async def send_resend_email(to: str, subject: str, html: str, reply_to: str = None,
+                            from_override: str = None, cc: list = None):
     """Non-blocking Resend send — falls back gracefully if key not set."""
     if not resend.api_key:
         logger.info(f'[EMAIL] RESEND_API_KEY not set — skipping to {to}')
         return False
     try:
-        params = {'from': FROM_EMAIL, 'to': [to], 'subject': subject, 'html': html}
+        sender = from_override or FROM_EMAIL
+        params = {'from': sender, 'to': [to], 'subject': subject, 'html': html}
         if reply_to:
             params['reply_to'] = [reply_to]
+        if cc:
+            params['cc'] = [c for c in cc if c and c != to]
         result = await asyncio.to_thread(resend.Emails.send, params)
         logger.info(f'[EMAIL] Sent via Resend to {to} — id={result.get("id","?")}')
         return True
@@ -279,7 +285,8 @@ async def send_lead_emails(lead: dict):
     tasks.append(send_resend_email(
         to=STAFF_EMAIL,
         subject=f"New Lead: {lead.get('first_name','')} {lead.get('last_name','')} — {lead.get('interest_type','General Membership')}",
-        html=_staff_notification_html(lead)
+        html=_staff_notification_html(lead),
+        cc=[c for c in [CC_EMAIL] if c and c != STAFF_EMAIL],
     ))
     await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -610,6 +617,17 @@ def _reset_email_html(name: str, reset_url: str) -> str:
 
 import random, string
 
+def normalize_phone(phone: str) -> str:
+    """Format any phone number to (XXX) XXX-XXXX for consistent storage."""
+    if not phone:
+        return phone
+    digits = re.sub(r'\D', '', phone)
+    if len(digits) == 11 and digits[0] == '1':
+        digits = digits[1:]
+    if len(digits) == 10:
+        return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
+    return phone  # return as-is if unrecognised
+
 @api_router.post('/auth/login')
 async def login(req: LoginRequest):
     user = await db.users.find_one({'email': req.email.lower().strip()})
@@ -659,6 +677,7 @@ async def login(req: LoginRequest):
         to=user['email'],
         subject='Your Santa Cruz Strength login code',
         html=_otp_email_html(user.get('name', 'there'), otp),
+        from_override=SECURITY_FROM,
     )
     return {'step': 'otp_required', 'message': f'Code sent to {user["email"]}'}
 
@@ -733,6 +752,7 @@ async def forgot_password(req: dict):
         to=email,
         subject='Reset your Santa Cruz Strength staff password',
         html=_reset_email_html(user.get('name', 'there'), reset_url),
+        from_override=SECURITY_FROM,
     )
     return {'message': 'If that email exists, a reset link has been sent'}
 
@@ -775,6 +795,7 @@ async def owner_send_reset(user_id: str, caller=Depends(require_owner)):
         to=target['email'],
         subject=f'Password reset sent by {caller["name"]} — Santa Cruz Strength',
         html=_reset_email_html(target.get('name', 'there'), reset_url),
+        from_override=SECURITY_FROM,
     )
     return {'message': f'Password reset email sent to {target["email"]}'}
 
@@ -866,7 +887,8 @@ async def create_invite(data: InviteCreate, user=Depends(require_admin)):
     <p style='color:#555;font-size:11px;'>Direct link: {invite_url}</p>
     </body></html>
     """
-    email_sent = await send_resend_email(data.email, 'Invitation to Santa Cruz Strength Staff Portal', html)
+    email_sent = await send_resend_email(data.email, 'Invitation to Santa Cruz Strength Staff Portal', html,
+                                         from_override=SECURITY_FROM)
     return {
         'id': invite_doc['id'],
         'token': token,
@@ -899,7 +921,7 @@ async def create_lead_public(lead: LeadCreate):
         'first_name': lead.first_name.strip(),
         'last_name': lead.last_name.strip(),
         'email': lead.email.lower().strip(),
-        'phone': lead.phone.strip(),
+        'phone': normalize_phone(lead.phone.strip()),
         'location': lead.location,
         'interest_type': lead.interest_type,
         'training_goals': lead.training_goals or '',
@@ -968,7 +990,7 @@ async def create_lead_manual(lead: LeadCreate, user=Depends(require_staff)):
         'first_name': lead.first_name.strip(),
         'last_name': lead.last_name.strip(),
         'email': lead.email.lower().strip(),
-        'phone': lead.phone.strip(),
+        'phone': normalize_phone(lead.phone.strip()),
         'location': lead.location,
         'interest_type': lead.interest_type,
         'training_goals': lead.training_goals or '',

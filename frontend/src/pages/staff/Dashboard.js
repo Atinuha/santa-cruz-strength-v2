@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getLeads, getStats, exportLeadsCSV, createManualLead } from '../../lib/api';
 import { LEAD_STATUSES, LEAD_SOURCES, GYM_CONFIG, INTEREST_TYPES } from '../../config';
 import { gvCall, gvText } from '../../utils/googleVoice';
+import { formatPhone } from '../../utils/phone';
 import KanbanBoard from '../../components/staff/KanbanBoard';
 import {
   Search, Download, Plus, LogOut, RefreshCw, Phone,
@@ -403,7 +404,7 @@ export default function Dashboard() {
                           <button onClick={() => gvCall(lead.phone)}
                             title="Call via Google Voice"
                             className="text-white/50 hover:text-[#7FCCA6] text-xs flex items-center gap-1 transition-colors duration-150">
-                            <Phone size={11} />{lead.phone}
+                            <Phone size={11} />{formatPhone(lead.phone)}
                           </button>
                           {lead.phone && (
                             <button onClick={() => gvText(lead.phone)}

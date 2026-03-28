@@ -1,26 +1,14 @@
 [
   {
-    "content": "Backend: Events CRUD + RSVP endpoints + review request/submit endpoints",
+    "content": "Add formatPhone utility + apply to all CRM phone displays",
     "status": "completed"
   },
   {
-    "content": "Frontend: /events public page + homepage preview strip",
+    "content": "Backend: normalize phone on lead save + CC teresa on lead emails",
     "status": "completed"
   },
   {
-    "content": "Frontend: /staff/events admin management page",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: /review/:token star rating + dynamic questionnaire page",
-    "status": "completed"
-  },
-  {
-    "content": "Wire review request trigger when lead → Joined status",
-    "status": "completed"
-  },
-  {
-    "content": "Update Navbar/Footer with Events link + config with review URL",
+    "content": "Backend: security@santacruzstrength.com for OTP/reset/invite emails",
     "status": "completed"
   },
   {
