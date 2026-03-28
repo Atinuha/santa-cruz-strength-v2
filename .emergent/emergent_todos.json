@@ -1,14 +1,18 @@
 [
   {
-    "content": "Add formatPhone utility + apply to all CRM phone displays",
+    "content": "Add time dropdown (5AM-11PM in 30min steps) to EventForm in EventsManager",
     "status": "completed"
   },
   {
-    "content": "Backend: normalize phone on lead save + CC teresa on lead emails",
+    "content": "Add recurring event support (None/Weekly/Bi-Weekly/Monthly + end date) to backend + EventForm",
     "status": "completed"
   },
   {
-    "content": "Backend: security@santacruzstrength.com for OTP/reset/invite emails",
+    "content": "Expand recurring events in public /api/events endpoint",
+    "status": "completed"
+  },
+  {
+    "content": "Show recurring badge on event cards in Events.js",
     "status": "completed"
   },
   {

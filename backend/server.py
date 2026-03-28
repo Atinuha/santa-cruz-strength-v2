@@ -1614,17 +1614,19 @@ Return a JSON array of 8 objects. Only return valid JSON, no markdown fences, no
 class EventCreate(BaseModel):
     title: str
     description: str
-    date: str                      # ISO date string "2026-04-12"
-    time: Optional[str] = ''       # "6:00 PM"
+    date: str
+    time: Optional[str] = ''
     end_time: Optional[str] = ''
     image_url: Optional[str] = ''
     category: str = 'General'
     location: Optional[str] = ''
-    ticket_type: str = 'free'      # 'free' | 'external' | 'rsvp'
-    ticket_url: Optional[str] = '' # for external tickets
+    ticket_type: str = 'free'
+    ticket_url: Optional[str] = ''
     ticket_price: Optional[str] = ''
     max_capacity: Optional[int] = None
     published: bool = True
+    recurring: str = 'none'          # 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly'
+    recurring_until: Optional[str] = ''  # ISO date string
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -1640,6 +1642,8 @@ class EventUpdate(BaseModel):
     ticket_price: Optional[str] = None
     max_capacity: Optional[int] = None
     published: Optional[bool] = None
+    recurring: Optional[str] = None
+    recurring_until: Optional[str] = None
 
 class RSVPCreate(BaseModel):
     name: str
@@ -1650,16 +1654,69 @@ class RSVPCreate(BaseModel):
 
 @api_router.get('/events')
 async def list_events(upcoming: bool = True):
-    today = now_utc().date().isoformat()
+    from datetime import date as date_type
+    import calendar as cal_module
+
+    today = now_utc().date()
     query = {'published': True}
     if upcoming:
-        query['date'] = {'$gte': today}
-    events = await db.events.find(query, {'_id': 0}).sort('date', 1).to_list(100)
-    # Attach RSVP count to each event
+        query['date'] = {'$gte': today.isoformat()}
+    events = await db.events.find(query, {'_id': 0}).sort('date', 1).to_list(200)
+
+    # Expand recurring events into instances up to 6 months ahead
+    expanded = []
+    cutoff = today + timedelta(days=183)
+
     for e in events:
+        # Attach RSVP count
         if e.get('ticket_type') == 'rsvp':
             e['rsvp_count'] = await db.event_rsvps.count_documents({'event_id': e['id']})
-    return events
+
+        recurring = e.get('recurring', 'none') or 'none'
+        if recurring == 'none' or not upcoming:
+            expanded.append(e)
+            continue
+
+        # Generate recurring instances
+        try:
+            base_date = date_type.fromisoformat(e['date'])
+            until_str = e.get('recurring_until', '')
+            until = date_type.fromisoformat(until_str) if until_str else cutoff
+            until = min(until, cutoff)
+
+            DELTAS = {
+                'daily':    timedelta(days=1),
+                'weekly':   timedelta(weeks=1),
+                'biweekly': timedelta(weeks=2),
+            }
+
+            current = base_date
+            instance_count = 0
+            while current <= until and instance_count < 52:
+                if current >= today:
+                    instance = dict(e)
+                    instance['date'] = current.isoformat()
+                    instance['id'] = f"{e['id']}_{current.isoformat()}"
+                    instance['is_recurring_instance'] = current != base_date
+                    expanded.append(instance)
+                    instance_count += 1
+
+                if recurring in DELTAS:
+                    current += DELTAS[recurring]
+                elif recurring == 'monthly':
+                    # Advance one month, same day-of-month
+                    month = current.month + 1 if current.month < 12 else 1
+                    year  = current.year + 1 if current.month == 12 else current.year
+                    day   = min(current.day, cal_module.monthrange(year, month)[1])
+                    current = date_type(year, month, day)
+                else:
+                    break
+        except Exception:
+            expanded.append(e)
+
+    # Sort all expanded events by date
+    expanded.sort(key=lambda x: x.get('date', ''))
+    return expanded
 
 @api_router.get('/events/{event_id}')
 async def get_event(event_id: str):

@@ -17,10 +17,33 @@ const TICKET_TYPES = [
   { value: 'external', label: 'External Tickets (Eventbrite, etc.)', icon: '🎟️' },
 ];
 
+const RECURRING_OPTIONS = [
+  { value: 'none',      label: 'Does not repeat' },
+  { value: 'daily',     label: 'Every day' },
+  { value: 'weekly',    label: 'Every week' },
+  { value: 'biweekly',  label: 'Every 2 weeks' },
+  { value: 'monthly',   label: 'Every month' },
+];
+
+// Generate 5:00 AM → 11:00 PM in 30-min steps
+const TIME_OPTIONS = (() => {
+  const times = [''];
+  for (let h = 5; h <= 23; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const period = h < 12 ? 'AM' : 'PM';
+      const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      const min = m === 0 ? '00' : '30';
+      times.push(`${hour12}:${min} ${period}`);
+    }
+  }
+  return times;
+})();
+
 const BLANK_EVENT = {
   title: '', description: '', date: '', time: '', end_time: '',
   image_url: '', category: 'General', location: '151 Harvey West Blvd Ste D, Santa Cruz, CA',
   ticket_type: 'free', ticket_url: '', ticket_price: '', max_capacity: '', published: true,
+  recurring: 'none', recurring_until: '',
 };
 
 function EventForm({ initial, onSave, onCancel, saving }) {
@@ -51,17 +74,46 @@ function EventForm({ initial, onSave, onCancel, saving }) {
         </div>
         <div>
           <label className={labelCls}>Start Time</label>
-          <input value={form.time} onChange={e => set('time', e.target.value)} placeholder="9:00 AM" className={inputCls} />
+          <select value={form.time} onChange={e => set('time', e.target.value)}
+            className={inputCls + ' appearance-none'} style={{ background: 'rgba(255,255,255,0.05)' }}>
+            {TIME_OPTIONS.map(t => (
+              <option key={t} value={t} style={{ background: '#111f16' }}>{t || '— Select time —'}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={labelCls}>End Time</label>
-          <input value={form.end_time} onChange={e => set('end_time', e.target.value)} placeholder="5:00 PM" className={inputCls} />
+          <select value={form.end_time} onChange={e => set('end_time', e.target.value)}
+            className={inputCls + ' appearance-none'} style={{ background: 'rgba(255,255,255,0.05)' }}>
+            {TIME_OPTIONS.map(t => (
+              <option key={t} value={t} style={{ background: '#111f16' }}>{t || '— Select time —'}</option>
+            ))}
+          </select>
         </div>
         <div className="sm:col-span-2">
           <label className={labelCls}>Location</label>
           <input value={form.location} onChange={e => set('location', e.target.value)}
             placeholder="151 Harvey West Blvd Ste D, Santa Cruz, CA" className={inputCls} />
         </div>
+
+        {/* Recurring */}
+        <div>
+          <label className={labelCls}>Repeats</label>
+          <select value={form.recurring || 'none'} onChange={e => set('recurring', e.target.value)}
+            className={inputCls + ' appearance-none'} style={{ background: 'rgba(255,255,255,0.05)' }}>
+            {RECURRING_OPTIONS.map(r => (
+              <option key={r.value} value={r.value} style={{ background: '#111f16' }}>{r.label}</option>
+            ))}
+          </select>
+        </div>
+        {form.recurring && form.recurring !== 'none' && (
+          <div>
+            <label className={labelCls}>Repeat Until</label>
+            <input type="date" value={form.recurring_until || ''}
+              onChange={e => set('recurring_until', e.target.value)}
+              className={inputCls} />
+          </div>
+        )}
         <div className="sm:col-span-2">
           <label className={labelCls}>Description *</label>
           <textarea required value={form.description} onChange={e => set('description', e.target.value)}
@@ -290,6 +342,11 @@ export default function EventsManager() {
                     <div className="flex items-center gap-3 text-xs text-white/40 mb-2 flex-wrap">
                       <span className="flex items-center gap-1"><Calendar size={10} /> {formatDate(event.date)}{event.time ? ` · ${event.time}` : ''}</span>
                       <span className="text-white/20">{event.category}</span>
+                      {event.recurring && event.recurring !== 'none' && (
+                        <span className="flex items-center gap-1 text-[10px] text-amber-300/70">
+                          🔁 {RECURRING_OPTIONS.find(r => r.value === event.recurring)?.label || event.recurring}
+                        </span>
+                      )}
                       {event.ticket_type === 'rsvp' && (
                         <span className="flex items-center gap-1 text-[#7FCCA6]/70">
                           <Users size={10} /> {event.rsvp_count || 0}{event.max_capacity ? `/${event.max_capacity}` : ''} RSVPs

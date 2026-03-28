@@ -174,11 +174,18 @@ export default function Events() {
                   {/* Content */}
                   <div className="p-5 flex flex-col flex-1">
                     <div className="flex items-start justify-between gap-2 mb-3">
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${CATEGORY_COLORS[event.category] || CATEGORY_COLORS['General']}`}>
-                        {event.category || 'General'}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${CATEGORY_COLORS[event.category] || CATEGORY_COLORS['General']}`}>
+                          {event.category || 'General'}
+                        </span>
+                        {event.recurring && event.recurring !== 'none' && (
+                          <span className="text-[10px] font-semibold px-2 py-1 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                            🔁 Recurring
+                          </span>
+                        )}
+                      </div>
                       {event.ticket_type === 'rsvp' && event.max_capacity && (
-                        <span className="text-[10px] text-[var(--clr-text-muted)] flex items-center gap-1">
+                        <span className="text-[10px] text-[var(--clr-text-muted)] flex items-center gap-1 shrink-0">
                           <Users size={10} /> {event.rsvp_count || 0}/{event.max_capacity}
                         </span>
                       )}
