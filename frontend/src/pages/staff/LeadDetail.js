@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getLead, updateLead, addNote } from '../../lib/api';
 import { LEAD_STATUSES, LEAD_SOURCES, GYM_CONFIG, PREFERRED_CONTACTS } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
+import { gvCall, gvText } from '../../utils/googleVoice';
 import {
   ArrowLeft, Phone, Mail, Calendar, Clock, Loader2,
   MessageSquare, User, ChevronRight, Tag, LogOut
@@ -224,12 +225,30 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
 
       {/* Contact */}
       <div className="space-y-2.5">
-        <a href={`tel:${lead.phone}`} className="flex items-center gap-2.5 text-sm text-white/70 hover:text-white transition-colors duration-200">
-          <Phone size={14} className="text-[#1B7A4A]" />{lead.phone}
-        </a>
-        <a href={`mailto:${lead.email}`} className="flex items-center gap-2.5 text-sm text-white/70 hover:text-white transition-colors duration-200">
-          <Mail size={14} className="text-[#1B7A4A]" />{lead.email}
-        </a>
+        {lead.phone && (
+          <div className="flex items-center gap-2">
+            <button onClick={() => gvCall(lead.phone)}
+              data-testid="lead-call-btn"
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-200 flex-1">
+              <Phone size={14} className="text-[#1B7A4A] shrink-0" />{lead.phone}
+            </button>
+            <button onClick={() => gvCall(lead.phone)}
+              title="Call via Google Voice"
+              className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#1B7A4A]/15 border border-[#1B7A4A]/25 text-[#7FCCA6] hover:bg-[#1B7A4A]/30 transition-colors duration-150">
+              Call
+            </button>
+            <button onClick={() => gvText(lead.phone)}
+              title="Text via Google Voice"
+              className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-500/25 text-purple-300 hover:bg-purple-500/25 transition-colors duration-150">
+              Text
+            </button>
+          </div>
+        )}
+        {lead.email && (
+          <a href={`mailto:${lead.email}`} className="flex items-center gap-2.5 text-sm text-white/70 hover:text-white transition-colors duration-200">
+            <Mail size={14} className="text-[#1B7A4A]" />{lead.email}
+          </a>
+        )}
       </div>
 
       <Separator className="bg-white/8" />

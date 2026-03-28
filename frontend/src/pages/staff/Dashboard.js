@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getLeads, getStats, exportLeadsCSV, createManualLead } from '../../lib/api';
 import { LEAD_STATUSES, LEAD_SOURCES, GYM_CONFIG, INTEREST_TYPES } from '../../config';
+import { gvCall, gvText } from '../../utils/googleVoice';
 import KanbanBoard from '../../components/staff/KanbanBoard';
 import {
   Search, Download, Plus, LogOut, RefreshCw, Phone,
@@ -398,10 +399,20 @@ export default function Dashboard() {
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <a href={`tel:${lead.phone}`} onClick={(e) => e.stopPropagation()}
-                          className="text-white/60 hover:text-white text-sm flex items-center gap-1.5 transition-colors duration-200">
-                          <Phone size={11} />{lead.phone}
-                        </a>
+                        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                          <button onClick={() => gvCall(lead.phone)}
+                            title="Call via Google Voice"
+                            className="text-white/50 hover:text-[#7FCCA6] text-xs flex items-center gap-1 transition-colors duration-150">
+                            <Phone size={11} />{lead.phone}
+                          </button>
+                          {lead.phone && (
+                            <button onClick={() => gvText(lead.phone)}
+                              title="Text via Google Voice"
+                              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/20 text-purple-300 hover:bg-purple-500/25 transition-colors duration-150 shrink-0">
+                              Txt
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={lead.status} /></td>
                       <td className="px-4 py-3 hidden md:table-cell">

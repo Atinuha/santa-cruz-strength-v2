@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateLead, addNote, createManualLead } from '../../lib/api';
+import { gvCall, gvText } from '../../utils/googleVoice';
 import {
   Home, ListChecks, UserPlus, LogOut, Phone, MessageSquare,
   ChevronRight, Check, X, Mic, MicOff, Send, RefreshCw,
@@ -24,12 +25,6 @@ const QUICK_STATUSES = [
 ];
 
 const INTERESTS = ['General Membership', 'Personal Training', 'Group Classes', 'Open Gym', 'Powerlifting Program', 'Other'];
-
-function openGoogleVoice(phone) {
-  const clean = phone.replace(/\D/g, '');
-  const e164 = clean.startsWith('1') ? `+${clean}` : `+1${clean}`;
-  window.open(`https://voice.google.com/u/0/calls?a=nc,${encodeURIComponent(e164)}`, '_blank');
-}
 
 function timeAgo(iso) {
   if (!iso) return '';
@@ -61,14 +56,14 @@ function LeadCard({ lead, onAction }) {
           {lead.status || 'New'}
         </span>
         {lead.phone && (
-          <button onClick={e => { e.stopPropagation(); openGoogleVoice(lead.phone); }}
+          <button onClick={e => { e.stopPropagation(); gvCall(lead.phone); }}
             className="flex items-center gap-1 text-[10px] text-[#7FCCA6] bg-[#1B7A4A]/15 px-2 py-0.5 rounded-full border border-[#1B7A4A]/25 active:bg-[#1B7A4A]/30"
             data-testid="call-btn">
             <Phone size={9} /> Call
           </button>
         )}
         {lead.phone && (
-          <button onClick={e => { e.stopPropagation(); window.open(`sms:${lead.phone}`, '_self'); }}
+          <button onClick={e => { e.stopPropagation(); gvText(lead.phone); }}
             className="flex items-center gap-1 text-[10px] text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-full border border-purple-500/25"
             data-testid="sms-btn">
             <MessageSquare size={9} /> Text
@@ -162,7 +157,7 @@ function ActionSheet({ lead, onClose, onUpdated }) {
           </div>
           <div className="flex gap-2">
             {lead.phone && (
-              <button onClick={() => openGoogleVoice(lead.phone)}
+              <button onClick={() => gvCall(lead.phone)}
                 className="w-9 h-9 rounded-full bg-[#1B7A4A]/20 border border-[#1B7A4A]/30 flex items-center justify-center"
                 data-testid="sheet-call-btn">
                 <Phone size={15} className="text-[#7FCCA6]" />
