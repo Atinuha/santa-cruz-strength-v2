@@ -6,6 +6,7 @@ import {
   updateBlogPost, deleteBlogPost
 } from '../../lib/api';
 import BlogSEOPanel from '../../components/staff/BlogSEOPanel';
+import ImageUploadField from '../../components/ImageUploadField';
 import {
   ArrowLeft, Plus, Trash2, Edit3, Eye, EyeOff,
   Globe, FileText, LogOut, Loader2, Save, X, BookOpen
@@ -350,12 +351,13 @@ export default function BlogManager() {
                         placeholder="Santa Cruz Strength" className={inputClass} />
                     </div>
                     <div>
-                      <label className="block text-xs text-white/52 mb-1">Cover Image URL</label>
-                      <input value={form.cover_image} onChange={(e) => handleChange('cover_image', e.target.value)}
-                        placeholder="https://..." className={inputClass} />
-                      {form.cover_image && (
-                        <img src={form.cover_image} alt="cover" className="mt-2 w-full h-24 object-cover rounded-md" />
-                      )}
+                      <ImageUploadField
+                        label="Cover Image"
+                        value={form.cover_image}
+                        onChange={(url) => handleChange('cover_image', url)}
+                        inputClass={inputClass}
+                        darkMode={true}
+                      />
                     </div>
                     <div>
                       <label className="block text-xs text-white/52 mb-1">Tags (comma separated)</label>

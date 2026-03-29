@@ -1933,6 +1933,47 @@ async def submit_review(token: str, data: dict):
             html=_feedback_email_html(req['name'], rating, category, follow_up, extra),
         )
     return {'message': 'Thank you for your feedback!', 'rating': rating}
+
+# --------------- Media Upload ---------------
+
+import base64 as _base64
+
+@api_router.post('/upload')
+async def upload_image(file: UploadFile = File(...), user=Depends(require_admin)):
+    """Upload an image file — stores in MongoDB, returns a public URL."""
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail='Only image files are allowed (JPEG, PNG, WebP, GIF)')
+    content = await file.read()
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail='File too large — max 8MB')
+    media_id = str(uuid.uuid4())
+    await db.media.insert_one({
+        'id': media_id,
+        'filename': file.filename or 'image',
+        'content_type': file.content_type,
+        'data': _base64.b64encode(content).decode(),
+        'size': len(content),
+        'created_by': user['id'],
+        'created_at': now_utc().isoformat(),
+    })
+    logger.info(f'[UPLOAD] {file.filename} ({len(content)//1024}KB) by {user["email"]}')
+    return {'url': f'/api/media/{media_id}', 'id': media_id, 'filename': file.filename}
+
+@api_router.get('/media/{media_id}')
+async def serve_media(media_id: str):
+    """Serve an uploaded image publicly — no auth required."""
+    from fastapi.responses import Response
+    media = await db.media.find_one({'id': media_id})
+    if not media:
+        raise HTTPException(status_code=404, detail='Image not found')
+    content = _base64.b64decode(media['data'])
+    return Response(
+        content=content,
+        media_type=media['content_type'],
+        headers={'Cache-Control': 'public, max-age=31536000'},
+    )
+
+
 async def seed_blog_posts():
     now = now_utc()
     posts = [
@@ -2286,6 +2327,8 @@ async def startup():
     await db.event_rsvps.create_index([('event_id', 1), ('email', 1)], unique=True)
     await db.review_requests.create_index('token', unique=True)
     await db.review_requests.create_index('lead_id')
+    await db.media.create_index('id', unique=True)
+    await db.media.create_index('created_at')
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
     if blog_count == 0:

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatPhone } from '../../utils/phone';
+import ImageUploadField from '../../components/ImageUploadField';
 import {
   Plus, Trash2, Loader2, ArrowLeft, Calendar, Pencil, Eye, EyeOff,
   ExternalLink, Users, Ticket, X, Check, ChevronDown
@@ -121,9 +122,12 @@ function EventForm({ initial, onSave, onCancel, saving }) {
             className={inputCls + ' resize-none'} />
         </div>
         <div className="sm:col-span-2">
-          <label className={labelCls}>Event Image URL</label>
-          <input value={form.image_url} onChange={e => set('image_url', e.target.value)}
-            placeholder="https://..." className={inputCls} />
+          <ImageUploadField
+            label="Event Image"
+            value={form.image_url}
+            onChange={(url) => set('image_url', url)}
+            darkMode={true}
+          />
         </div>
       </div>
 
