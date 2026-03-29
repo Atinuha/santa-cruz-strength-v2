@@ -169,20 +169,25 @@ export default function BlogSEOPanel({ form }) {
   const [expandedCat, setExpandedCat]   = useState(null);
 
   // Dynamic ideas state
-  const [dynamicIdeas, setDynamicIdeas] = useState(null);   // null = not loaded yet
+  const [dynamicIdeas, setDynamicIdeas] = useState(null);
   const [trendsUsed, setTrendsUsed]     = useState([]);
   const [ideasLoading, setIdeasLoading] = useState(false);
   const [ideasError, setIdeasError]     = useState('');
+  const [fromCache, setFromCache]       = useState(false);
+  const [generatedAt, setGeneratedAt]   = useState('');
 
   const seo = useMemo(() => scorePost(form, focusKeyword), [form, focusKeyword]);
 
-  const fetchIdeas = useCallback(async () => {
+  const fetchIdeas = useCallback(async (force = false) => {
     setIdeasLoading(true);
     setIdeasError('');
     try {
       const token = localStorage.getItem('scs_token');
       const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const res = await fetch(`${backendUrl}/api/staff/blog/ideas`, {
+      const url = force
+        ? `${backendUrl}/api/staff/blog/ideas?force=true`
+        : `${backendUrl}/api/staff/blog/ideas`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
@@ -193,7 +198,8 @@ export default function BlogSEOPanel({ form }) {
       const data = await res.json();
       setDynamicIdeas(data.ideas || []);
       setTrendsUsed(data.trends_used || []);
-      // Auto-expand first category
+      setFromCache(data.cached || false);
+      setGeneratedAt(data.generated_at || '');
       if (data.ideas?.length) setExpandedCat(data.ideas[0].category);
     } catch (e) {
       setIdeasError(e.message || 'Something went wrong');
@@ -310,22 +316,44 @@ export default function BlogSEOPanel({ form }) {
           <div className="px-4 pt-4 pb-3 border-b border-white/8">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-white/85 text-xs font-semibold mb-0.5">AI-Generated Ideas</p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-white/85 text-xs font-semibold">AI-Generated Ideas</p>
+                  {fromCache && generatedAt && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#1B7A4A]/15 border border-[#1B7A4A]/25 text-[#7FCCA6]/70">
+                      ⚡ cached
+                    </span>
+                  )}
+                </div>
                 <p className="text-white/38 text-[10px] leading-relaxed">
-                  Pulls live Google Trends data for strength &amp; fitness, then generates ideas tailored to SCS's audience.
+                  {fromCache
+                    ? 'Showing recent ideas — hit Refresh to pull fresh trends.'
+                    : 'Pulls live Google Trends + AI generates ideas tailored to SCS.'}
                 </p>
               </div>
-              <button
-                onClick={fetchIdeas}
-                disabled={ideasLoading}
-                data-testid="blog-refresh-ideas-btn"
-                className="flex items-center gap-1.5 bg-[#1B7A4A]/20 hover:bg-[#1B7A4A]/35 border border-[#1B7A4A]/30 text-[#7FCCA6] text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {ideasLoading
-                  ? <><Loader2 size={11} className="animate-spin" /> Generating…</>
-                  : <><RefreshCw size={11} /> {dynamicIdeas ? 'Refresh' : 'Generate Ideas'}</>
-                }
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Generate / load from cache */}
+                <button
+                  onClick={() => fetchIdeas(false)}
+                  disabled={ideasLoading}
+                  data-testid="blog-refresh-ideas-btn"
+                  className="flex items-center gap-1.5 bg-[#1B7A4A]/20 hover:bg-[#1B7A4A]/35 border border-[#1B7A4A]/30 text-[#7FCCA6] text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {ideasLoading
+                    ? <><Loader2 size={11} className="animate-spin" /> Loading…</>
+                    : dynamicIdeas ? '⚡ Load' : 'Generate Ideas'
+                  }
+                </button>
+                {/* Force fresh generation */}
+                {dynamicIdeas && !ideasLoading && (
+                  <button
+                    onClick={() => fetchIdeas(true)}
+                    title="Generate fresh ideas (ignores cache)"
+                    className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/12 text-white/45 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                  >
+                    <RefreshCw size={10} /> Fresh
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Trends used chips */}
@@ -358,7 +386,7 @@ export default function BlogSEOPanel({ form }) {
                 <Lightbulb size={18} className="text-[#7FCCA6]" />
               </div>
               <p className="text-white/55 text-xs max-w-[180px] leading-relaxed">
-                Hit <strong className="text-white/75">Generate Ideas</strong> to pull live trends and get fresh blog ideas.
+                Hit <strong className="text-white/75">Generate Ideas</strong> to get fresh blog ideas from live trends.
               </p>
             </div>
           )}

@@ -1522,86 +1522,86 @@ async def delete_blog_post(post_id: str, user=Depends(require_admin)):
 # --------------- Blog Ideas (Google Trends + AI) ---------------
 
 @api_router.post('/staff/blog/ideas')
-async def generate_blog_ideas(user=Depends(require_admin)):
+async def generate_blog_ideas(user=Depends(require_admin), force: bool = False):
     """
-    Fetches trending keywords in the strength/fitness niche via Google Trends (pytrends),
-    then asks the LLM to generate 8 specific, SEO-ready blog ideas for Santa Cruz Strength.
+    Returns cached blog ideas (instant) or generates fresh ones.
+    Cache lives for 6 hours. Pass ?force=true to force regeneration.
     """
-    from pytrends.request import TrendReq
+    import json as _json
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 
-    # 1. Pull Google Trends data for our niche keywords
+    # ── Check cache first (skip if force=true) ────────────────────────────────
+    if not force:
+        cached = await db.blog_ideas_cache.find_one({'_id': 'latest'})
+        if cached:
+            age_hours = (now_utc() - datetime.fromisoformat(
+                cached['generated_at'].replace('Z', '+00:00')
+            ).replace(tzinfo=timezone.utc)).total_seconds() / 3600
+            if age_hours < 6:
+                logger.info(f'[BLOG IDEAS] Serving cache ({age_hours:.1f}h old)')
+                return {
+                    'ideas': cached['ideas'],
+                    'trends_used': cached.get('trends_used', []),
+                    'cached': True,
+                    'generated_at': cached['generated_at'],
+                }
+
+    # ── Fetch Google Trends (with tight 8-second timeout) ─────────────────────
     trend_topics = []
     try:
-        pytrends = TrendReq(hl='en-US', tz=360, timeout=(10, 25))
-        # Get related queries for our core niche terms
+        from pytrends.request import TrendReq
+        pytrends = TrendReq(hl='en-US', tz=360, timeout=(4, 8))
         kw_list = ['strength training', 'powerlifting', 'gym workout']
         pytrends.build_payload(kw_list, cat=44, timeframe='now 7-d', geo='US-CA')
         related = pytrends.related_queries()
         for kw in kw_list:
-            if related.get(kw) and related[kw].get('rising') is not None:
-                df = related[kw]['rising']
+            for bucket in ('rising', 'top'):
+                df = related.get(kw, {}).get(bucket)
                 if df is not None and not df.empty:
-                    trend_topics += df['query'].head(5).tolist()
-            if related.get(kw) and related[kw].get('top') is not None:
-                df = related[kw]['top']
-                if df is not None and not df.empty:
-                    trend_topics += df['query'].head(3).tolist()
-        # Deduplicate
-        trend_topics = list(dict.fromkeys(trend_topics))[:20]
-        logger.info(f'[BLOG IDEAS] Trends fetched: {trend_topics}')
+                    trend_topics += df['query'].head(4).tolist()
+        trend_topics = list(dict.fromkeys(trend_topics))[:15]
+        logger.info(f'[BLOG IDEAS] Trends: {trend_topics}')
     except Exception as e:
-        logger.warning(f'[BLOG IDEAS] pytrends failed: {e} — using fallback topics')
-        trend_topics = ['strength training beginners', 'powerlifting program', 'gym for surfers',
-                        'how to deadlift', 'strength training over 40', 'gym workout routine']
+        logger.warning(f'[BLOG IDEAS] pytrends failed: {e} — using fallback')
+        trend_topics = ['strength training beginners', 'powerlifting program',
+                        'gym for surfers', 'how to deadlift', 'strength training over 40']
 
-    trends_str = ', '.join(trend_topics) if trend_topics else 'strength training, powerlifting, fitness for athletes'
+    trends_str = ', '.join(trend_topics) if trend_topics else 'strength training, powerlifting, fitness'
 
-    # 2. Ask the LLM to generate targeted blog ideas
+    # ── LLM — shorter prompt, 6 ideas, gpt-4o-mini ───────────────────────────
     llm_key = os.environ.get('EMERGENT_LLM_KEY', '')
     if not llm_key:
         raise HTTPException(status_code=500, detail='LLM key not configured')
 
-    prompt = f"""You are a content strategist for Santa Cruz Strength, a serious strength gym in Santa Cruz, California at 151 Harvey West Blvd. 
-The gym serves surfers, climbers, trail runners, cyclists, powerlifters, and everyday athletes. 
-It has a gritty, authentic, community-driven identity — no fluff, no influencer culture, real training.
+    prompt = f"""Content strategist for Santa Cruz Strength gym (Santa Cruz, CA). Serves surfers, climbers, powerlifters, trail runners. Gritty, authentic, no fluff.
 
-Right now these topics are trending on Google in the fitness/strength space:
-{trends_str}
+Trending searches right now: {trends_str}
 
-Generate exactly 8 blog post ideas that:
-1. Are specific to Santa Cruz Strength's audience and location
-2. Tap into the trending topics above where relevant
-3. Target real search queries people use
-4. Mix local SEO, how-to, and athlete-specific content
-
-For each idea return a JSON object with:
-- "title": compelling, SEO-ready headline (50-65 chars ideal)
-- "keyword": primary focus keyword to target
-- "volume": one of "High", "Medium", or "Low" (based on likely search volume)
-- "category": one of "Local SEO", "Outdoor Athletes", "How-To", "FAQ Content", "Gym Culture", "Trending"
-- "outline": array of 3 short bullet points for the article structure
-- "trend_hook": one sentence explaining which trend this taps into
-
-Return a JSON array of 8 objects. Only return valid JSON, no markdown fences, no explanation text."""
+Generate 6 blog ideas. Return ONLY a JSON array, no other text:
+[{{"title":"...","keyword":"...","volume":"High|Medium|Low","category":"Local SEO|Outdoor Athletes|How-To|FAQ Content|Gym Culture|Trending","outline":["point1","point2","point3"],"trend_hook":"..."}}]"""
 
     try:
         chat = LlmChat(
             api_key=llm_key,
             session_id=f'blog-ideas-{uuid.uuid4()}',
-            system_message='You are a content strategist. Return only valid JSON arrays.'
+            system_message='Return only valid JSON arrays, no markdown, no explanation.'
         ).with_model('openai', 'gpt-4o-mini')
-        msg = UserMessage(text=prompt)
-        response = await asyncio.wait_for(chat.send_message(msg), timeout=45.0)
+        response = await asyncio.wait_for(chat.send_message(UserMessage(text=prompt)), timeout=30.0)
         raw = response.strip()
-        # Strip any accidental markdown fences
         if raw.startswith('```'):
             raw = raw.split('```')[1]
             if raw.startswith('json'):
                 raw = raw[4:]
-        import json
-        ideas = json.loads(raw)
-        return {'ideas': ideas, 'trends_used': trend_topics}
+        ideas = _json.loads(raw)
+
+        # ── Save to cache ──────────────────────────────────────────────────────
+        generated_at = now_utc().isoformat()
+        await db.blog_ideas_cache.replace_one(
+            {'_id': 'latest'},
+            {'_id': 'latest', 'ideas': ideas, 'trends_used': trend_topics, 'generated_at': generated_at},
+            upsert=True,
+        )
+        return {'ideas': ideas, 'trends_used': trend_topics, 'cached': False, 'generated_at': generated_at}
     except Exception as e:
         logger.error(f'[BLOG IDEAS] LLM error: {e}')
         raise HTTPException(status_code=500, detail=f'Failed to generate ideas: {str(e)}')
