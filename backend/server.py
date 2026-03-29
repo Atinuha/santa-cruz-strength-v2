@@ -2019,6 +2019,7 @@ async def run_campaign_scheduler():
                     'subject': subject, 'sent_at': now_utc().isoformat(),
                 })
                 sent_wave1 += 1
+            await asyncio.sleep(0.25)  # 4/second max — stay under Resend 5/sec limit
 
         # ── Wave 2: 7-day follow-up ───────────────────────────────────────────
         wave2_cutoff = (now_utc() - timedelta(days=campaign.get('wave2_delay_days', 7))).isoformat()
