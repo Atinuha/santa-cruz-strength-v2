@@ -1,34 +1,22 @@
 [
   {
-    "content": "Backend: Optimize CSV import to bulk insert (handles 2000+ fast)",
-    "status": "completed"
+    "content": "Fix CSV import — require name + (email OR phone), not both",
+    "status": "in_progress"
   },
   {
-    "content": "Backend: Blacklist field + toggle endpoint + check in all sends",
-    "status": "completed"
+    "content": "Fix campaign start — trigger immediate first batch, don't wait for 10 AM",
+    "status": "pending"
   },
   {
-    "content": "Backend: Campaign model, CRUD endpoints, staggered scheduler",
-    "status": "completed"
+    "content": "Add Resend bounce webhook — auto-remove invalid emails + notify management",
+    "status": "pending"
   },
   {
-    "content": "Backend: Iron Roses email + SMS templates (3 waves)",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: CampaignManager.js page with progress tracking",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: Blacklist toggle in LeadDetail + badge in Dashboard",
-    "status": "completed"
-  },
-  {
-    "content": "Immediately blacklist Donny Hunt",
-    "status": "completed"
+    "content": "Better campaign segmentation — filter by status/source/interest/tag with live count",
+    "status": "pending"
   },
   {
     "content": "Build + verify",
-    "status": "completed"
+    "status": "pending"
   }
 ]

@@ -54,9 +54,32 @@ export default function CampaignManager() {
     join_url: JOIN_URL,
     tag_filter: 'imported',
     source_filter: 'csv_import',
+    status_filter: [],          // [] = all statuses
+    interest_filter: '',        // '' = all interests
     wave2_delay_days: 7,
     wave3_delay_days: 14,
   });
+  const [previewCount, setPreviewCount] = useState(null);
+  const [countLoading, setCountLoading] = useState(false);
+
+  const STATUSES = ['New', 'Contacted', 'Attempted Call', 'Texted', 'Booked Visit', 'No Response'];
+  const SOURCES  = ['csv_import', 'website_form', 'walk_in', 'manual_entry', 'book_a_tour', 'contact_page'];
+  const INTERESTS = ['General Membership', 'Personal Training', 'Group Classes', 'Open Gym', 'Powerlifting Program'];
+
+  const fetchPreviewCount = async (f = form) => {
+    setCountLoading(true);
+    try {
+      const params = new URLSearchParams({
+        tag: f.tag_filter || '',
+        source: f.source_filter || '',
+        interest: f.interest_filter || '',
+        statuses: (f.status_filter || []).join(','),
+      });
+      const res = await fetch(`${BACKEND}/api/staff/campaigns/preview-count?${params}`, { headers });
+      if (res.ok) { const d = await res.json(); setPreviewCount(d.count); }
+    } catch { }
+    finally { setCountLoading(false); }
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -91,7 +114,9 @@ export default function CampaignManager() {
 
   const handleStart = async (id) => {
     const res = await fetch(`${BACKEND}/api/staff/campaigns/${id}/start`, { method: 'POST', headers });
-    if (res.ok) { toast.success('Campaign started — first batch fires at 10 AM PT'); await fetchCampaigns(); fetchDetail(id); }
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) { toast.success(data.message || 'Campaign started — first batch sending now'); await fetchCampaigns(); fetchDetail(id); }
+    else { toast.error(data.detail || 'Failed to start'); }
   };
 
   const handlePause = async (id) => {
@@ -187,7 +212,6 @@ export default function CampaignManager() {
                       <input type="number" min="1" max="500" value={form.batch_size_per_day}
                         onChange={e => setForm(p => ({ ...p, batch_size_per_day: parseInt(e.target.value) }))}
                         className={inputCls} />
-                      <p className="text-white/25 text-[10px] mt-1">~{Math.ceil(2000 / form.batch_size_per_day)} days total</p>
                     </div>
                     <div>
                       <label className={labelCls}>Tag Filter</label>
@@ -195,6 +219,55 @@ export default function CampaignManager() {
                         className={inputCls} placeholder="imported" />
                     </div>
                   </div>
+
+                  {/* Segmentation */}
+                  <div className="bg-white/3 border border-white/8 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-white/50 text-xs font-bold uppercase tracking-wider">Audience Segmentation</p>
+                      <button type="button" onClick={() => fetchPreviewCount(form)}
+                        className="text-[10px] text-[#7FCCA6] bg-[#1B7A4A]/15 px-2.5 py-1 rounded-full border border-[#1B7A4A]/25 hover:bg-[#1B7A4A]/25 transition-colors">
+                        {countLoading ? '...' : previewCount !== null ? `${previewCount} leads match` : 'Preview count'}
+                      </button>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-white/40 mb-1.5 font-semibold uppercase tracking-wider">Lead Source</label>
+                      <select value={form.source_filter} onChange={e => setForm(p => ({ ...p, source_filter: e.target.value }))}
+                        className={inputCls + ' appearance-none text-xs'} style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <option value="" style={{ background: '#111f16' }}>All sources</option>
+                        {SOURCES.map(s => <option key={s} value={s} style={{ background: '#111f16' }}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-white/40 mb-1.5 font-semibold uppercase tracking-wider">Interest Type</label>
+                      <select value={form.interest_filter} onChange={e => setForm(p => ({ ...p, interest_filter: e.target.value }))}
+                        className={inputCls + ' appearance-none text-xs'} style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <option value="" style={{ background: '#111f16' }}>All interests</option>
+                        {INTERESTS.map(s => <option key={s} value={s} style={{ background: '#111f16' }}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-white/40 mb-1.5 font-semibold uppercase tracking-wider">Lead Status (leave empty = all)</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {STATUSES.map(s => (
+                          <button type="button" key={s}
+                            onClick={() => setForm(p => ({
+                              ...p,
+                              status_filter: p.status_filter.includes(s)
+                                ? p.status_filter.filter(x => x !== s)
+                                : [...p.status_filter, s]
+                            }))}
+                            className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold transition-all duration-150 ${
+                              form.status_filter.includes(s)
+                                ? 'bg-[#1B7A4A] border-[#1B7A4A] text-white'
+                                : 'bg-white/5 border-white/12 text-white/40 hover:border-white/25'
+                            }`}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>Follow-up (Wave 2) — days</label>

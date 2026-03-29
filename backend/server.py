@@ -1112,8 +1112,8 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
             ln = (row.get('last_name') or '').strip()
         phone = normalize_phone((row.get('phone') or row.get('phone_number') or '').strip())
         email = (row.get('email') or '').strip().lower()
-        if not fn or not phone:
-            errors.append(f'Row {i}: missing name or phone — skipped')
+        if not fn or (not email and not phone):
+            errors.append(f'Row {i}: missing name and contact info (need at least email or phone) — skipped')
             skipped += 1
             continue
         if email and email in existing_emails:
@@ -1905,6 +1905,24 @@ def _campaign_sms(first_name: str, join_url: str, wave: int = 1) -> str:
                 f"When you're ready: {join_url} - SCS")
 
 # Campaign CRUD
+@api_router.get('/staff/campaigns/preview-count')
+async def campaign_preview_count(
+    tag: str = '', source: str = '', interest: str = '', statuses: str = '',
+    user=Depends(require_admin)
+):
+    """Returns how many leads match the given campaign filter."""
+    query = {'blacklisted': {'$ne': True}, 'email': {'$nin': ['', None]}}
+    if tag:
+        query['tags'] = tag
+    if source:
+        query['lead_source'] = source
+    if interest:
+        query['interest_type'] = interest
+    if statuses:
+        query['status'] = {'$in': [s.strip() for s in statuses.split(',') if s.strip()]}
+    count = await db.leads.count_documents(query)
+    return {'count': count}
+
 @api_router.get('/staff/campaigns')
 async def list_campaigns(user=Depends(require_admin)):
     campaigns = await db.campaigns.find({}, {'_id': 0}).sort('created_at', -1).to_list(50)
@@ -1929,6 +1947,8 @@ async def create_campaign(data: dict, user=Depends(require_admin)):
         'join_url': data.get('join_url', JOIN_URL),
         'tag_filter': data.get('tag_filter', 'imported'),
         'source_filter': data.get('source_filter', 'csv_import'),
+        'status_filter': data.get('status_filter', []),
+        'interest_filter': data.get('interest_filter', ''),
         'batch_size_per_day': int(data.get('batch_size_per_day', 70)),
         'send_email': data.get('send_email', True),
         'send_sms': data.get('send_sms', True),
@@ -1963,118 +1983,147 @@ async def start_campaign(campaign_id: str, user=Depends(require_admin)):
     c = await db.campaigns.find_one({'id': campaign_id})
     if not c:
         raise HTTPException(status_code=404, detail='Campaign not found')
-    await db.campaigns.update_one({'id': campaign_id}, {'$set': {'status': 'active', 'updated_at': now_utc().isoformat()}})
-    return {'message': 'Campaign started', 'status': 'active'}
+    await db.campaigns.update_one({'id': campaign_id}, {
+        '$set': {'status': 'active', 'last_sent_date': None, 'updated_at': now_utc().isoformat()}
+    })
+    # Trigger first batch immediately (don't wait for scheduled 10 AM run)
+    asyncio.ensure_future(_run_single_campaign(campaign_id))
+    return {'message': 'Campaign started — first batch sending now', 'status': 'active'}
 
 @api_router.post('/staff/campaigns/{campaign_id}/pause')
 async def pause_campaign(campaign_id: str, user=Depends(require_admin)):
     await db.campaigns.update_one({'id': campaign_id}, {'$set': {'status': 'paused', 'updated_at': now_utc().isoformat()}})
     return {'message': 'Campaign paused', 'status': 'paused'}
 
-# Campaign scheduler — runs every hour, sends at 10 AM PT
-async def run_campaign_scheduler():
-    """Staggered campaign sends — fires daily batch at ~10 AM."""
-    from datetime import date as date_type
-    la_hour = (now_utc() - timedelta(hours=7)).hour   # approx Pacific time offset
-    if la_hour != 10:
-        return   # only fire at 10 AM PT
+# Campaign scheduler — runs every hour, sends daily batch
+async def _run_single_campaign(campaign_id: str):
+    """Send the next batch for one campaign. Called on start AND by scheduler."""
+    campaign = await db.campaigns.find_one({'id': campaign_id, 'status': 'active'})
+    if not campaign:
+        return
 
-    today = now_utc().date().isoformat()
-    active_campaigns = await db.campaigns.find({'status': 'active'}, {'_id': 0}).to_list(20)
+    cid          = campaign['id']
+    today        = now_utc().date().isoformat()
+    tag_filter   = campaign.get('tag_filter', 'imported')
+    batch_size   = campaign.get('batch_size_per_day', 70)
+    join_url     = campaign.get('join_url', JOIN_URL)
+    subjects     = campaign.get('subject_options', CAMPAIGN_SUBJECTS)
+    status_filter = campaign.get('status_filter') or []
+    source_filter = campaign.get('source_filter') or ''
+    interest_filter = campaign.get('interest_filter') or ''
 
-    for campaign in active_campaigns:
-        cid = campaign['id']
-        if campaign.get('last_sent_date') == today:
-            continue   # already sent today's batch
+    # Skip if already sent today (prevent double-sends)
+    if campaign.get('last_sent_date') == today:
+        return
 
-        tag_filter   = campaign.get('tag_filter', 'imported')
-        batch_size   = campaign.get('batch_size_per_day', 70)
-        join_url     = campaign.get('join_url', JOIN_URL)
-        subjects     = campaign.get('subject_options', CAMPAIGN_SUBJECTS)
+    # Build lead query from campaign filters
+    lead_query = {'blacklisted': {'$ne': True}, 'email': {'$nin': ['', None]}}
+    if tag_filter:
+        lead_query['tags'] = tag_filter
+    if status_filter:
+        lead_query['status'] = {'$in': status_filter}
+    if source_filter:
+        lead_query['lead_source'] = source_filter
+    if interest_filter:
+        lead_query['interest_type'] = interest_filter
 
-        # ── Wave 1: initial send ──────────────────────────────────────────────
-        already_sent_ids = {
-            s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 1}, {'lead_id': 1, '_id': 0})
-        }
-        leads = await db.leads.find({
-            'blacklisted': {'$ne': True},
-            'email': {'$nin': ['', None]},
-            'tags': tag_filter,
-            'id': {'$nin': list(already_sent_ids)},
-        }, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1, 'phone': 1}).limit(batch_size).to_list(batch_size)
+    # ── Wave 1 ────────────────────────────────────────────────────────────────
+    already_sent_ids = [
+        s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 1}, {'lead_id': 1, '_id': 0})
+    ]
+    lead_query['id'] = {'$nin': already_sent_ids}
+    leads = await db.leads.find(lead_query, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1, 'phone': 1}).limit(batch_size).to_list(batch_size)
 
-        sent_wave1 = 0
-        for idx, lead in enumerate(leads):
-            subject = subjects[idx % len(subjects)]
-            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=1)
-            email_ok = await send_resend_email(to=lead['email'], subject=subject, html=html)
-            sms_ok = False
-            if campaign.get('send_sms') and lead.get('phone') and MAILERSEND_FROM:
-                sms_text = _campaign_sms(lead.get('first_name', 'there'), join_url, wave=1)
-                sms_ok = await send_sms([lead['phone']], sms_text)
-            if email_ok:
+    sent_wave1 = 0
+    for idx, lead in enumerate(leads):
+        subject = subjects[idx % len(subjects)]
+        html    = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=1)
+        email_ok = await send_resend_email(to=lead['email'], subject=subject, html=html)
+        sms_ok   = False
+        if campaign.get('send_sms') and lead.get('phone') and MAILERSEND_FROM:
+            sms_text = _campaign_sms(lead.get('first_name', 'there'), join_url, wave=1)
+            sms_ok   = await send_sms([lead['phone']], sms_text)
+        if email_ok:
+            try:
                 await db.campaign_sends.insert_one({
                     'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': lead['id'],
                     'wave': 1, 'email_sent': email_ok, 'sms_sent': sms_ok,
                     'subject': subject, 'sent_at': now_utc().isoformat(),
                 })
                 sent_wave1 += 1
-            await asyncio.sleep(0.25)  # 4/second max — stay under Resend 5/sec limit
+            except Exception:
+                pass  # duplicate key — already sent
+        await asyncio.sleep(0.25)  # stay under Resend 5/sec rate limit
 
-        # ── Wave 2: 7-day follow-up ───────────────────────────────────────────
-        wave2_cutoff = (now_utc() - timedelta(days=campaign.get('wave2_delay_days', 7))).isoformat()
-        wave1_sent = await db.campaign_sends.find(
-            {'campaign_id': cid, 'wave': 1, 'sent_at': {'$lte': wave2_cutoff}},
-            {'lead_id': 1, '_id': 0}
-        ).to_list(500)
-        wave2_already = {s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 2}, {'lead_id': 1, '_id': 0})}
-        for send in wave1_sent:
-            if send['lead_id'] in wave2_already:
-                continue
-            lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'first_name': 1, 'email': 1, 'phone': 1})
-            if not lead or not lead.get('email'):
-                continue
-            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=2)
-            email_ok = await send_resend_email(to=lead['email'], subject="Your spot's still open — 2 months free", html=html)
-            if email_ok:
+    # ── Wave 2 ────────────────────────────────────────────────────────────────
+    wave2_cutoff = (now_utc() - timedelta(days=campaign.get('wave2_delay_days', 7))).isoformat()
+    wave1_for_w2 = await db.campaign_sends.find(
+        {'campaign_id': cid, 'wave': 1, 'sent_at': {'$lte': wave2_cutoff}},
+        {'lead_id': 1, '_id': 0}
+    ).to_list(1000)
+    wave2_done = {s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 2}, {'lead_id': 1, '_id': 0})}
+    for send in wave1_for_w2:
+        if send['lead_id'] in wave2_done:
+            continue
+        lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1})
+        if not lead or not lead.get('email'):
+            continue
+        html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=2)
+        ok = await send_resend_email(to=lead['email'], subject="Your spot's still open — 2 months free", html=html)
+        if ok:
+            try:
                 await db.campaign_sends.insert_one({
-                    'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': lead['id'] if 'id' in lead else send['lead_id'],
+                    'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': lead['id'],
                     'wave': 2, 'email_sent': True, 'sms_sent': False,
                     'subject': "Your spot's still open", 'sent_at': now_utc().isoformat(),
                 })
+            except Exception:
+                pass
+        await asyncio.sleep(0.25)
 
-        # ── Wave 3: final ─────────────────────────────────────────────────────
-        wave3_cutoff = (now_utc() - timedelta(days=campaign.get('wave3_delay_days', 14))).isoformat()
-        wave2_sent_old = await db.campaign_sends.find(
-            {'campaign_id': cid, 'wave': 2, 'sent_at': {'$lte': wave3_cutoff}},
-            {'lead_id': 1, '_id': 0}
-        ).to_list(500)
-        wave3_already = {s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 3}, {'lead_id': 1, '_id': 0})}
-        for send in wave2_sent_old:
-            if send['lead_id'] in wave3_already:
-                continue
-            lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'first_name': 1, 'email': 1})
-            if not lead or not lead.get('email'):
-                continue
-            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=3)
-            email_ok = await send_resend_email(to=lead['email'], subject="We saved your spot.", html=html)
-            if email_ok:
+    # ── Wave 3 ────────────────────────────────────────────────────────────────
+    wave3_cutoff = (now_utc() - timedelta(days=campaign.get('wave3_delay_days', 14))).isoformat()
+    wave2_for_w3 = await db.campaign_sends.find(
+        {'campaign_id': cid, 'wave': 2, 'sent_at': {'$lte': wave3_cutoff}},
+        {'lead_id': 1, '_id': 0}
+    ).to_list(1000)
+    wave3_done = {s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 3}, {'lead_id': 1, '_id': 0})}
+    for send in wave2_for_w3:
+        if send['lead_id'] in wave3_done:
+            continue
+        lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1})
+        if not lead or not lead.get('email'):
+            continue
+        html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=3)
+        ok = await send_resend_email(to=lead['email'], subject="We saved your spot.", html=html)
+        if ok:
+            try:
                 await db.campaign_sends.insert_one({
-                    'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': send['lead_id'],
+                    'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': lead['id'],
                     'wave': 3, 'email_sent': True, 'sms_sent': False,
                     'subject': "We saved your spot.", 'sent_at': now_utc().isoformat(),
                 })
+            except Exception:
+                pass
+        await asyncio.sleep(0.25)
 
-        # Update campaign stats
-        total_leads = await db.leads.count_documents({'tags': tag_filter, 'blacklisted': {'$ne': True}, 'email': {'$nin': ['', None]}})
-        total_sent  = await db.campaign_sends.count_documents({'campaign_id': cid, 'wave': 1})
-        new_status  = 'completed' if total_sent >= total_leads else 'active'
-        await db.campaigns.update_one({'id': cid}, {'$set': {
-            'last_sent_date': today, 'status': new_status, 'updated_at': now_utc().isoformat()
-        }})
-        if sent_wave1:
-            logger.info(f'[CAMPAIGN] {campaign["name"]}: sent wave1={sent_wave1} today, total={total_sent}/{total_leads}')
+    # Update campaign progress
+    total_eligible = await db.leads.count_documents({k: v for k, v in lead_query.items() if k != 'id'})
+    total_sent     = await db.campaign_sends.count_documents({'campaign_id': cid, 'wave': 1})
+    new_status     = 'completed' if total_sent >= total_eligible else 'active'
+    await db.campaigns.update_one({'id': cid}, {'$set': {
+        'last_sent_date': today, 'status': new_status, 'updated_at': now_utc().isoformat()
+    }})
+    if sent_wave1:
+        logger.info(f'[CAMPAIGN] {campaign["name"]}: +{sent_wave1} wave1 sent today ({total_sent}/{total_eligible})')
 
+async def run_campaign_scheduler():
+    """Runs every hour — sends daily campaign batches (waves 2+3 also checked here)."""
+    today    = now_utc().date().isoformat()
+    campaigns = await db.campaigns.find({'status': 'active'}, {'_id': 0, 'id': 1, 'last_sent_date': 1}).to_list(20)
+    for c in campaigns:
+        if c.get('last_sent_date') != today:
+            await _run_single_campaign(c['id'])
 GOOGLE_REVIEW_URL = 'https://g.page/r/CUj8NPJ7NHNOEAE/review'
 FRONTEND_URL_DEFAULT = 'https://santacruzstrength.com'
 
@@ -2213,6 +2262,45 @@ async def submit_review(token: str, data: dict):
             html=_feedback_email_html(req['name'], rating, category, follow_up, extra),
         )
     return {'message': 'Thank you for your feedback!', 'rating': rating}
+
+# --------------- Resend Webhook (bounces + complaints) ---------------
+
+@api_router.post('/webhooks/resend')
+async def resend_webhook(request: dict):
+    """
+    Resend fires this on: email.bounced, email.complained, email.delivery_delayed.
+    We mark the lead's email as invalid and notify management.
+    Register at: resend.com → Webhooks → Add endpoint → https://santacruzstrength.com/api/webhooks/resend
+    Select events: email.bounced, email.complained
+    """
+    event_type = request.get('type', '')
+    data       = request.get('data', {})
+    to_addr    = (data.get('to') or [''])[0] if isinstance(data.get('to'), list) else data.get('to', '')
+    if not to_addr:
+        return {'ok': True}
+
+    if event_type in ('email.bounced', 'email.complained'):
+        # Mark lead as bounced — suppress all future sends
+        result = await db.leads.update_many(
+            {'email': to_addr.lower().strip()},
+            {'$set': {'email_bounced': True, 'blacklisted': True, 'bounce_type': event_type,
+                      'bounce_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()}}
+        )
+        if result.modified_count:
+            logger.info(f'[BOUNCE] Blacklisted {to_addr} ({event_type})')
+            # Notify management
+            html = f"""<div style="font-family:sans-serif;padding:24px;background:#111;color:#fff;">
+<h3 style="color:#FA5A5C;">⚠️ Email {event_type.replace('email.','')} — Lead Auto-Removed</h3>
+<p style="color:#aaa;">Email: <strong style="color:#fff;">{to_addr}</strong></p>
+<p style="color:#aaa;">Event: {event_type}</p>
+<p style="color:#aaa;">This address has been automatically blacklisted and removed from all future sends.</p>
+</div>"""
+            await send_resend_email(
+                to=STAFF_EMAIL,
+                subject=f'⚠️ Bounced email removed: {to_addr}',
+                html=html,
+            )
+    return {'ok': True}
 
 # --------------- Media Upload ---------------
 
