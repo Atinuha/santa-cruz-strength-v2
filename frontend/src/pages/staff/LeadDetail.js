@@ -7,7 +7,7 @@ import { gvCall, gvText } from '../../utils/googleVoice';
 import { formatPhone } from '../../utils/phone';
 import {
   ArrowLeft, Phone, Mail, Calendar, Clock, Loader2,
-  MessageSquare, User, ChevronRight, Tag, LogOut
+  MessageSquare, User, ChevronRight, Tag, LogOut, ShieldOff, ShieldCheck
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -132,6 +132,19 @@ export default function LeadDetail() {
     }
   };
 
+  const handleToggleBlacklist = async () => {
+    try {
+      const token = localStorage.getItem('scs_token');
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+      const res = await fetch(`${backendUrl}/api/staff/leads/${id}/blacklist`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      toast.success(data.message || 'Blacklist updated');
+      await fetchLead();
+    } catch { toast.error('Failed to update blacklist'); }
+  };
+
   const inputClass = 'w-full bg-white/5 border border-white/12 text-white placeholder:text-white/52 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors duration-200';
 
   if (loading) {
@@ -216,9 +229,27 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
     <div className="card-marketing p-5 space-y-4">
       {/* Name + Status */}
       <div>
-        <h1 className="font-display text-2xl text-white tracking-wide">
-          {lead.first_name} {lead.last_name}
-        </h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="font-display text-2xl text-white tracking-wide">
+            {lead.first_name} {lead.last_name}
+          </h1>
+          <button
+            onClick={handleToggleBlacklist}
+            title={lead.blacklisted ? 'Remove from blacklist' : 'Add to blacklist'}
+            data-testid="blacklist-toggle-btn"
+            className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all duration-150 shrink-0 ${
+              lead.blacklisted
+                ? 'bg-red-500/20 border-red-500/35 text-red-400 hover:bg-red-500/30'
+                : 'bg-white/5 border-white/12 text-white/35 hover:border-red-500/30 hover:text-red-400'
+            }`}>
+            {lead.blacklisted ? <><ShieldOff size={11} /> Blacklisted</> : <><ShieldCheck size={11} /> Blacklist</>}
+          </button>
+        </div>
+        {lead.blacklisted && (
+          <p className="text-red-400/70 text-xs mt-1 flex items-center gap-1">
+            <ShieldOff size={10} /> This contact is blacklisted — no emails or SMS will be sent.
+          </p>
+        )}
         <StatusBadge status={lead.status} />
       </div>
 

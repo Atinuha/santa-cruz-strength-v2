@@ -9,7 +9,7 @@ import KanbanBoard from '../../components/staff/KanbanBoard';
 import {
   Search, Download, Plus, LogOut, RefreshCw, Phone,
   ChevronRight, Users, TrendingUp, Calendar, Activity,
-  Loader2, LayoutGrid, List, Settings, Zap, ArrowLeft, BookOpen
+  Loader2, LayoutGrid, List, Settings, Zap, ArrowLeft, BookOpen, Megaphone, ShieldOff
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -249,6 +249,9 @@ export default function Dashboard() {
             <Link to="/staff/events" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Events Manager">
               <Calendar size={14} />
             </Link>
+            <Link to="/staff/campaigns" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Campaigns">
+              <Megaphone size={14} />
+            </Link>
             <span className="text-white/58 text-xs hidden sm:block max-w-[80px] truncate">{user?.name}</span>
             <button onClick={() => { logout(); navigate('/staff/login'); }}
               className="text-white/52 hover:text-white/70 p-1.5 rounded transition-colors duration-200" title="Logout">
@@ -395,7 +398,10 @@ export default function Dashboard() {
                       onClick={() => navigate(`/staff/leads/${lead.id}`)}>
                       <td className="px-4 py-3">
                         <div>
-                          <p className="text-white text-sm font-medium">{lead.first_name} {lead.last_name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-white text-sm font-medium">{lead.first_name} {lead.last_name}</p>
+                            {lead.blacklisted && <ShieldOff size={11} className="text-red-400/70" title="Blacklisted" />}
+                          </div>
                           <p className="text-white/52 text-xs">{lead.email}</p>
                         </div>
                       </td>

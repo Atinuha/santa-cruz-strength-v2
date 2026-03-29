@@ -271,7 +271,9 @@ def _staff_notification_html(lead: dict) -> str:
 </html>"""
 
 async def send_lead_emails(lead: dict):
-    """Fire both emails concurrently — never blocks the lead save response."""
+    """Fire both emails — skips blacklisted leads."""
+    if lead.get('blacklisted'):
+        return
     name = f"{lead.get('first_name','there')}".strip()
     lead_email = lead.get('email', '')
     tasks = []
@@ -1087,8 +1089,19 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
     imported = 0
     skipped = 0
     errors = []
+    docs_to_insert = []
+
+    # Pre-fetch existing emails in bulk (much faster than per-row DB lookup)
+    all_emails = [
+        (row.get('email') or '').strip().lower()
+        for row in rows if (row.get('email') or '').strip()
+    ]
+    existing_emails = set()
+    if all_emails:
+        cursor = db.leads.find({'email': {'$in': all_emails}, 'location': 'santa_cruz'}, {'email': 1, '_id': 0})
+        existing_emails = {d['email'] async for d in cursor}
+
     for i, row in enumerate(rows, 1):
-        # Handle 'name' as full name (member export format)
         full_name = (row.get('name') or '').strip()
         if full_name and not row.get('first_name'):
             parts = full_name.split(' ', 1)
@@ -1097,36 +1110,25 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
         else:
             fn = (row.get('first_name') or '').strip()
             ln = (row.get('last_name') or '').strip()
-        # Support both 'phone' and 'phone_number' columns
-        phone = (row.get('phone') or row.get('phone_number') or '').strip()
+        phone = normalize_phone((row.get('phone') or row.get('phone_number') or '').strip())
         email = (row.get('email') or '').strip().lower()
         if not fn or not phone:
             errors.append(f'Row {i}: missing name or phone — skipped')
             skipped += 1
             continue
-        if email:
-            existing = await db.leads.find_one({'email': email, 'location': 'santa_cruz'})
-            if existing:
-                skipped += 1
-                continue
-        # Build notes combining address info if present
-        address_parts = [
-            row.get('address', ''), row.get('city', ''),
-            row.get('state', ''), row.get('zip_code', '')
-        ]
+        if email and email in existing_emails:
+            skipped += 1
+            continue
+        address_parts = [row.get('address', ''), row.get('city', ''), row.get('state', ''), row.get('zip_code', '')]
         address_str = ', '.join(p.strip() for p in address_parts if p and p.strip())
         base_notes = (row.get('notes') or '').strip()
-        combined_notes = base_notes
-        if address_str:
-            combined_notes = f'{base_notes}\nAddress: {address_str}'.strip()
-        # how_did_you_hear maps to lead_source or stored in notes
+        combined_notes = f'{base_notes}\nAddress: {address_str}'.strip() if address_str else base_notes
         how_heard = (row.get('how_did_you_hear_about_us') or '').strip()
         lead_source = (row.get('lead_source') or 'csv_import').strip()
         if how_heard and how_heard.lower() not in ('', 'n/a', 'unknown'):
             combined_notes = f'{combined_notes}\nHow heard: {how_heard}'.strip()
-        lead_id = str(uuid.uuid4())
         doc = {
-            'id': lead_id,
+            'id': str(uuid.uuid4()),
             'first_name': fn, 'last_name': ln, 'email': email, 'phone': phone,
             'location': 'santa_cruz',
             'date_of_birth': (row.get('date_of_birth') or row.get('date_of_birht') or '').strip(),
@@ -1143,19 +1145,25 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
             'notes': combined_notes,
             'tags': ['imported'],
             'status': 'New',
-            'next_follow_up_date': None,
-            'next_follow_up_time': None,
-            'last_contact_date': None,
-            'activity_log': [{'action': 'Lead Imported', 'note': f'Imported via CSV by {user["name"]}', 'staff_id': user['id'], 'staff_name': user['name'], 'timestamp': now.isoformat()}],
-            'created_at': now.isoformat(),
-            'updated_at': now.isoformat()
+            'blacklisted': False,
+            'next_follow_up_date': None, 'next_follow_up_time': None, 'last_contact_date': None,
+            'activity_log': [{'action': 'Lead Imported', 'note': f'Imported via CSV by {user["name"]}',
+                              'staff_id': user['id'], 'staff_name': user['name'], 'timestamp': now.isoformat()}],
+            'created_at': now.isoformat(), 'updated_at': now.isoformat(),
         }
-        await db.leads.insert_one(doc)
-        imported += 1
-    return {'imported': imported, 'skipped': skipped, 'errors': errors[:10], 'total_rows': len(rows)}
+        docs_to_insert.append(doc)
+        if email:
+            existing_emails.add(email)  # prevent dupes within the same CSV
 
-@api_router.get('/staff/leads/{lead_id}')
-async def get_lead(lead_id: str, user=Depends(require_staff)):
+    # Bulk insert — handles 2000+ rows efficiently
+    if docs_to_insert:
+        try:
+            result = await db.leads.insert_many(docs_to_insert, ordered=False)
+            imported = len(result.inserted_ids)
+        except Exception as bulk_err:
+            imported = getattr(getattr(bulk_err, 'details', {}), 'get', lambda *a: len(docs_to_insert))('nInserted', len(docs_to_insert))
+
+    return {'imported': imported, 'skipped': skipped, 'errors': errors[:20], 'total_rows': len(rows)}
     lead = await db.leads.find_one({'id': lead_id}, {'_id': 0})
     if not lead:
         raise HTTPException(status_code=404, detail='Lead not found')
@@ -1793,7 +1801,278 @@ async def get_event_rsvps(event_id: str, user=Depends(require_admin)):
     rsvps = await db.event_rsvps.find({'event_id': event_id}, {'_id': 0}).sort('created_at', 1).to_list(500)
     return rsvps
 
-# --------------- Review Flow ---------------
+# --------------- Blacklist + Campaign System ---------------
+
+@api_router.post('/staff/leads/{lead_id}/blacklist')
+async def toggle_blacklist(lead_id: str, user=Depends(require_admin)):
+    lead = await db.leads.find_one({'id': lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail='Lead not found')
+    new_val = not lead.get('blacklisted', False)
+    action = 'Blacklisted' if new_val else 'Removed from blacklist'
+    await db.leads.update_one({'id': lead_id}, {
+        '$set': {'blacklisted': new_val, 'updated_at': now_utc().isoformat()},
+        '$push': {'activity_log': {'action': action, 'note': f'{action} by {user["name"]}',
+                                    'staff_id': user['id'], 'staff_name': user['name'],
+                                    'timestamp': now_utc().isoformat()}}
+    })
+    return {'blacklisted': new_val, 'message': action}
+
+# Campaign email templates
+JOIN_URL = 'https://onlinejoin.abcfitness.com/signup/plan?club=31691'
+
+CAMPAIGN_SUBJECTS = [
+    "We've been thinking about you.",
+    "Your spot's still here.",
+    "Come back and train with us.",
+]
+
+def _campaign_email_html(first_name: str, join_url: str, wave: int = 1) -> str:
+    if wave == 1:
+        subject_line = f"Hey {first_name},"
+        body = f"""
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We've been thinking about you.</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We just wrapped our 11th annual <strong>Iron Roses</strong>, and moments like that remind us what this place really is.</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">It's not just a gym.<br>It's the people. The energy. The ones who show up and put in real work.</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;"><strong>You were part of that.</strong> And it's not the same without you here.</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">Life gets busy, things shift — we understand that. But if there's even a part of you that's been missing training&hellip; missing that feeling of getting stronger&hellip; missing being around people who actually push you&hellip;</p>
+        <p style="margin:0 0 24px;font-size:16px;font-weight:700;color:#1a1a1a;">We want you back in the room.</p>
+        <div style="background:#f7f5f0;border-left:4px solid #0D5D3E;padding:16px 20px;margin:0 0 24px;border-radius:0 8px 8px 0;">
+          <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:#0D5D3E;">🔥 Come Back Stronger</p>
+          <p style="margin:0;font-size:14px;color:#444;line-height:1.6;">Sign up for any committed membership and we'll give you <strong>2 months free</strong>.<br>No codes. No extra steps. Just sign up, show up, and train — we'll take care of the rest.</p>
+        </div>"""
+        cta = "Claim Your 2 Months Free →"
+        footer = "You don't need to be \"ready.\" You just need to walk back through the door."
+    elif wave == 2:
+        subject_line = f"Hey {first_name} — last chance."
+        body = f"""
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We sent you a note a week ago about coming back to Santa Cruz Strength.</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We're following up because the offer — <strong>2 months free on any committed membership</strong> — doesn't last forever.</p>
+        <p style="margin:0 0 24px;font-size:15px;color:#333;line-height:1.7;">If you've been on the fence, this is your moment. We'd love to have you back.</p>"""
+        cta = "Get 2 Months Free — Last Chance →"
+        footer = "No pressure. But the door is open."
+    else:
+        subject_line = f"Hey {first_name} — we saved your spot."
+        body = f"""
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We've reached out a couple of times because we genuinely want you back.</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">This is our final note. Your spot at Santa Cruz Strength — and the <strong>2 months free offer</strong> — is still here. But we won't keep asking.</p>
+        <p style="margin:0 0 24px;font-size:15px;color:#333;line-height:1.7;">When you're ready, we'll be here. That's a promise.</p>"""
+        cta = "Come Back — Offer Ends Soon →"
+        footer = "151 Harvey West Blvd, Santa Cruz CA. The best place to get stronger in and around Santa Cruz."
+
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5F0;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5F0;padding:36px 16px;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <tr><td style="background:#0D5D3E;padding:24px 36px;">
+        <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength</p>
+        <p style="margin:6px 0 0;color:#ffffff;font-size:18px;font-weight:800;letter-spacing:0.5px;">151 Harvey West Blvd · Santa Cruz, CA</p>
+      </td></tr>
+      <tr><td style="padding:32px 36px 8px;">
+        <p style="margin:0 0 20px;font-size:17px;font-weight:700;color:#1a1a1a;">{subject_line}</p>
+        {body}
+        <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+          <tr><td style="background:#FA5A5C;border-radius:9px;">
+            <a href="{join_url}" style="display:inline-block;padding:14px 30px;color:#ffffff;font-size:14px;font-weight:800;text-decoration:none;letter-spacing:0.3px;">{cta}</a>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 28px;font-size:13px;color:#888;line-height:1.6;font-style:italic;">{footer}</p>
+        <p style="margin:0;font-size:14px;color:#555;font-weight:600;">— Santa Cruz Strength</p>
+      </td></tr>
+      <tr><td style="border-top:1px solid #eee;padding:16px 36px;background:#fafaf9;">
+        <p style="margin:0;font-size:11px;color:#aaa;line-height:1.6;">
+          Santa Cruz Strength · 151 Harvey West Blvd Ste D, Santa Cruz CA 95060<br>
+          <a href="tel:+14083376709" style="color:#0D5D3E;text-decoration:none;">(408) 337-6709</a> ·
+          <a href="https://www.instagram.com/santacruzstrength/" style="color:#0D5D3E;text-decoration:none;">@santacruzstrength</a><br>
+          <span style="color:#ccc;">To unsubscribe, reply with STOP.</span>
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table></body></html>"""
+
+def _campaign_sms(first_name: str, join_url: str, wave: int = 1) -> str:
+    name = first_name or 'there'
+    if wave == 1:
+        return (f"Hey {name}, Santa Cruz Strength here. We've been thinking about you - especially after Iron Roses this year. "
+                f"If you've been missing training, your spot's still here. Sign up for any committed membership and we'll give you 2 months free. No catch. {join_url} - SCS")
+    elif wave == 2:
+        return (f"Hey {name}, last reminder from SCS - 2 months free on any committed membership if you come back. "
+                f"Offer won't last. {join_url} Reply STOP to opt out.")
+    else:
+        return (f"Hey {name}, final note from Santa Cruz Strength. Your spot and the 2-month free offer are still here. "
+                f"When you're ready: {join_url} - SCS")
+
+# Campaign CRUD
+@api_router.get('/staff/campaigns')
+async def list_campaigns(user=Depends(require_admin)):
+    campaigns = await db.campaigns.find({}, {'_id': 0}).sort('created_at', -1).to_list(50)
+    for c in campaigns:
+        c['sent_count'] = await db.campaign_sends.count_documents({'campaign_id': c['id'], 'wave': 1})
+        c['total_leads'] = await db.leads.count_documents({
+            'blacklisted': {'$ne': True},
+            'email': {'$ne': ''},
+            'tags': c.get('tag_filter', 'imported'),
+            **(({'lead_source': c['source_filter']} if c.get('source_filter') else {}))
+        })
+    return campaigns
+
+@api_router.post('/staff/campaigns')
+async def create_campaign(data: dict, user=Depends(require_admin)):
+    campaign_id = str(uuid.uuid4())
+    doc = {
+        'id': campaign_id,
+        'name': data.get('name', 'Re-engagement Campaign'),
+        'status': 'draft',
+        'subject_options': data.get('subject_options', CAMPAIGN_SUBJECTS),
+        'join_url': data.get('join_url', JOIN_URL),
+        'tag_filter': data.get('tag_filter', 'imported'),
+        'source_filter': data.get('source_filter', 'csv_import'),
+        'batch_size_per_day': int(data.get('batch_size_per_day', 70)),
+        'send_email': data.get('send_email', True),
+        'send_sms': data.get('send_sms', True),
+        'wave2_delay_days': int(data.get('wave2_delay_days', 7)),
+        'wave3_delay_days': int(data.get('wave3_delay_days', 14)),
+        'last_sent_date': None,
+        'created_by': user['id'],
+        'created_by_name': user['name'],
+        'created_at': now_utc().isoformat(),
+        'updated_at': now_utc().isoformat(),
+    }
+    await db.campaigns.insert_one(doc)
+    doc.pop('_id', None)
+    return doc
+
+@api_router.get('/staff/campaigns/{campaign_id}')
+async def get_campaign(campaign_id: str, user=Depends(require_admin)):
+    c = await db.campaigns.find_one({'id': campaign_id}, {'_id': 0})
+    if not c:
+        raise HTTPException(status_code=404, detail='Campaign not found')
+    c['wave1_sent'] = await db.campaign_sends.count_documents({'campaign_id': campaign_id, 'wave': 1})
+    c['wave2_sent'] = await db.campaign_sends.count_documents({'campaign_id': campaign_id, 'wave': 2})
+    c['wave3_sent'] = await db.campaign_sends.count_documents({'campaign_id': campaign_id, 'wave': 3})
+    c['total_leads'] = await db.leads.count_documents({
+        'blacklisted': {'$ne': True}, 'email': {'$nin': ['', None]},
+        'tags': c.get('tag_filter', 'imported'),
+    })
+    return c
+
+@api_router.post('/staff/campaigns/{campaign_id}/start')
+async def start_campaign(campaign_id: str, user=Depends(require_admin)):
+    c = await db.campaigns.find_one({'id': campaign_id})
+    if not c:
+        raise HTTPException(status_code=404, detail='Campaign not found')
+    await db.campaigns.update_one({'id': campaign_id}, {'$set': {'status': 'active', 'updated_at': now_utc().isoformat()}})
+    return {'message': 'Campaign started', 'status': 'active'}
+
+@api_router.post('/staff/campaigns/{campaign_id}/pause')
+async def pause_campaign(campaign_id: str, user=Depends(require_admin)):
+    await db.campaigns.update_one({'id': campaign_id}, {'$set': {'status': 'paused', 'updated_at': now_utc().isoformat()}})
+    return {'message': 'Campaign paused', 'status': 'paused'}
+
+# Campaign scheduler — runs every hour, sends at 10 AM PT
+async def run_campaign_scheduler():
+    """Staggered campaign sends — fires daily batch at ~10 AM."""
+    from datetime import date as date_type
+    la_hour = (now_utc() - timedelta(hours=7)).hour   # approx Pacific time offset
+    if la_hour != 10:
+        return   # only fire at 10 AM PT
+
+    today = now_utc().date().isoformat()
+    active_campaigns = await db.campaigns.find({'status': 'active'}, {'_id': 0}).to_list(20)
+
+    for campaign in active_campaigns:
+        cid = campaign['id']
+        if campaign.get('last_sent_date') == today:
+            continue   # already sent today's batch
+
+        tag_filter   = campaign.get('tag_filter', 'imported')
+        batch_size   = campaign.get('batch_size_per_day', 70)
+        join_url     = campaign.get('join_url', JOIN_URL)
+        subjects     = campaign.get('subject_options', CAMPAIGN_SUBJECTS)
+
+        # ── Wave 1: initial send ──────────────────────────────────────────────
+        already_sent_ids = {
+            s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 1}, {'lead_id': 1, '_id': 0})
+        }
+        leads = await db.leads.find({
+            'blacklisted': {'$ne': True},
+            'email': {'$nin': ['', None]},
+            'tags': tag_filter,
+            'id': {'$nin': list(already_sent_ids)},
+        }, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1, 'phone': 1}).limit(batch_size).to_list(batch_size)
+
+        sent_wave1 = 0
+        for idx, lead in enumerate(leads):
+            subject = subjects[idx % len(subjects)]
+            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=1)
+            email_ok = await send_resend_email(to=lead['email'], subject=subject, html=html)
+            sms_ok = False
+            if campaign.get('send_sms') and lead.get('phone') and MAILERSEND_FROM:
+                sms_text = _campaign_sms(lead.get('first_name', 'there'), join_url, wave=1)
+                sms_ok = await send_sms([lead['phone']], sms_text)
+            if email_ok:
+                await db.campaign_sends.insert_one({
+                    'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': lead['id'],
+                    'wave': 1, 'email_sent': email_ok, 'sms_sent': sms_ok,
+                    'subject': subject, 'sent_at': now_utc().isoformat(),
+                })
+                sent_wave1 += 1
+
+        # ── Wave 2: 7-day follow-up ───────────────────────────────────────────
+        wave2_cutoff = (now_utc() - timedelta(days=campaign.get('wave2_delay_days', 7))).isoformat()
+        wave1_sent = await db.campaign_sends.find(
+            {'campaign_id': cid, 'wave': 1, 'sent_at': {'$lte': wave2_cutoff}},
+            {'lead_id': 1, '_id': 0}
+        ).to_list(500)
+        wave2_already = {s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 2}, {'lead_id': 1, '_id': 0})}
+        for send in wave1_sent:
+            if send['lead_id'] in wave2_already:
+                continue
+            lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'first_name': 1, 'email': 1, 'phone': 1})
+            if not lead or not lead.get('email'):
+                continue
+            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=2)
+            email_ok = await send_resend_email(to=lead['email'], subject="Your spot's still open — 2 months free", html=html)
+            if email_ok:
+                await db.campaign_sends.insert_one({
+                    'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': lead['id'] if 'id' in lead else send['lead_id'],
+                    'wave': 2, 'email_sent': True, 'sms_sent': False,
+                    'subject': "Your spot's still open", 'sent_at': now_utc().isoformat(),
+                })
+
+        # ── Wave 3: final ─────────────────────────────────────────────────────
+        wave3_cutoff = (now_utc() - timedelta(days=campaign.get('wave3_delay_days', 14))).isoformat()
+        wave2_sent_old = await db.campaign_sends.find(
+            {'campaign_id': cid, 'wave': 2, 'sent_at': {'$lte': wave3_cutoff}},
+            {'lead_id': 1, '_id': 0}
+        ).to_list(500)
+        wave3_already = {s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 3}, {'lead_id': 1, '_id': 0})}
+        for send in wave2_sent_old:
+            if send['lead_id'] in wave3_already:
+                continue
+            lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'first_name': 1, 'email': 1})
+            if not lead or not lead.get('email'):
+                continue
+            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=3)
+            email_ok = await send_resend_email(to=lead['email'], subject="We saved your spot.", html=html)
+            if email_ok:
+                await db.campaign_sends.insert_one({
+                    'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': send['lead_id'],
+                    'wave': 3, 'email_sent': True, 'sms_sent': False,
+                    'subject': "We saved your spot.", 'sent_at': now_utc().isoformat(),
+                })
+
+        # Update campaign stats
+        total_leads = await db.leads.count_documents({'tags': tag_filter, 'blacklisted': {'$ne': True}, 'email': {'$nin': ['', None]}})
+        total_sent  = await db.campaign_sends.count_documents({'campaign_id': cid, 'wave': 1})
+        new_status  = 'completed' if total_sent >= total_leads else 'active'
+        await db.campaigns.update_one({'id': cid}, {'$set': {
+            'last_sent_date': today, 'status': new_status, 'updated_at': now_utc().isoformat()
+        }})
+        if sent_wave1:
+            logger.info(f'[CAMPAIGN] {campaign["name"]}: sent wave1={sent_wave1} today, total={total_sent}/{total_leads}')
 
 GOOGLE_REVIEW_URL = 'https://g.page/r/CUj8NPJ7NHNOEAE/review'
 FRONTEND_URL_DEFAULT = 'https://santacruzstrength.com'
@@ -2329,6 +2608,11 @@ async def startup():
     await db.review_requests.create_index('lead_id')
     await db.media.create_index('id', unique=True)
     await db.media.create_index('created_at')
+    await db.campaigns.create_index('id', unique=True)
+    await db.campaigns.create_index('status')
+    await db.campaign_sends.create_index([('campaign_id', 1), ('lead_id', 1), ('wave', 1)], unique=True)
+    await db.campaign_sends.create_index('lead_id')
+    await db.campaign_sends.create_index('sent_at')
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
     if blog_count == 0:
@@ -2348,11 +2632,12 @@ async def startup():
     logger.info('[STARTUP] Santa Cruz Strength API ready')
     # Start SMS follow-up scheduler
     scheduler = AsyncIOScheduler(timezone='America/Los_Angeles')
-    scheduler.add_job(run_sms_followup_job, 'interval', minutes=30, id='sms_followup', replace_existing=True)
-    scheduler.add_job(run_review_request_job, 'interval', minutes=30, id='review_requests', replace_existing=True)
+    scheduler.add_job(run_sms_followup_job,    'interval', minutes=30,  id='sms_followup',    replace_existing=True)
+    scheduler.add_job(run_review_request_job,  'interval', minutes=30,  id='review_requests', replace_existing=True)
+    scheduler.add_job(run_campaign_scheduler,  'interval', minutes=60,  id='campaigns',       replace_existing=True)
     scheduler.start()
     app.state.scheduler = scheduler
-    logger.info('[STARTUP] SMS follow-up + review schedulers started (every 30 min)')
+    logger.info('[STARTUP] SMS follow-up + review + campaign schedulers started')
 
 @app.on_event('shutdown')
 async def shutdown_db_client():

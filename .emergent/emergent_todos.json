@@ -1,18 +1,30 @@
 [
   {
-    "content": "Add time dropdown (5AM-11PM in 30min steps) to EventForm in EventsManager",
+    "content": "Backend: Optimize CSV import to bulk insert (handles 2000+ fast)",
     "status": "completed"
   },
   {
-    "content": "Add recurring event support (None/Weekly/Bi-Weekly/Monthly + end date) to backend + EventForm",
+    "content": "Backend: Blacklist field + toggle endpoint + check in all sends",
     "status": "completed"
   },
   {
-    "content": "Expand recurring events in public /api/events endpoint",
+    "content": "Backend: Campaign model, CRUD endpoints, staggered scheduler",
     "status": "completed"
   },
   {
-    "content": "Show recurring badge on event cards in Events.js",
+    "content": "Backend: Iron Roses email + SMS templates (3 waves)",
+    "status": "completed"
+  },
+  {
+    "content": "Frontend: CampaignManager.js page with progress tracking",
+    "status": "completed"
+  },
+  {
+    "content": "Frontend: Blacklist toggle in LeadDetail + badge in Dashboard",
+    "status": "completed"
+  },
+  {
+    "content": "Immediately blacklist Donny Hunt",
     "status": "completed"
   },
   {
