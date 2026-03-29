@@ -141,8 +141,9 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [priorityFirst, setPriorityFirst] = useState(true); // website leads shown first by default
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
+  const [viewMode, setViewMode] = useState('kanban');
   const [addLeadOpen, setAddLeadOpen] = useState(false);
   const [addLeadLoading, setAddLeadLoading] = useState(false);
   const [newLead, setNewLead] = useState({
@@ -150,6 +151,9 @@ export default function Dashboard() {
     interest_type: 'General Membership', training_goals: '',
     start_timeline: 'ASAP', preferred_contact: 'call', notes: '', location: 'santa_cruz',
   });
+
+  const PRIORITY_SOURCES = LEAD_SOURCES.filter(s => s.priority);
+  const OTHER_SOURCES    = LEAD_SOURCES.filter(s => !s.priority);
 
   const fetchData = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
@@ -159,6 +163,7 @@ export default function Dashboard() {
       if (search) params.search = search;
       if (statusFilter !== 'all') params.status = statusFilter;
       if (sourceFilter !== 'all') params.lead_source = sourceFilter;
+      if (priorityFirst && sourceFilter === 'all') params.priority_first = true;
 
       const [leadsRes, statsRes] = await Promise.all([getLeads({ ...params, limit: 200 }), getStats()]);
       setLeads(leadsRes.data.leads);
@@ -170,7 +175,7 @@ export default function Dashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [search, statusFilter, sourceFilter]);
+  }, [search, statusFilter, sourceFilter, priorityFirst]);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchData(), search ? 400 : 0);
@@ -276,43 +281,33 @@ export default function Dashboard() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-5">
-          <div className="relative flex-1 min-w-0">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/48" />
-            <input type="text" placeholder="Search name, phone, email..."
-              value={search} onChange={(e) => setSearch(e.target.value)}
-              data-testid="crm-dashboard-search-input"
-              className={`${inputClass} pl-9 w-full`} />
-          </div>
+        <div className="flex flex-col gap-3 mb-5">
+          {/* Row 1: search + status + view toggle */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 min-w-0">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/48" />
+              <input type="text" placeholder="Search name, phone, email..."
+                value={search} onChange={(e) => setSearch(e.target.value)}
+                data-testid="crm-dashboard-search-input"
+                className={`${inputClass} pl-9 w-full`} />
+            </div>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger data-testid="crm-dashboard-status-filter-select"
-              className="w-full sm:w-44 bg-white/5 border-white/12 text-white text-sm h-9">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent className="bg-[var(--elevated)] border-white/12">
-              <SelectItem value="all" className="text-white text-sm">All Statuses</SelectItem>
-              {LEAD_STATUSES.map((s) => (
-                <SelectItem key={s.value} value={s.value} className="text-white text-sm">{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger data-testid="crm-dashboard-status-filter-select"
+                className="w-full sm:w-44 bg-white/5 border-white/12 text-white text-sm h-9">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent className="bg-[var(--elevated)] border-white/12">
+                <SelectItem value="all" className="text-white text-sm">All Statuses</SelectItem>
+                {LEAD_STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value} className="text-white text-sm">{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="w-full sm:w-40 bg-white/5 border-white/12 text-white text-sm h-9">
-              <SelectValue placeholder="All Sources" />
-            </SelectTrigger>
-            <SelectContent className="bg-[var(--elevated)] border-white/12">
-              <SelectItem value="all" className="text-white text-sm">All Sources</SelectItem>
-              {LEAD_SOURCES.map((s) => (
-                <SelectItem key={s.value} value={s.value} className="text-white text-sm">{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="flex gap-2">
-            {/* View toggle */}
-            <div className="flex border border-white/12 rounded-md overflow-hidden">
+            <div className="flex gap-2">
+              {/* View toggle */}
+              <div className="flex border border-white/12 rounded-md overflow-hidden">
               <button
                 onClick={() => setViewMode('kanban')}
                 className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors duration-200 ${
@@ -350,7 +345,66 @@ export default function Dashboard() {
               <span className="hidden sm:block text-xs">Add Lead</span>
             </button>
           </div>
-        </div>
+          </div>{/* close Row 1 flex */}
+
+          {/* Row 2: Source quick-filter pills */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-white/30 text-[10px] font-bold uppercase tracking-widest shrink-0">Source:</span>
+
+            {/* All — with priority toggle */}
+            <button
+              onClick={() => { setSourceFilter('all'); }}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all duration-150 ${
+                sourceFilter === 'all'
+                  ? 'bg-white text-[#0f1a14] border-white'
+                  : 'bg-white/5 text-white/45 border-white/12 hover:border-white/30'
+              }`}>
+              All
+            </button>
+
+            {/* Priority sources (website, walk-in, etc.) — highlighted in green */}
+            {PRIORITY_SOURCES.map(s => (
+              <button key={s.value}
+                onClick={() => setSourceFilter(sourceFilter === s.value ? 'all' : s.value)}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all duration-150 ${
+                  sourceFilter === s.value
+                    ? 'bg-[#1B7A4A] text-white border-[#1B7A4A]'
+                    : 'bg-[#1B7A4A]/10 text-[#7FCCA6] border-[#1B7A4A]/25 hover:bg-[#1B7A4A]/20'
+                }`}
+                data-testid={`source-pill-${s.value}`}>
+                {s.label}
+              </button>
+            ))}
+
+            {/* CSV / Manual — dimmer */}
+            {OTHER_SOURCES.map(s => (
+              <button key={s.value}
+                onClick={() => setSourceFilter(sourceFilter === s.value ? 'all' : s.value)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all duration-150 ${
+                  sourceFilter === s.value
+                    ? 'bg-white/20 text-white border-white/30'
+                    : 'bg-white/4 text-white/30 border-white/10 hover:border-white/20 hover:text-white/50'
+                }`}
+                data-testid={`source-pill-${s.value}`}>
+                {s.label}
+              </button>
+            ))}
+
+            {/* Priority sort toggle */}
+            {sourceFilter === 'all' && (
+              <button
+                onClick={() => setPriorityFirst(v => !v)}
+                className={`ml-2 flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all duration-150 ${
+                  priorityFirst
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    : 'bg-white/4 text-white/25 border-white/10 hover:border-white/20'
+                }`}
+                title="When on, website/walk-in leads appear before imported leads">
+                {priorityFirst ? '⭐ Website First' : '⭐ Website First (off)'}
+              </button>
+            )}
+          </div>
+        </div>{/* close outer flex flex-col */}
 
         {/* Quick Add strip for walk-ins */}
         <QuickAddStrip onAdded={() => fetchData(true)} />
@@ -358,7 +412,11 @@ export default function Dashboard() {
         {/* Lead count */}
         <div className="mb-4">
           <p className="text-white/52 text-xs">
-            {loading ? 'Loading...' : `${total} lead${total !== 1 ? 's' : ''}${search || statusFilter !== 'all' || sourceFilter !== 'all' ? ' (filtered)' : ''}`}
+            {loading ? 'Loading...' : `${total} lead${total !== 1 ? 's' : ''}${
+            search || statusFilter !== 'all' || sourceFilter !== 'all'
+              ? ' (filtered)'
+              : priorityFirst ? ' · website leads first' : ''
+          }`}
           </p>
         </div>
 

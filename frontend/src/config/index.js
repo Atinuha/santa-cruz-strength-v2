@@ -44,13 +44,15 @@ export const GYM_CONFIG = {
 };
 
 export const LEAD_SOURCES = [
-  { value: 'website_form', label: 'Website Form' },
-  { value: 'book_a_tour', label: 'Book a Tour' },
-  { value: 'contact_page', label: 'Contact Page' },
-  { value: 'personal_training_inquiry', label: 'Personal Training Inquiry' },
-  { value: 'walk_in', label: 'Walk-In' },
-  { value: 'csv_import', label: 'CSV Import' },
-  { value: 'manual_entry', label: 'Manual Entry' },
+  // Priority sources — most current, highest intent
+  { value: 'website_form',               label: 'Website Form',               priority: true },
+  { value: 'book_a_tour',                label: 'Book a Tour',                priority: true },
+  { value: 'contact_page',               label: 'Contact Page',               priority: true },
+  { value: 'personal_training_inquiry',  label: 'Personal Training',          priority: true },
+  { value: 'walk_in',                    label: 'Walk-In',                    priority: true },
+  // Imported / historical
+  { value: 'csv_import',                 label: 'CSV Import',                 priority: false },
+  { value: 'manual_entry',               label: 'Manual Entry',               priority: false },
 ];
 
 export const LEAD_STATUSES = [

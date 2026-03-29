@@ -964,6 +964,7 @@ async def list_leads(
     location: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    priority_first: bool = False,   # sort website/walk-in leads before csv
     limit: int = Query(200, le=500),
     skip: int = 0,
     user=Depends(require_staff)
@@ -980,7 +981,25 @@ async def list_leads(
         if date_from: query['created_at']['$gte'] = date_from
         if date_to: query['created_at']['$lte'] = date_to + 'T23:59:59Z'
     total = await db.leads.count_documents(query)
-    leads = await db.leads.find(query, {'_id': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
+
+    # Priority sort: website/walk-in leads first, then by date descending
+    PRIORITY_SOURCES = ['website_form', 'book_a_tour', 'contact_page', 'personal_training_inquiry', 'walk_in']
+    if priority_first:
+        # Add a priority field dynamically via aggregation
+        pipeline = [
+            {'$match': query},
+            {'$addFields': {
+                '_priority': {'$cond': [{'$in': ['$lead_source', PRIORITY_SOURCES]}, 0, 1]}
+            }},
+            {'$sort': {'_priority': 1, 'created_at': -1}},
+            {'$skip': skip},
+            {'$limit': limit},
+            {'$project': {'_id': 0, '_priority': 0}},
+        ]
+        leads = await db.leads.aggregate(pipeline).to_list(limit)
+    else:
+        leads = await db.leads.find(query, {'_id': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
+
     return {'leads': leads, 'total': total, 'skip': skip, 'limit': limit}
 
 @api_router.post('/staff/leads')
