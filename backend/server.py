@@ -119,7 +119,25 @@ resend.api_key = os.environ.get('RESEND_API_KEY', '')
 STAFF_EMAIL       = os.environ.get('NOTIFICATION_EMAIL', 'management@santacruzstrength.com')
 FROM_EMAIL        = os.environ.get('FROM_EMAIL', 'hello@santacruzstrength.com')
 SECURITY_FROM     = os.environ.get('SECURITY_FROM_EMAIL', 'security@santacruzstrength.com')
-CC_EMAIL          = os.environ.get('CC_EMAIL', '')   # e.g. teresa@santacruzstrength.com
+CC_EMAIL          = os.environ.get('CC_EMAIL', '')
+DAILY_EMAIL_LIMIT = int(os.environ.get('DAILY_EMAIL_LIMIT', 50000))  # Resend plan limit
+STAFF_EMAIL_RESERVE = 10  # always keep 10 sends free for 2FA / resets / invites
+
+async def _check_campaign_quota() -> bool:
+    """Returns True if there is quota available for campaign sends (respects staff reserve)."""
+    today = now_utc().date().isoformat()
+    stats = await db.email_stats.find_one({'date': today})
+    campaign_sent = (stats or {}).get('campaign_sends', 0)
+    transact_sent = (stats or {}).get('transact_sends', 0)
+    total_sent = campaign_sent + transact_sent
+    available = DAILY_EMAIL_LIMIT - total_sent
+    return available > STAFF_EMAIL_RESERVE
+
+async def _track_email_send(is_campaign: bool = False):
+    """Increment daily email counter."""
+    today = now_utc().date().isoformat()
+    field = 'campaign_sends' if is_campaign else 'transact_sends'
+    await db.email_stats.update_one({'date': today}, {'$inc': {field: 1}}, upsert=True)   # e.g. teresa@santacruzstrength.com
 
 async def send_resend_email(to: str, subject: str, html: str, reply_to: str = None,
                             from_override: str = None, cc: list = None):
@@ -2014,6 +2032,50 @@ async def pause_campaign(campaign_id: str, user=Depends(require_admin)):
     await db.campaigns.update_one({'id': campaign_id}, {'$set': {'status': 'paused', 'updated_at': now_utc().isoformat()}})
     return {'message': 'Campaign paused', 'status': 'paused'}
 
+@api_router.put('/staff/campaigns/{campaign_id}')
+async def update_campaign(campaign_id: str, data: dict, user=Depends(require_admin)):
+    """Update campaign — used by the email builder to save blocks + generated HTML."""
+    c = await db.campaigns.find_one({'id': campaign_id})
+    if not c:
+        raise HTTPException(status_code=404, detail='Campaign not found')
+    allowed = ['name','blocks','email_html_template','subject_options','batch_size_per_day',
+               'send_email','send_sms','tag_filter','source_filter','status_filter',
+               'interest_filter','wave2_delay_days','wave3_delay_days','join_url']
+    update = {k: v for k, v in data.items() if k in allowed}
+    update['updated_at'] = now_utc().isoformat()
+    await db.campaigns.update_one({'id': campaign_id}, {'$set': update})
+    return await db.campaigns.find_one({'id': campaign_id}, {'_id': 0})
+
+@api_router.post('/staff/campaigns/{campaign_id}/test-send')
+async def test_send_campaign(campaign_id: str, user=Depends(require_admin)):
+    """Send a test email to the logged-in staff user."""
+    c = await db.campaigns.find_one({'id': campaign_id})
+    if not c:
+        raise HTTPException(status_code=404, detail='Campaign not found')
+    from emergentintegrations.llm.chat import LlmChat  # ensure imports available
+    import json as _json
+    blocks = c.get('blocks', [])
+    html_template = c.get('email_html_template', '')
+    if not html_template and blocks:
+        # Generate from blocks on the fly
+        from_data = {'first_name': user['name'].split()[0] if user.get('name') else 'Test',
+                     'gym_name': 'Santa Cruz Strength', 'join_url': c.get('join_url', JOIN_URL), 'gym_phone': '(408) 337-6709'}
+        # Simple server-side merge replacement
+        html_template = html_template or ''
+    # Replace merge tags for test
+    test_html = (html_template or '<p>No email content yet. Build your email first.</p>') \
+        .replace('{{first_name}}', user.get('name', 'Test').split()[0]) \
+        .replace('{{last_name}}', '') \
+        .replace('{{gym_name}}', 'Santa Cruz Strength') \
+        .replace('{{join_url}}', c.get('join_url', JOIN_URL)) \
+        .replace('{{gym_phone}}', '(408) 337-6709')
+    subjects = c.get('subject_options', ['Test Email'])
+    subject = f"[TEST] {subjects[0] if subjects else 'Campaign Preview'}"
+    ok = await send_resend_email(to=user['email'], subject=subject, html=test_html)
+    if ok:
+        return {'message': f'Test email sent', 'sent_to': user['email']}
+    raise HTTPException(status_code=500, detail='Failed to send test email')
+
 # Campaign scheduler — runs every hour, sends daily batch
 async def _run_single_campaign(campaign_id: str):
     """Send the next batch for one campaign. Called on start AND by scheduler."""
@@ -2055,10 +2117,26 @@ async def _run_single_campaign(campaign_id: str):
 
     sent_wave1 = 0
     for idx, lead in enumerate(leads):
+        # Check quota before each send — always keep 10 slots for staff emails
+        if not await _check_campaign_quota():
+            logger.warning(f'[CAMPAIGN] Daily quota nearly full — pausing to protect staff email reserve')
+            break
         subject = subjects[idx % len(subjects)]
-        html    = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=1)
+        # Use blocks-generated HTML if available, else fallback to Iron Roses template
+        custom_html = campaign.get('email_html_template', '')
+        if custom_html:
+            html = custom_html \
+                .replace('{{first_name}}', lead.get('first_name', 'Friend')) \
+                .replace('{{last_name}}',  lead.get('last_name', '')) \
+                .replace('{{gym_name}}',   'Santa Cruz Strength') \
+                .replace('{{join_url}}',   join_url) \
+                .replace('{{gym_phone}}',  '(408) 337-6709')
+        else:
+            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=1)
         email_ok = await send_resend_email(to=lead['email'], subject=subject, html=html)
-        sms_ok   = False
+        if email_ok:
+            await _track_email_send(is_campaign=True)
+        sms_ok = False
         if campaign.get('send_sms') and lead.get('phone') and MAILERSEND_FROM:
             sms_text = _campaign_sms(lead.get('first_name', 'there'), join_url, wave=1)
             sms_ok   = await send_sms([lead['phone']], sms_text)
@@ -2721,6 +2799,7 @@ async def startup():
     await db.campaign_sends.create_index([('campaign_id', 1), ('lead_id', 1), ('wave', 1)], unique=True)
     await db.campaign_sends.create_index('lead_id')
     await db.campaign_sends.create_index('sent_at')
+    await db.email_stats.create_index('date', unique=True)
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
     if blog_count == 0:

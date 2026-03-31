@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   ArrowLeft, Play, Pause, Plus, Loader2, CheckCircle2,
-  Clock, Mail, MessageSquare, Users, BarChart2, Zap, RefreshCw
+  Clock, Mail, MessageSquare, Users, BarChart2, Zap, RefreshCw, Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -388,10 +388,16 @@ export default function CampaignManager() {
                 {/* Actions */}
                 <div className="flex gap-3">
                   {detail.status === 'draft' && (
-                    <button onClick={() => handleStart(detail.id)}
-                      className="flex-1 btn-scs-primary py-3 rounded-lg text-sm flex items-center justify-center gap-2">
-                      <Play size={14} /> Start Campaign
-                    </button>
+                    <>
+                      <Link to={`/staff/campaigns/builder/${detail.id}`}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-white/6 border border-white/12 text-white/70 hover:text-white text-sm font-semibold transition-colors">
+                        <Pencil size={14} /> Edit Email
+                      </Link>
+                      <button onClick={() => handleStart(detail.id)}
+                        className="flex-1 btn-scs-primary py-3 rounded-lg text-sm flex items-center justify-center gap-2">
+                        <Play size={14} /> Start Campaign
+                      </button>
+                    </>
                   )}
                   {detail.status === 'active' && (
                     <button onClick={() => handlePause(detail.id)}
@@ -400,10 +406,16 @@ export default function CampaignManager() {
                     </button>
                   )}
                   {detail.status === 'paused' && (
-                    <button onClick={() => handleStart(detail.id)}
-                      className="flex-1 btn-scs-primary py-3 rounded-lg text-sm flex items-center justify-center gap-2">
-                      <Play size={14} /> Resume
-                    </button>
+                    <>
+                      <Link to={`/staff/campaigns/builder/${detail.id}`}
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white/6 border border-white/12 text-white/70 hover:text-white text-sm font-semibold transition-colors">
+                        <Pencil size={14} />
+                      </Link>
+                      <button onClick={() => handleStart(detail.id)}
+                        className="flex-1 btn-scs-primary py-3 rounded-lg text-sm flex items-center justify-center gap-2">
+                        <Play size={14} /> Resume
+                      </button>
+                    </>
                   )}
                   {detail.status === 'completed' && (
                     <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-bold">

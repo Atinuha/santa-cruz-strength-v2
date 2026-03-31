@@ -31,6 +31,7 @@ import ResetPassword from './pages/staff/ResetPassword';
 import MobilePortal from './pages/staff/MobilePortal';
 import EventsManager from './pages/staff/EventsManager';
 import CampaignManager from './pages/staff/CampaignManager';
+import EmailBuilder from './pages/staff/EmailBuilder';
 
 import './App.css';
 
@@ -92,6 +93,9 @@ export default function App() {
           } />
           <Route path="/staff/campaigns" element={
             <CRMLayout><ProtectedRoute><CampaignManager /></ProtectedRoute></CRMLayout>
+          } />
+          <Route path="/staff/campaigns/builder/:campaignId" element={
+            <ProtectedRoute><EmailBuilder /></ProtectedRoute>
           } />
 
           {/* Fallback */}

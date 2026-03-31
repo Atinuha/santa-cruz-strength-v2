@@ -1,22 +1,22 @@
 [
   {
-    "content": "Fix CSV import — require name + (email OR phone), not both",
+    "content": "Create emailBlocks.js utility - block defs + HTML generator",
     "status": "in_progress"
   },
   {
-    "content": "Fix campaign start — trigger immediate first batch, don't wait for 10 AM",
+    "content": "Build EmailBuilder.js full-page visual editor",
     "status": "pending"
   },
   {
-    "content": "Add Resend bounce webhook — auto-remove invalid emails + notify management",
+    "content": "Backend: save blocks on campaign + test-send + preview endpoints + daily reserve",
     "status": "pending"
   },
   {
-    "content": "Better campaign segmentation — filter by status/source/interest/tag with live count",
+    "content": "Update CampaignManager - link to builder + use blocks HTML on send",
     "status": "pending"
   },
   {
-    "content": "Build + verify",
+    "content": "App.js route + build verify",
     "status": "pending"
   }
 ]
