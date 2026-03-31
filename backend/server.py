@@ -1201,6 +1201,9 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
             imported = getattr(getattr(bulk_err, 'details', {}), 'get', lambda *a: len(docs_to_insert))('nInserted', len(docs_to_insert))
 
     return {'imported': imported, 'skipped': skipped, 'errors': errors[:20], 'total_rows': len(rows)}
+
+@api_router.get('/staff/leads/{lead_id}')
+async def get_lead(lead_id: str, user=Depends(require_staff)):
     lead = await db.leads.find_one({'id': lead_id}, {'_id': 0})
     if not lead:
         raise HTTPException(status_code=404, detail='Lead not found')

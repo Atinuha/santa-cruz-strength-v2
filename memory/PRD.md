@@ -49,6 +49,8 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 ## Completed Work (as of March 2026)
 - All core features listed above
 - Fix: `import re` bug in server.py (leads endpoint 500 error) — RESOLVED
+- Fix: Missing `GET /staff/leads/{lead_id}` endpoint — RESOLVED (orphaned code had no route decorator)
+- Fix: `handleToggleBlacklist` ReferenceError in LeadDetail.js ProfileCard — RESOLVED (passed as prop)
 - Homepage carousels, Behold Instagram, SEO, legal pages
 - CRM: Kanban, List, search, CSV import, blacklist, source sorting
 - Auth: 2FA OTP, device remember, invite links, password resets

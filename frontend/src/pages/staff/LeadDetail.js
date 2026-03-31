@@ -202,7 +202,7 @@ export default function LeadDetail() {
               <TabsTrigger value="notes" className="flex-1 text-xs data-[state=active]:bg-[#1B7A4A] data-[state=active]:text-white">Notes & Actions</TabsTrigger>
               <TabsTrigger value="activity" className="flex-1 text-xs data-[state=active]:bg-[#1B7A4A] data-[state=active]:text-white">Activity</TabsTrigger>
             </TabsList>
-            <TabsContent value="profile"><ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} followUpTime={followUpTime} setFollowUpTime={setFollowUpTime} onSaveFollowUp={handleSaveFollowUp} /></TabsContent>
+            <TabsContent value="profile"><ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} followUpTime={followUpTime} setFollowUpTime={setFollowUpTime} onSaveFollowUp={handleSaveFollowUp} onToggleBlacklist={handleToggleBlacklist} /></TabsContent>
             <TabsContent value="notes"><NotesSection editNotes={editNotes} setEditNotes={setEditNotes} onSave={handleSaveNotes} noteText={noteText} setNoteText={setNoteText} onAddNote={handleAddNote} addingNote={addingNote} inputClass={inputClass} /></TabsContent>
             <TabsContent value="activity"><ActivityTimeline log={activityLog} /></TabsContent>
           </Tabs>
@@ -211,7 +211,7 @@ export default function LeadDetail() {
         <div className="hidden lg:grid grid-cols-12 gap-6">
           {/* Left — Profile + Status */}
           <div className="col-span-4 space-y-5">
-            <ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} followUpTime={followUpTime} setFollowUpTime={setFollowUpTime} onSaveFollowUp={handleSaveFollowUp} />
+            <ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} followUpTime={followUpTime} setFollowUpTime={setFollowUpTime} onSaveFollowUp={handleSaveFollowUp} onToggleBlacklist={handleToggleBlacklist} />
           </div>
           {/* Right — Notes + Activity */}
           <div className="col-span-8 space-y-5">
@@ -224,7 +224,7 @@ export default function LeadDetail() {
   );
 }
 
-function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollowUpDate, followUpTime, setFollowUpTime, onSaveFollowUp }) {
+function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollowUpDate, followUpTime, setFollowUpTime, onSaveFollowUp, onToggleBlacklist }) {
   return (
     <div className="card-marketing p-5 space-y-4">
       {/* Name + Status */}
@@ -234,7 +234,7 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
             {lead.first_name} {lead.last_name}
           </h1>
           <button
-            onClick={handleToggleBlacklist}
+            onClick={onToggleBlacklist}
             title={lead.blacklisted ? 'Remove from blacklist' : 'Add to blacklist'}
             data-testid="blacklist-toggle-btn"
             className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all duration-150 shrink-0 ${
