@@ -1,22 +1,22 @@
 [
   {
-    "content": "Create emailBlocks.js utility - block defs + HTML generator",
+    "content": "Fix recurring events - one block per event on public page with next-occurrence date",
     "status": "in_progress"
   },
   {
-    "content": "Build EmailBuilder.js full-page visual editor",
+    "content": "Add sold_out toggle + registration_url to events (backend + admin + public)",
     "status": "pending"
   },
   {
-    "content": "Backend: save blocks on campaign + test-send + preview endpoints + daily reserve",
+    "content": "Build SMSBuilder.js with char counter, merge fields, TCPA, phone preview, reply webhook",
     "status": "pending"
   },
   {
-    "content": "Update CampaignManager - link to builder + use blocks HTML on send",
+    "content": "Add campaign preview modal before send (email iframe + SMS mockup + confirm)",
     "status": "pending"
   },
   {
-    "content": "App.js route + build verify",
+    "content": "Build + verify",
     "status": "pending"
   }
 ]

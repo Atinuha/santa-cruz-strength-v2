@@ -32,6 +32,7 @@ import MobilePortal from './pages/staff/MobilePortal';
 import EventsManager from './pages/staff/EventsManager';
 import CampaignManager from './pages/staff/CampaignManager';
 import EmailBuilder from './pages/staff/EmailBuilder';
+import SMSBuilder from './pages/staff/SMSBuilder';
 
 import './App.css';
 
@@ -96,6 +97,9 @@ export default function App() {
           } />
           <Route path="/staff/campaigns/builder/:campaignId" element={
             <ProtectedRoute><EmailBuilder /></ProtectedRoute>
+          } />
+          <Route path="/staff/campaigns/sms/:campaignId" element={
+            <ProtectedRoute><SMSBuilder /></ProtectedRoute>
           } />
 
           {/* Fallback */}

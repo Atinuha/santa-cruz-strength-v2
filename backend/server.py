@@ -1668,10 +1668,12 @@ class EventCreate(BaseModel):
     ticket_type: str = 'free'
     ticket_url: Optional[str] = ''
     ticket_price: Optional[str] = ''
+    registration_url: Optional[str] = ''
     max_capacity: Optional[int] = None
     published: bool = True
-    recurring: str = 'none'          # 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly'
-    recurring_until: Optional[str] = ''  # ISO date string
+    sold_out: bool = False
+    recurring: str = 'none'
+    recurring_until: Optional[str] = ''
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -1685,8 +1687,10 @@ class EventUpdate(BaseModel):
     ticket_type: Optional[str] = None
     ticket_url: Optional[str] = None
     ticket_price: Optional[str] = None
+    registration_url: Optional[str] = None
     max_capacity: Optional[int] = None
     published: Optional[bool] = None
+    sold_out: Optional[bool] = None
     recurring: Optional[str] = None
     recurring_until: Optional[str] = None
 
@@ -1708,60 +1712,60 @@ async def list_events(upcoming: bool = True):
         query['date'] = {'$gte': today.isoformat()}
     events = await db.events.find(query, {'_id': 0}).sort('date', 1).to_list(200)
 
-    # Expand recurring events into instances up to 6 months ahead
-    expanded = []
-    cutoff = today + timedelta(days=183)
+    result = []
+    # For past events, also pull recurring ones whose base date is in the past
+    if not upcoming:
+        all_events = await db.events.find({'published': True}, {'_id': 0}).sort('date', -1).to_list(200)
+    else:
+        all_events = events
 
-    for e in events:
-        # Attach RSVP count
+    for e in all_events:
         if e.get('ticket_type') == 'rsvp':
             e['rsvp_count'] = await db.event_rsvps.count_documents({'event_id': e['id']})
 
         recurring = e.get('recurring', 'none') or 'none'
         if recurring == 'none' or not upcoming:
-            expanded.append(e)
+            result.append(e)
             continue
 
-        # Generate recurring instances
+        # For recurring events — find ONLY the next upcoming occurrence (one card per event)
+        DELTAS = {'daily': timedelta(days=1), 'weekly': timedelta(weeks=1), 'biweekly': timedelta(weeks=2)}
+        RECURRING_LABELS = {
+            'daily': 'Every day', 'weekly': 'Every week',
+            'biweekly': 'Every 2 weeks', 'monthly': 'Every month',
+        }
         try:
             base_date = date_type.fromisoformat(e['date'])
             until_str = e.get('recurring_until', '')
-            until = date_type.fromisoformat(until_str) if until_str else cutoff
-            until = min(until, cutoff)
-
-            DELTAS = {
-                'daily':    timedelta(days=1),
-                'weekly':   timedelta(weeks=1),
-                'biweekly': timedelta(weeks=2),
-            }
+            until = date_type.fromisoformat(until_str) if until_str else today + timedelta(days=365)
 
             current = base_date
-            instance_count = 0
-            while current <= until and instance_count < 52:
+            next_date = None
+            for _ in range(365):
                 if current >= today:
-                    instance = dict(e)
-                    instance['date'] = current.isoformat()
-                    instance['id'] = f"{e['id']}_{current.isoformat()}"
-                    instance['is_recurring_instance'] = current != base_date
-                    expanded.append(instance)
-                    instance_count += 1
-
+                    next_date = current
+                    break
                 if recurring in DELTAS:
                     current += DELTAS[recurring]
                 elif recurring == 'monthly':
-                    # Advance one month, same day-of-month
                     month = current.month + 1 if current.month < 12 else 1
                     year  = current.year + 1 if current.month == 12 else current.year
                     day   = min(current.day, cal_module.monthrange(year, month)[1])
                     current = date_type(year, month, day)
                 else:
                     break
-        except Exception:
-            expanded.append(e)
 
-    # Sort all expanded events by date
-    expanded.sort(key=lambda x: x.get('date', ''))
-    return expanded
+            if next_date and next_date <= until:
+                instance = dict(e)
+                instance['date']              = next_date.isoformat()
+                instance['recurring_label']   = RECURRING_LABELS.get(recurring, recurring)
+                instance['recurring_until']   = e.get('recurring_until', '')
+                result.append(instance)
+        except Exception:
+            result.append(e)
+
+    result.sort(key=lambda x: x.get('date', ''))
+    return result
 
 @api_router.get('/events/{event_id}')
 async def get_event(event_id: str):
@@ -2052,18 +2056,8 @@ async def test_send_campaign(campaign_id: str, user=Depends(require_admin)):
     c = await db.campaigns.find_one({'id': campaign_id})
     if not c:
         raise HTTPException(status_code=404, detail='Campaign not found')
-    from emergentintegrations.llm.chat import LlmChat  # ensure imports available
-    import json as _json
-    blocks = c.get('blocks', [])
     html_template = c.get('email_html_template', '')
-    if not html_template and blocks:
-        # Generate from blocks on the fly
-        from_data = {'first_name': user['name'].split()[0] if user.get('name') else 'Test',
-                     'gym_name': 'Santa Cruz Strength', 'join_url': c.get('join_url', JOIN_URL), 'gym_phone': '(408) 337-6709'}
-        # Simple server-side merge replacement
-        html_template = html_template or ''
-    # Replace merge tags for test
-    test_html = (html_template or '<p>No email content yet. Build your email first.</p>') \
+    test_html = (html_template or '<p>No email content yet. Build your email in the Email Builder first.</p>') \
         .replace('{{first_name}}', user.get('name', 'Test').split()[0]) \
         .replace('{{last_name}}', '') \
         .replace('{{gym_name}}', 'Santa Cruz Strength') \
@@ -2073,8 +2067,31 @@ async def test_send_campaign(campaign_id: str, user=Depends(require_admin)):
     subject = f"[TEST] {subjects[0] if subjects else 'Campaign Preview'}"
     ok = await send_resend_email(to=user['email'], subject=subject, html=test_html)
     if ok:
-        return {'message': f'Test email sent', 'sent_to': user['email']}
+        return {'message': 'Test email sent', 'sent_to': user['email']}
     raise HTTPException(status_code=500, detail='Failed to send test email')
+
+@api_router.post('/staff/campaigns/{campaign_id}/test-sms')
+async def test_sms_campaign(campaign_id: str, user=Depends(require_admin)):
+    """Send a test SMS to the staff member's phone on record (if any)."""
+    c = await db.campaigns.find_one({'id': campaign_id})
+    if not c:
+        raise HTTPException(status_code=404, detail='Campaign not found')
+    if not MAILERSEND_FROM:
+        raise HTTPException(status_code=400, detail='MailerSend FROM number not configured yet')
+    staff_numbers = await get_sms_staff_numbers()
+    if not staff_numbers:
+        raise HTTPException(status_code=400, detail='No staff SMS numbers configured in Settings')
+    sms_tpl = c.get('sms_template', '')
+    if not sms_tpl:
+        raise HTTPException(status_code=400, detail='No SMS template saved yet — build it in the SMS Builder first')
+    test_text = sms_tpl \
+        .replace('{{first_name}}', user.get('name', 'Test').split()[0]) \
+        .replace('{{last_name}}', '').replace('{{gym_name}}', 'Santa Cruz Strength') \
+        .replace('{{join_url}}', c.get('join_url', JOIN_URL)).replace('{{gym_phone}}', '(408) 337-6709')
+    ok = await send_sms(staff_numbers[:1], f'[TEST] {test_text}')
+    if ok:
+        return {'message': 'Test SMS sent', 'sent_to': staff_numbers[0]}
+    raise HTTPException(status_code=500, detail='Failed to send test SMS')
 
 # Campaign scheduler — runs every hour, sends daily batch
 async def _run_single_campaign(campaign_id: str):
@@ -2364,12 +2381,7 @@ async def submit_review(token: str, data: dict):
 
 @api_router.post('/webhooks/resend')
 async def resend_webhook(request: dict):
-    """
-    Resend fires this on: email.bounced, email.complained, email.delivery_delayed.
-    We mark the lead's email as invalid and notify management.
-    Register at: resend.com → Webhooks → Add endpoint → https://santacruzstrength.com/api/webhooks/resend
-    Select events: email.bounced, email.complained
-    """
+    """Resend bounce/complaint webhook. Register at resend.com → Webhooks → Add endpoint → https://santacruzstrength.com/api/webhooks/resend. Select events: email.bounced, email.complained."""
     event_type = request.get('type', '')
     data       = request.get('data', {})
     to_addr    = (data.get('to') or [''])[0] if isinstance(data.get('to'), list) else data.get('to', '')
@@ -2397,6 +2409,35 @@ async def resend_webhook(request: dict):
                 subject=f'⚠️ Bounced email removed: {to_addr}',
                 html=html,
             )
+    return {'ok': True}
+
+@api_router.post('/webhooks/mailersend-sms')
+async def mailersend_sms_webhook(request: dict):
+    """
+    MailerSend inbound SMS — forwards replies to management email.
+    Register at: app.mailersend.com → SMS → Inbound routes → Add route
+    Webhook URL: https://santacruzstrength.com/api/webhooks/mailersend-sms
+    """
+    from_number = request.get('from', '')
+    message     = request.get('message', request.get('text', ''))
+    to_number   = request.get('to', '')
+    if not from_number or not message:
+        return {'ok': True}
+    if message.strip().upper() == 'STOP':
+        # Auto-blacklist on STOP
+        await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True}})
+        logger.info(f'[SMS-INBOUND] STOP received from {from_number} — blacklisted')
+        return {'ok': True}
+    html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
+<h3 style="color:#7FCCA6;">📱 SMS Reply Received</h3>
+<p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong></p>
+<p style="color:#aaa;">To: {to_number}</p>
+<p style="color:#aaa;">Message:</p>
+<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
+<p style="color:#666;font-size:12px;">Reply via Google Voice: voice.google.com</p>
+</div>"""
+    await send_resend_email(to=STAFF_EMAIL, subject=f'📱 SMS Reply from {from_number}', html=html)
+    logger.info(f'[SMS-INBOUND] Reply from {from_number}: {message[:50]}')
     return {'ok': True}
 
 # --------------- Media Upload ---------------

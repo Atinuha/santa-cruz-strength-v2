@@ -43,7 +43,8 @@ const TIME_OPTIONS = (() => {
 const BLANK_EVENT = {
   title: '', description: '', date: '', time: '', end_time: '',
   image_url: '', category: 'General', location: '151 Harvey West Blvd Ste D, Santa Cruz, CA',
-  ticket_type: 'free', ticket_url: '', ticket_price: '', max_capacity: '', published: true,
+  ticket_type: 'free', ticket_url: '', ticket_price: '', registration_url: '',
+  max_capacity: '', published: true, sold_out: false,
   recurring: 'none', recurring_until: '',
 };
 
@@ -171,6 +172,24 @@ function EventForm({ initial, onSave, onCancel, saving }) {
             placeholder="Leave blank for unlimited" className={inputCls} />
         </div>
       )}
+
+      {/* Registration / extra link */}
+      <div>
+        <label className={labelCls}>Registration / Info Link (optional)</label>
+        <input value={form.registration_url || ''} onChange={e => set('registration_url', e.target.value)}
+          placeholder="https://... additional link for info or sign-up" className={inputCls} />
+      </div>
+
+      {/* Sold out */}
+      <label className="flex items-center gap-3 cursor-pointer">
+        <div onClick={() => set('sold_out', !form.sold_out)}
+          className={`w-10 h-5 rounded-full transition-all duration-200 relative ${form.sold_out ? 'bg-red-500' : 'bg-white/15'}`}>
+          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${form.sold_out ? 'left-5' : 'left-0.5'}`} />
+        </div>
+        <span className={`text-sm font-semibold ${form.sold_out ? 'text-red-400' : 'text-white/40'}`}>
+          {form.sold_out ? '🔴 Sold Out' : 'Not sold out'}
+        </span>
+      </label>
 
       {/* Published toggle */}
       <label className="flex items-center gap-3 cursor-pointer">

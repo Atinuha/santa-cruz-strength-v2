@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   ArrowLeft, Play, Pause, Plus, Loader2, CheckCircle2,
-  Clock, Mail, MessageSquare, Users, BarChart2, Zap, RefreshCw, Pencil
+  Clock, Mail, MessageSquare, Users, BarChart2, Zap, RefreshCw, Pencil, Eye, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -44,6 +44,7 @@ export default function CampaignManager() {
   const [saving, setSaving]       = useState(false);
   const [selected, setSelected]   = useState(null);
   const [detail, setDetail]       = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // New campaign form
   const [form, setForm] = useState({
@@ -391,11 +392,19 @@ export default function CampaignManager() {
                     <>
                       <Link to={`/staff/campaigns/builder/${detail.id}`}
                         className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-white/6 border border-white/12 text-white/70 hover:text-white text-sm font-semibold transition-colors">
-                        <Pencil size={14} /> Edit Email
+                        <Mail size={14} /> Email
                       </Link>
+                      <Link to={`/staff/campaigns/sms/${detail.id}`}
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-purple-500/15 border border-purple-500/25 text-purple-300 hover:bg-purple-500/25 text-sm font-semibold transition-colors">
+                        <MessageSquare size={14} />
+                      </Link>
+                      <button onClick={() => setPreviewOpen(true)}
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-amber-500/15 border border-amber-500/25 text-amber-300 hover:bg-amber-500/25 text-sm font-semibold transition-colors">
+                        <Eye size={14} />
+                      </button>
                       <button onClick={() => handleStart(detail.id)}
                         className="flex-1 btn-scs-primary py-3 rounded-lg text-sm flex items-center justify-center gap-2">
-                        <Play size={14} /> Start Campaign
+                        <Play size={14} /> Start
                       </button>
                     </>
                   )}
@@ -428,6 +437,92 @@ export default function CampaignManager() {
           </div>
         </div>
       </div>
+
+      {/* Campaign Preview Modal */}
+      {previewOpen && detail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setPreviewOpen(false)} />
+          <div className="relative bg-[#0f1a14] border border-white/12 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+              <div>
+                <h3 className="text-white font-bold">Campaign Preview</h3>
+                <p className="text-white/35 text-xs mt-0.5">{detail.name}</p>
+              </div>
+              <button onClick={() => setPreviewOpen(false)} className="text-white/40 hover:text-white"><X size={18} /></button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-6 space-y-4">
+              {/* Email preview */}
+              <div>
+                <p className="text-white/50 text-xs font-bold uppercase tracking-wider mb-2">📧 Email</p>
+                {detail.email_html_template ? (
+                  <>
+                    <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 mb-2">
+                      <p className="text-white/40 text-[10px]">Subject (A/B rotated)</p>
+                      {(detail.subject_options || []).map((s, i) => (
+                        <p key={i} className="text-white/70 text-xs">{i + 1}. "{s}"</p>
+                      ))}
+                    </div>
+                    <iframe
+                      srcDoc={detail.email_html_template
+                        .replace(/\{\{first_name\}\}/g, 'Alex')
+                        .replace(/\{\{gym_name\}\}/g, 'Santa Cruz Strength')
+                        .replace(/\{\{join_url\}\}/g, detail.join_url || '#')
+                        .replace(/\{\{gym_phone\}\}/g, '(408) 337-6709')}
+                      title="Email Preview" className="w-full rounded-lg border border-white/10"
+                      style={{ height: 320, background: '#fff' }} />
+                  </>
+                ) : (
+                  <div className="bg-white/3 border border-white/8 rounded-lg p-6 text-center">
+                    <p className="text-white/30 text-sm">No email built yet</p>
+                    <Link to={`/staff/campaigns/builder/${detail.id}`} onClick={() => setPreviewOpen(false)}
+                      className="text-[#7FCCA6] text-xs underline mt-1 block">→ Open Email Builder</Link>
+                  </div>
+                )}
+              </div>
+              {/* SMS preview */}
+              <div>
+                <p className="text-white/50 text-xs font-bold uppercase tracking-wider mb-2">📱 SMS</p>
+                {detail.sms_template ? (
+                  <div className="bg-[#1C1C1E] rounded-xl p-4">
+                    <p className="text-white/60 text-xs font-mono leading-relaxed whitespace-pre-wrap">
+                      {detail.sms_template.replace(/\{\{first_name\}\}/g, 'Alex').replace(/\{\{gym_name\}\}/g, 'Santa Cruz Strength')}
+                    </p>
+                    <p className="text-white/25 text-[10px] mt-2">{detail.sms_template.length} chars · {Math.ceil(detail.sms_template.length / 160)} segment(s)</p>
+                  </div>
+                ) : (
+                  <div className="bg-white/3 border border-white/8 rounded-lg p-6 text-center">
+                    <p className="text-white/30 text-sm">No SMS built yet</p>
+                    <Link to={`/staff/campaigns/sms/${detail.id}`} onClick={() => setPreviewOpen(false)}
+                      className="text-purple-300 text-xs underline mt-1 block">→ Open SMS Builder</Link>
+                  </div>
+                )}
+              </div>
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-white/8">
+                {[
+                  { label: 'Recipients', value: detail.total_leads },
+                  { label: 'Batch / Day', value: detail.batch_size_per_day },
+                  { label: 'Est. Days', value: Math.ceil((detail.total_leads || 0) / (detail.batch_size_per_day || 70)) },
+                ].map(s => (
+                  <div key={s.label} className="bg-white/4 rounded-xl p-3 text-center">
+                    <p className="text-white font-bold text-xl">{s.value || '—'}</p>
+                    <p className="text-white/35 text-[10px] mt-0.5">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {detail.status === 'draft' && (
+              <div className="px-6 py-4 border-t border-white/8 flex gap-3">
+                <button onClick={() => setPreviewOpen(false)} className="flex-1 btn-scs-secondary py-3 rounded-lg text-sm">Back to Edit</button>
+                <button onClick={() => { setPreviewOpen(false); handleStart(detail.id); }}
+                  className="flex-1 btn-scs-primary py-3 rounded-lg text-sm flex items-center justify-center gap-2">
+                  <Play size={14} /> Confirm & Start Campaign
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

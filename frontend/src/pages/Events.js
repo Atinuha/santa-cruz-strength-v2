@@ -178,9 +178,14 @@ export default function Events() {
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${CATEGORY_COLORS[event.category] || CATEGORY_COLORS['General']}`}>
                           {event.category || 'General'}
                         </span>
+                        {event.sold_out && (
+                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-red-50 text-red-600 border-red-200">
+                            🔴 Sold Out
+                          </span>
+                        )}
                         {event.recurring && event.recurring !== 'none' && (
                           <span className="text-[10px] font-semibold px-2 py-1 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
-                            🔁 Recurring
+                            🔁 {event.recurring_label || 'Recurring'}
                           </span>
                         )}
                       </div>
@@ -194,7 +199,13 @@ export default function Events() {
                     <div className="space-y-1.5 mb-3">
                       <div className="flex items-center gap-2 text-xs text-[var(--clr-text-muted)]">
                         <Calendar size={12} style={{ color: 'var(--clr-green)' }} />
-                        <span>{formatDate(event.date)}{event.time ? ` · ${event.time}` : ''}</span>
+                        <span>
+                          {event.recurring && event.recurring !== 'none'
+                            ? `Next: ${formatDate(event.date)}${event.time ? ` · ${event.time}` : ''}`
+                            : `${formatDate(event.date)}${event.time ? ` · ${event.time}` : ''}`
+                          }
+                          {event.end_time ? ` – ${event.end_time}` : ''}
+                        </span>
                       </div>
                       {event.location && (
                         <div className="flex items-center gap-2 text-xs text-[var(--clr-text-muted)]">
@@ -204,8 +215,12 @@ export default function Events() {
                       )}
                     </div>
                     <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed flex-1 line-clamp-3">{event.description}</p>
-                    <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--clr-border)' }}>
-                      {event.ticket_type === 'external' && event.ticket_url ? (
+                    <div className="mt-4 pt-4 border-t space-y-2" style={{ borderColor: 'var(--clr-border)' }}>
+                      {event.sold_out ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-3 py-2 rounded-full border border-red-200 w-full justify-center">
+                          🔴 Sold Out / At Capacity
+                        </span>
+                      ) : event.ticket_type === 'external' && event.ticket_url ? (
                         <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
                           className="btn-coral w-full py-2.5 text-sm flex items-center justify-center gap-2">
                           <Ticket size={14} /> Get Tickets{event.ticket_price ? ` · ${event.ticket_price}` : ''}
@@ -222,6 +237,13 @@ export default function Events() {
                         <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--clr-green)] bg-[var(--clr-bg-green)] px-3 py-2 rounded-full border border-[var(--clr-border-green)] w-full justify-center">
                           <Check size={12} /> Free Event — No Registration Needed
                         </span>
+                      )}
+                      {/* Extra registration / info link */}
+                      {event.registration_url && !event.sold_out && (
+                        <a href={event.registration_url} target="_blank" rel="noopener noreferrer"
+                          className="btn-outline-green w-full py-2 text-sm flex items-center justify-center gap-1.5">
+                          Register / More Info →
+                        </a>
                       )}
                     </div>
                   </div>
