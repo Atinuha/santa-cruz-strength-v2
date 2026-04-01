@@ -1594,54 +1594,70 @@ async def delete_blog_post(post_id: str, user=Depends(require_admin)):
 @api_router.post('/staff/blog/ideas')
 async def generate_blog_ideas(user=Depends(require_admin), force: bool = False):
     """
-    Returns cached blog ideas (instant) or generates fresh ones.
-    Cache lives for 6 hours. Pass ?force=true to force regeneration.
+    Returns cached blog ideas (instant). Background job keeps cache warm every 6 hours.
+    Pass ?force=true to force an immediate background refresh (still returns current cache instantly).
     """
+    # ── Always try to serve from cache first (instant response) ────────────────
+    cached = await db.blog_ideas_cache.find_one({'_id': 'latest'})
+
+    if force and cached:
+        # Kick off background refresh, but return current cache immediately
+        asyncio.create_task(_refresh_blog_ideas_background())
+        return {
+            'ideas': cached['ideas'],
+            'trends_used': cached.get('trends_used', []),
+            'cached': True,
+            'refreshing': True,
+            'generated_at': cached['generated_at'],
+        }
+
+    if cached:
+        age_hours = (now_utc() - datetime.fromisoformat(
+            cached['generated_at'].replace('Z', '+00:00')
+        ).replace(tzinfo=timezone.utc)).total_seconds() / 3600
+        logger.info(f'[BLOG IDEAS] Serving cache ({age_hours:.1f}h old)')
+        # If stale (>6h), trigger background refresh but still return instantly
+        if age_hours >= 6:
+            asyncio.create_task(_refresh_blog_ideas_background())
+        return {
+            'ideas': cached['ideas'],
+            'trends_used': cached.get('trends_used', []),
+            'cached': True,
+            'refreshing': age_hours >= 6,
+            'generated_at': cached['generated_at'],
+        }
+
+    # ── No cache at all — must generate synchronously (first-ever call) ────────
+    result = await _generate_blog_ideas_core()
+    if result:
+        return {**result, 'cached': False, 'refreshing': False}
+    raise HTTPException(status_code=500, detail='Failed to generate ideas')
+
+
+async def _refresh_blog_ideas_background():
+    """Background task to refresh blog ideas without blocking the response."""
+    try:
+        await _generate_blog_ideas_core()
+        logger.info('[BLOG IDEAS] Background refresh completed')
+    except Exception as e:
+        logger.warning(f'[BLOG IDEAS] Background refresh failed: {e}')
+
+
+async def _generate_blog_ideas_core():
+    """Core generation logic — fetches trends + calls LLM, saves to cache."""
     import json as _json
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 
-    # ── Check cache first (skip if force=true) ────────────────────────────────
-    if not force:
-        cached = await db.blog_ideas_cache.find_one({'_id': 'latest'})
-        if cached:
-            age_hours = (now_utc() - datetime.fromisoformat(
-                cached['generated_at'].replace('Z', '+00:00')
-            ).replace(tzinfo=timezone.utc)).total_seconds() / 3600
-            if age_hours < 6:
-                logger.info(f'[BLOG IDEAS] Serving cache ({age_hours:.1f}h old)')
-                return {
-                    'ideas': cached['ideas'],
-                    'trends_used': cached.get('trends_used', []),
-                    'cached': True,
-                    'generated_at': cached['generated_at'],
-                }
-
-    # ── Fetch Google Trends (with tight 8-second timeout) ─────────────────────
-    trend_topics = []
-    try:
-        from pytrends.request import TrendReq
-        pytrends = TrendReq(hl='en-US', tz=360, timeout=(4, 8))
-        kw_list = ['strength training', 'powerlifting', 'gym workout']
-        pytrends.build_payload(kw_list, cat=44, timeframe='now 7-d', geo='US-CA')
-        related = pytrends.related_queries()
-        for kw in kw_list:
-            for bucket in ('rising', 'top'):
-                df = related.get(kw, {}).get(bucket)
-                if df is not None and not df.empty:
-                    trend_topics += df['query'].head(4).tolist()
-        trend_topics = list(dict.fromkeys(trend_topics))[:15]
-        logger.info(f'[BLOG IDEAS] Trends: {trend_topics}')
-    except Exception as e:
-        logger.warning(f'[BLOG IDEAS] pytrends failed: {e} — using fallback')
-        trend_topics = ['strength training beginners', 'powerlifting program',
-                        'gym for surfers', 'how to deadlift', 'strength training over 40']
+    # ── Fetch Google Trends in a thread (non-blocking) ─────────────────────────
+    trend_topics = await asyncio.to_thread(_fetch_google_trends)
 
     trends_str = ', '.join(trend_topics) if trend_topics else 'strength training, powerlifting, fitness'
 
-    # ── LLM — shorter prompt, 6 ideas, gpt-4o-mini ───────────────────────────
+    # ── LLM call ───────────────────────────────────────────────────────────────
     llm_key = os.environ.get('EMERGENT_LLM_KEY', '')
     if not llm_key:
-        raise HTTPException(status_code=500, detail='LLM key not configured')
+        logger.error('[BLOG IDEAS] LLM key not configured')
+        return None
 
     prompt = f"""Content strategist for Santa Cruz Strength gym (Santa Cruz, CA). Serves surfers, climbers, powerlifters, trail runners. Gritty, authentic, no fluff.
 
@@ -1664,20 +1680,52 @@ Generate 6 blog ideas. Return ONLY a JSON array, no other text:
                 raw = raw[4:]
         ideas = _json.loads(raw)
 
-        # ── Save to cache ──────────────────────────────────────────────────────
         generated_at = now_utc().isoformat()
         await db.blog_ideas_cache.replace_one(
             {'_id': 'latest'},
             {'_id': 'latest', 'ideas': ideas, 'trends_used': trend_topics, 'generated_at': generated_at},
             upsert=True,
         )
-        return {'ideas': ideas, 'trends_used': trend_topics, 'cached': False, 'generated_at': generated_at}
+        return {'ideas': ideas, 'trends_used': trend_topics, 'generated_at': generated_at}
     except Exception as e:
         logger.error(f'[BLOG IDEAS] LLM error: {e}')
-        raise HTTPException(status_code=500, detail=f'Failed to generate ideas: {str(e)}')
+        return None
 
-        logger.error(f'[BLOG IDEAS] LLM error: {e}')
-        raise HTTPException(status_code=500, detail=f'Failed to generate ideas: {str(e)}')
+
+def _fetch_google_trends():
+    """Synchronous Google Trends fetch — runs in thread pool."""
+    try:
+        from pytrends.request import TrendReq
+        pytrends = TrendReq(hl='en-US', tz=360, timeout=(3, 6))
+        kw_list = ['strength training', 'powerlifting', 'gym workout']
+        pytrends.build_payload(kw_list, cat=44, timeframe='now 7-d', geo='US-CA')
+        related = pytrends.related_queries()
+        topics = []
+        for kw in kw_list:
+            for bucket in ('rising', 'top'):
+                df = related.get(kw, {}).get(bucket)
+                if df is not None and not df.empty:
+                    topics += df['query'].head(4).tolist()
+        topics = list(dict.fromkeys(topics))[:15]
+        logger.info(f'[BLOG IDEAS] Trends: {topics}')
+        return topics
+    except Exception as e:
+        logger.warning(f'[BLOG IDEAS] pytrends failed: {e} — using fallback')
+        return ['strength training beginners', 'powerlifting program',
+                'gym for surfers', 'how to deadlift', 'strength training over 40']
+
+
+async def run_blog_ideas_refresh():
+    """Scheduled job — keeps blog ideas cache warm every 6 hours."""
+    cached = await db.blog_ideas_cache.find_one({'_id': 'latest'})
+    if cached:
+        age_hours = (now_utc() - datetime.fromisoformat(
+            cached['generated_at'].replace('Z', '+00:00')
+        ).replace(tzinfo=timezone.utc)).total_seconds() / 3600
+        if age_hours < 5.5:
+            return  # Still fresh, skip
+    logger.info('[BLOG IDEAS] Scheduled refresh starting...')
+    await _generate_blog_ideas_core()
 
 # --------------- Events Models ---------------
 
@@ -3008,6 +3056,7 @@ async def startup():
     scheduler.add_job(run_review_request_job,  'interval', minutes=30,  id='review_requests', replace_existing=True)
     scheduler.add_job(run_campaign_scheduler,  'interval', minutes=60,  id='campaigns',       replace_existing=True)
     scheduler.add_job(run_daily_bounce_digest, 'cron',     hour=18, minute=0, id='bounce_digest', replace_existing=True)
+    scheduler.add_job(run_blog_ideas_refresh,  'interval', hours=6,   id='blog_ideas',      replace_existing=True)
     scheduler.start()
     app.state.scheduler = scheduler
     logger.info('[STARTUP] SMS follow-up + review + campaign + daily bounce digest schedulers started')
