@@ -55,6 +55,7 @@ When clicking into an order:
   - "Your order is on hold" (when moved to Blocked, include reason)
 - Use Resend for emails and MailerSend for SMS (same as Santa Cruz Strength CRM setup)
 - Customizable email templates with merge fields ({customer_name}, {order_summary}, {tracking_number})
+- **Daily Delivery Digest**: Do NOT send individual alerts for bounced emails or failed SMS. Instead, collect all failures throughout the day and send ONE summary email at end of day (6 PM) to the owner with a table of all bounced emails, failed SMS, and opt-outs. Auto-blacklist failed contacts so they don't receive future sends.
 
 ### 5. Dashboard Stats
 Top cards showing:

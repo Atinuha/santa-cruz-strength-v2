@@ -316,8 +316,9 @@ MAILERSEND_API_KEY = os.environ.get('MAILERSEND_API_KEY', '')
 MAILERSEND_FROM   = os.environ.get('MAILERSEND_FROM_NUMBER', '')
 
 # ── Core send ─────────────────────────────────────────────────────────────────
-async def send_sms(to_numbers: list, text: str) -> bool:
-    """Send SMS via MailerSend REST API. Safe-guards when not configured."""
+async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
+    """Send SMS via MailerSend REST API. Safe-guards when not configured.
+    lead_info: optional dict with {name, email, phone, lead_id} for failure logging."""
     if not MAILERSEND_API_KEY or not MAILERSEND_FROM:
         logger.info(f'[SMS] Not configured — skipping to {to_numbers}')
         return False
@@ -340,10 +341,31 @@ async def send_sms(to_numbers: list, text: str) -> bool:
             return True
         else:
             logger.warning(f'[SMS] Failed {resp.status_code}: {resp.text[:200]}')
+            # Log SMS failure to daily digest
+            if lead_info:
+                await _log_sms_failure(valid, resp.status_code, lead_info)
             return False
     except Exception as e:
         logger.warning(f'[SMS] Error: {e}')
+        if lead_info:
+            await _log_sms_failure(valid, str(e), lead_info)
         return False
+
+async def _log_sms_failure(numbers: list, error, lead_info: dict):
+    """Log an SMS failure to the daily bounce/failure digest."""
+    try:
+        await db.daily_bounce_log.insert_one({
+            'type': 'sms_failure',
+            'event': f'sms_send_failed ({error})',
+            'phone': numbers[0] if numbers else '',
+            'name': lead_info.get('name', 'Unknown'),
+            'email': lead_info.get('email', ''),
+            'source': lead_info.get('source', ''),
+            'timestamp': now_utc().isoformat(),
+            'date': now_utc().date().isoformat(),
+        })
+    except Exception:
+        pass
 
 # ── Get staff SMS numbers (DB-managed so staff can update via CRM UI) ─────────
 async def get_sms_staff_numbers() -> list:
@@ -2393,26 +2415,41 @@ async def resend_webhook(request: dict):
 
     if event_type in ('email.bounced', 'email.complained'):
         # Mark lead as bounced — suppress all future sends
+        email_lower = to_addr.lower().strip()
+        lead = await db.leads.find_one({'email': email_lower}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'phone': 1, 'lead_source': 1})
         result = await db.leads.update_many(
-            {'email': to_addr.lower().strip()},
+            {'email': email_lower},
             {'$set': {'email_bounced': True, 'blacklisted': True, 'bounce_type': event_type,
                       'bounce_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()}}
         )
         if result.modified_count:
             logger.info(f'[BOUNCE] Blacklisted {to_addr} ({event_type})')
-            # Notify management
-            html = f"""<div style="font-family:sans-serif;padding:24px;background:#111;color:#fff;">
-<h3 style="color:#FA5A5C;">⚠️ Email {event_type.replace('email.','')} — Lead Auto-Removed</h3>
-<p style="color:#aaa;">Email: <strong style="color:#fff;">{to_addr}</strong></p>
-<p style="color:#aaa;">Event: {event_type}</p>
-<p style="color:#aaa;">This address has been automatically blacklisted and removed from all future sends.</p>
-</div>"""
-            await send_resend_email(
-                to=STAFF_EMAIL,
-                subject=f'⚠️ Bounced email removed: {to_addr}',
-                html=html,
-            )
+            # Log to daily digest instead of sending individual email
+            await db.daily_bounce_log.insert_one({
+                'type': 'email_bounce',
+                'event': event_type,
+                'email': email_lower,
+                'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
+                'phone': (lead or {}).get('phone', ''),
+                'source': (lead or {}).get('lead_source', ''),
+                'timestamp': now_utc().isoformat(),
+                'date': now_utc().date().isoformat(),
+            })
     return {'ok': True}
+
+
+@api_router.get('/staff/bounce-log')
+async def get_bounce_log(user=Depends(require_admin)):
+    """View today's pending bounce/failure entries before the daily digest sends."""
+    today = now_utc().date().isoformat()
+    entries = await db.daily_bounce_log.find({'date': today}, {'_id': 0}).to_list(500)
+    return {'date': today, 'entries': entries, 'total': len(entries)}
+
+@api_router.post('/staff/bounce-log/send-now')
+async def send_bounce_digest_now(user=Depends(require_admin)):
+    """Manually trigger the daily bounce digest email right now."""
+    await run_daily_bounce_digest()
+    return {'ok': True, 'message': 'Digest sent (if entries existed)'}
 
 @api_router.post('/webhooks/mailersend-sms')
 async def mailersend_sms_webhook(request: dict):
@@ -2428,8 +2465,20 @@ async def mailersend_sms_webhook(request: dict):
         return {'ok': True}
     if message.strip().upper() == 'STOP':
         # Auto-blacklist on STOP
-        await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True}})
+        lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
+        await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True, 'updated_at': now_utc().isoformat()}})
         logger.info(f'[SMS-INBOUND] STOP received from {from_number} — blacklisted')
+        # Log to daily digest
+        await db.daily_bounce_log.insert_one({
+            'type': 'sms_optout',
+            'event': 'SMS STOP received',
+            'phone': from_number,
+            'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
+            'email': (lead or {}).get('email', ''),
+            'source': (lead or {}).get('lead_source', ''),
+            'timestamp': now_utc().isoformat(),
+            'date': now_utc().date().isoformat(),
+        })
         return {'ok': True}
     html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
 <h3 style="color:#7FCCA6;">📱 SMS Reply Received</h3>
@@ -2807,6 +2856,96 @@ async def seed_blog_posts():
         await db.blog.insert_one(post)
     logger.info(f'[SEED] Seeded {len(posts)} blog posts')
 
+
+# --------------- Daily Bounce / SMS Failure Digest ---------------
+
+async def run_daily_bounce_digest():
+    """Runs daily at 6 PM PT. Sends one summary email with all email bounces,
+    SMS failures, and SMS opt-outs from today, then clears the log."""
+    today = now_utc().date().isoformat()
+    entries = await db.daily_bounce_log.find({'date': today}).to_list(500)
+    if not entries:
+        logger.info('[DIGEST] No bounces/failures today — skipping digest')
+        return
+
+    email_bounces = [e for e in entries if e.get('type') == 'email_bounce']
+    sms_failures  = [e for e in entries if e.get('type') == 'sms_failure']
+    sms_optouts   = [e for e in entries if e.get('type') == 'sms_optout']
+
+    total = len(entries)
+
+    # Build HTML digest
+    rows_html = ''
+    if email_bounces:
+        rows_html += '<tr><td colspan="5" style="padding:16px 0 8px;color:#FA5A5C;font-weight:700;font-size:15px;border-bottom:1px solid #333;">Email Bounces / Complaints</td></tr>'
+        for e in email_bounces:
+            rows_html += f'''<tr style="border-bottom:1px solid #222;">
+<td style="padding:8px 12px;color:#fff;">{e.get('name','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('email','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('phone','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('source','—')}</td>
+<td style="padding:8px 12px;color:#FA5A5C;">{e.get('event','').replace('email.','')}</td>
+</tr>'''
+
+    if sms_failures:
+        rows_html += '<tr><td colspan="5" style="padding:16px 0 8px;color:#F59E0B;font-weight:700;font-size:15px;border-bottom:1px solid #333;">SMS Send Failures</td></tr>'
+        for e in sms_failures:
+            rows_html += f'''<tr style="border-bottom:1px solid #222;">
+<td style="padding:8px 12px;color:#fff;">{e.get('name','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('email','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('phone','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('source','—')}</td>
+<td style="padding:8px 12px;color:#F59E0B;">{e.get('event','')}</td>
+</tr>'''
+
+    if sms_optouts:
+        rows_html += '<tr><td colspan="5" style="padding:16px 0 8px;color:#8B5CF6;font-weight:700;font-size:15px;border-bottom:1px solid #333;">SMS Opt-Outs (STOP)</td></tr>'
+        for e in sms_optouts:
+            rows_html += f'''<tr style="border-bottom:1px solid #222;">
+<td style="padding:8px 12px;color:#fff;">{e.get('name','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('email','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('phone','—')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('source','—')}</td>
+<td style="padding:8px 12px;color:#8B5CF6;">STOP received</td>
+</tr>'''
+
+    summary_parts = []
+    if email_bounces:
+        summary_parts.append(f'{len(email_bounces)} email bounce{"s" if len(email_bounces) != 1 else ""}')
+    if sms_failures:
+        summary_parts.append(f'{len(sms_failures)} SMS failure{"s" if len(sms_failures) != 1 else ""}')
+    if sms_optouts:
+        summary_parts.append(f'{len(sms_optouts)} SMS opt-out{"s" if len(sms_optouts) != 1 else ""}')
+    summary_text = ', '.join(summary_parts)
+
+    html = f"""<div style="font-family:sans-serif;padding:28px;background:#0D0D0D;color:#fff;border-radius:12px;">
+<h2 style="color:#fff;margin:0 0 4px;">Daily Delivery Report</h2>
+<p style="color:#666;margin:0 0 20px;font-size:14px;">Santa Cruz Strength CRM — {today}</p>
+<div style="background:#1A1A1A;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
+<p style="color:#aaa;margin:0;font-size:14px;">Today's removals: <strong style="color:#fff;">{total} contacts</strong> — {summary_text}</p>
+<p style="color:#666;margin:4px 0 0;font-size:12px;">All contacts below have been automatically blacklisted and removed from future sends.</p>
+</div>
+<table style="width:100%;border-collapse:collapse;font-size:13px;">
+<thead><tr style="border-bottom:2px solid #333;">
+<th style="padding:8px 12px;text-align:left;color:#888;">Name</th>
+<th style="padding:8px 12px;text-align:left;color:#888;">Email</th>
+<th style="padding:8px 12px;text-align:left;color:#888;">Phone</th>
+<th style="padding:8px 12px;text-align:left;color:#888;">Source</th>
+<th style="padding:8px 12px;text-align:left;color:#888;">Reason</th>
+</tr></thead>
+<tbody>{rows_html}</tbody>
+</table>
+</div>"""
+
+    subject = f'Daily Report: {total} contact{"s" if total != 1 else ""} removed — {today}'
+    ok = await send_resend_email(to=STAFF_EMAIL, subject=subject, html=html)
+    if ok:
+        logger.info(f'[DIGEST] Sent daily bounce digest: {total} entries')
+        # Clear today's log after successful send
+        await db.daily_bounce_log.delete_many({'date': today})
+    else:
+        logger.warning('[DIGEST] Failed to send daily bounce digest — will retry next run')
+
 @app.on_event('startup')
 async def startup():
     await db.leads.create_index('id', unique=True)
@@ -2844,6 +2983,8 @@ async def startup():
     await db.campaign_sends.create_index('lead_id')
     await db.campaign_sends.create_index('sent_at')
     await db.email_stats.create_index('date', unique=True)
+    await db.daily_bounce_log.create_index('date')
+    await db.daily_bounce_log.create_index('type')
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
     if blog_count == 0:
@@ -2866,9 +3007,10 @@ async def startup():
     scheduler.add_job(run_sms_followup_job,    'interval', minutes=30,  id='sms_followup',    replace_existing=True)
     scheduler.add_job(run_review_request_job,  'interval', minutes=30,  id='review_requests', replace_existing=True)
     scheduler.add_job(run_campaign_scheduler,  'interval', minutes=60,  id='campaigns',       replace_existing=True)
+    scheduler.add_job(run_daily_bounce_digest, 'cron',     hour=18, minute=0, id='bounce_digest', replace_existing=True)
     scheduler.start()
     app.state.scheduler = scheduler
-    logger.info('[STARTUP] SMS follow-up + review + campaign schedulers started')
+    logger.info('[STARTUP] SMS follow-up + review + campaign + daily bounce digest schedulers started')
 
 @app.on_event('shutdown')
 async def shutdown_db_client():
