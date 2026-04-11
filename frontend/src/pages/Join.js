@@ -99,12 +99,33 @@ const MORE_PLANS = [
     link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=a772569e9c38408c90fab7b9bda49fca',
   },
   {
+    id: 'huscler-6',
+    name: 'Huscler 6-Month',
+    subtitle: '6-Month Agreement',
+    price: '$82',
+    per: '/mo',
+    savings: 'Save 32%',
+    icon: <Star size={18} />,
+    features: [
+      '24/7 facility access via app',
+    ],
+    terms: [
+      '6-month initial agreement',
+      'Auto-renews to month-to-month at end of term',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
+    ],
+    link: '#',
+    placeholder: true,
+  },
+  {
     id: 'couples-12',
     name: 'Couples 12-Month',
     subtitle: '2 Members \u2022 12-Month Agreement',
     price: '$120',
     per: '/mo',
     extra: '$60/person',
+    savings: 'Save 50%',
     icon: <Users size={18} />,
     features: [
       'Includes 2 members',
