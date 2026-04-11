@@ -171,11 +171,11 @@ export default function Home() {
                 ))}
               </div>
               <div className="flex flex-wrap gap-3 mb-7">
-                <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+                <Link to="/join"
                   data-testid="home-hero-join-now-button" className="btn-coral px-6 py-3 text-sm"
                   onClick={() => trackJoinNowClick('hero')}>
                   Join Now <ArrowRight size={14} />
-                </a>
+                </Link>
                 <a href="#tour-form" data-testid="home-hero-book-visit-button"
                   className="btn-outline-green px-6 py-3 text-sm"
                   onClick={(e) => { e.preventDefault(); trackBookTourClick('hero'); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
@@ -426,13 +426,13 @@ export default function Home() {
             Whether you surf, climb, run trails, or just want to stay capable for life — it starts here.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+            <Link to="/join"
               data-testid="home-final-cta-join-now-button"
               onClick={() => trackJoinNowClick('cta_block')}
               className="bg-[var(--clr-coral)] text-white font-bold rounded-[var(--radius-md)] px-8 py-4 text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:bg-[var(--clr-coral-dark)] hover:-translate-y-0.5"
               style={{ boxShadow: '0 4px 20px rgba(250,90,92,0.35)' }}>
               Join Santa Cruz Strength
-            </a>
+            </Link>
             <button
               onClick={() => { trackBookTourClick('cta_block'); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
               data-testid="home-final-cta-book-visit-button"
@@ -536,10 +536,10 @@ export default function Home() {
           <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide mb-3">READY TO TRAIN SERIOUSLY?</h2>
           <p className="text-white/85 text-base mb-6 font-semibold">Come see what a real strength gym feels like.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+            <Link to="/join"
               className="bg-white text-[var(--clr-coral)] font-bold rounded-[var(--radius-md)] px-8 py-3.5 text-sm hover:bg-white/90 transition-all duration-200 active:scale-[0.98]">
               Join Santa Cruz Strength
-            </a>
+            </Link>
             <Link to="/contact"
               className="border-2 border-white/40 text-white font-bold rounded-[var(--radius-md)] px-8 py-3.5 text-sm hover:bg-white/15 transition-all duration-200">
               Talk to a Coach

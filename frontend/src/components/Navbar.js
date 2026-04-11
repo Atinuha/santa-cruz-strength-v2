@@ -60,11 +60,11 @@ export default function Navbar() {
               <Phone size={13} />
               <span className="hidden lg:block">{GYM_CONFIG.phone}</span>
             </a>
-            <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+            <Link to="/join"
               data-testid="navbar-join-btn"
               className="btn-primary px-5 py-2 text-sm">
               Join Now
-            </a>
+            </Link>
           </div>
 
           {/* Mobile hamburger */}
@@ -99,11 +99,11 @@ export default function Navbar() {
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-[var(--clr-text-muted)]">
                 <Phone size={14} /> {GYM_CONFIG.phone}
               </a>
-              <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
+              <Link to="/join"
                 onClick={() => setOpen(false)}
                 className="btn-primary w-full text-center text-sm py-3 block">
                 Join Now
-              </a>
+              </Link>
             </div>
           </div>
         </div>

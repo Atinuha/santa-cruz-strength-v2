@@ -54,6 +54,7 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 - Daily Bounce/SMS Failure Digest — DONE (replaces individual bounce alert emails with one daily summary at 6 PM PT)
 - 2FA disabled, direct login with 90-day device tokens — DONE
 - Admin: Revoke Devices endpoint + UI button — DONE (auto-revokes on deactivate/delete too)
+- Membership pricing page with all plans, savings CTAs, and ABC Fitness signup links — DONE
 - Homepage carousels, Behold Instagram, SEO, legal pages
 - CRM: Kanban, List, search, CSV import, blacklist, source sorting
 - Auth: 2FA OTP, device remember, invite links, password resets
