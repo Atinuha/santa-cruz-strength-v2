@@ -1780,7 +1780,11 @@ async def list_events(upcoming: bool = True):
     today = now_utc().date()
     query = {'published': True}
     if upcoming:
-        query['date'] = {'$gte': today.isoformat()}
+        # Fetch events with future dates OR recurring events (whose base date may be past)
+        query['$or'] = [
+            {'date': {'$gte': today.isoformat()}},
+            {'recurring': {'$nin': ['none', '', None]}},
+        ]
     events = await db.events.find(query, {'_id': 0}).sort('date', 1).to_list(200)
 
     result = []
@@ -1804,6 +1808,7 @@ async def list_events(upcoming: bool = True):
         RECURRING_LABELS = {
             'daily': 'Every day', 'weekly': 'Every week',
             'biweekly': 'Every 2 weeks', 'monthly': 'Every month',
+            'quarterly': 'Every 3 months', 'annually': 'Every year',
         }
         try:
             base_date = date_type.fromisoformat(e['date'])
@@ -1812,7 +1817,7 @@ async def list_events(upcoming: bool = True):
 
             current = base_date
             next_date = None
-            for _ in range(365):
+            for _ in range(730):
                 if current >= today:
                     next_date = current
                     break
@@ -1823,6 +1828,18 @@ async def list_events(upcoming: bool = True):
                     year  = current.year + 1 if current.month == 12 else current.year
                     day   = min(current.day, cal_module.monthrange(year, month)[1])
                     current = date_type(year, month, day)
+                elif recurring == 'quarterly':
+                    month = current.month + 3
+                    year  = current.year
+                    while month > 12:
+                        month -= 12
+                        year += 1
+                    day = min(current.day, cal_module.monthrange(year, month)[1])
+                    current = date_type(year, month, day)
+                elif recurring == 'annually':
+                    year = current.year + 1
+                    day = min(current.day, cal_module.monthrange(year, current.month)[1])
+                    current = date_type(year, current.month, day)
                 else:
                     break
 
@@ -1876,10 +1893,50 @@ async def rsvp_event(event_id: str, data: RSVPCreate):
 
 @api_router.get('/staff/events')
 async def list_all_events(user=Depends(require_admin)):
+    from datetime import date as date_type
+    import calendar as cal_module
     events = await db.events.find({}, {'_id': 0}).sort('date', -1).to_list(200)
+    today = date_type.today()
+    DELTAS = {'daily': timedelta(days=1), 'weekly': timedelta(weeks=1), 'biweekly': timedelta(weeks=2)}
     for e in events:
         if e.get('ticket_type') == 'rsvp':
             e['rsvp_count'] = await db.event_rsvps.count_documents({'event_id': e['id']})
+        # Compute next occurrence for recurring events
+        recurring = e.get('recurring', 'none') or 'none'
+        if recurring != 'none':
+            try:
+                base_date = date_type.fromisoformat(e['date'])
+                until_str = e.get('recurring_until', '')
+                until = date_type.fromisoformat(until_str) if until_str else today + timedelta(days=365)
+                current = base_date
+                for _ in range(730):
+                    if current >= today:
+                        break
+                    if recurring in DELTAS:
+                        current += DELTAS[recurring]
+                    elif recurring == 'monthly':
+                        month = current.month + 1 if current.month < 12 else 1
+                        year  = current.year + 1 if current.month == 12 else current.year
+                        day   = min(current.day, cal_module.monthrange(year, month)[1])
+                        current = date_type(year, month, day)
+                    elif recurring == 'quarterly':
+                        month = current.month + 3
+                        year  = current.year
+                        while month > 12:
+                            month -= 12
+                            year += 1
+                        day = min(current.day, cal_module.monthrange(year, month)[1])
+                        current = date_type(year, month, day)
+                    elif recurring == 'annually':
+                        year = current.year + 1
+                        day = min(current.day, cal_module.monthrange(year, current.month)[1])
+                        current = date_type(year, current.month, day)
+                    else:
+                        break
+                if current <= until:
+                    e['next_occurrence'] = current.isoformat()
+            except Exception:
+                pass
     return events
 
 @api_router.post('/staff/events')

@@ -5,7 +5,7 @@ import { formatPhone } from '../../utils/phone';
 import ImageUploadField from '../../components/ImageUploadField';
 import {
   Plus, Trash2, Loader2, ArrowLeft, Calendar, Pencil, Eye, EyeOff,
-  ExternalLink, Users, Ticket, X, Check, ChevronDown
+  ExternalLink, Users, Ticket, X, Check, ChevronDown, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +24,8 @@ const RECURRING_OPTIONS = [
   { value: 'weekly',    label: 'Every week' },
   { value: 'biweekly',  label: 'Every 2 weeks' },
   { value: 'monthly',   label: 'Every month' },
+  { value: 'quarterly', label: 'Every 3 months' },
+  { value: 'annually',  label: 'Every year' },
 ];
 
 // Generate 5:00 AM → 11:00 PM in 30-min steps
@@ -367,7 +369,12 @@ export default function EventsManager() {
                       <span className="text-white/20">{event.category}</span>
                       {event.recurring && event.recurring !== 'none' && (
                         <span className="flex items-center gap-1 text-[10px] text-amber-300/70">
-                          🔁 {RECURRING_OPTIONS.find(r => r.value === event.recurring)?.label || event.recurring}
+                          <RefreshCw size={9} /> {RECURRING_OPTIONS.find(r => r.value === event.recurring)?.label || event.recurring}
+                        </span>
+                      )}
+                      {event.next_occurrence && event.next_occurrence !== event.date && (
+                        <span className="flex items-center gap-1 text-[10px] text-[#7FCCA6]/80 font-medium">
+                          Next: {formatDate(event.next_occurrence)}
                         </span>
                       )}
                       {event.ticket_type === 'rsvp' && (
