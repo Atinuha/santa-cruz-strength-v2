@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
-import { ArrowRight, CheckCircle2, Clock, Users, Zap, Calendar, Star, CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Users, Zap, Calendar, Star, CreditCard, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* ── Plan Data ─────────────────────────────────────────────────────── */
 
@@ -65,8 +65,8 @@ const PRIMARY_PLANS = [
     features: [
       '24/7 facility access via app',
       '13 months total (1 month FREE)',
+      'Auto-renews at end of term',
       'Unlimited open gym',
-      'Competition-grade equipment',
     ],
     terms: [
       'Paid in full at signup',
@@ -97,26 +97,6 @@ const MORE_PLANS = [
       '$50 Annual Enhancement Fee',
     ],
     link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=a772569e9c38408c90fab7b9bda49fca',
-  },
-  {
-    id: 'huscler-6',
-    name: 'Huscler 6-Month',
-    subtitle: '6-Month Agreement',
-    price: '$82',
-    per: '/mo',
-    savings: 'Save 32%',
-    icon: <Star size={18} />,
-    features: [
-      '24/7 facility access via app',
-    ],
-    terms: [
-      '6-month initial agreement',
-      'Auto-renews to month-to-month at end of term',
-      '30-day cancellation notice required',
-      '$50 Annual Enhancement Fee',
-    ],
-    link: '#',
-    placeholder: true,
   },
   {
     id: 'couples-12',
@@ -327,6 +307,89 @@ function MorePlanRow({ plan }) {
   );
 }
 
+/* ── Mobile Carousel ───────────────────────────────────────────────── */
+
+function MobileCarousel({ children }) {
+  const scrollRef = useRef(null);
+  const [active, setActive] = useState(1); // Start on "Most Popular" (index 1)
+  const count = React.Children.count(children);
+
+  const updateActive = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = el.scrollWidth / count;
+    const idx = Math.round(el.scrollLeft / cardWidth);
+    setActive(idx);
+  }, [count]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Scroll to "Most Popular" (index 1) on mount with slight delay for layout
+    const timer = setTimeout(() => {
+      const cardWidth = el.scrollWidth / count;
+      el.scrollLeft = cardWidth * 1;
+      setActive(1);
+    }, 100);
+    el.addEventListener('scroll', updateActive, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener('scroll', updateActive);
+    };
+  }, [count, updateActive]);
+
+  const scrollTo = (idx) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = el.scrollWidth / count;
+    el.scrollTo({ left: cardWidth * idx, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="relative">
+      {/* Swipe hint arrows */}
+      {active > 0 && (
+        <button onClick={() => scrollTo(active - 1)}
+          className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-md"
+          style={{ color: 'var(--clr-charcoal)' }}>
+          <ChevronLeft size={18} />
+        </button>
+      )}
+      {active < count - 1 && (
+        <button onClick={() => scrollTo(active + 1)}
+          className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-md"
+          style={{ color: 'var(--clr-charcoal)' }}>
+          <ChevronRight size={18} />
+        </button>
+      )}
+
+      <div ref={scrollRef}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 pb-4 -mx-4"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+        {React.Children.map(children, (child, i) => (
+          <div key={i} className="snap-center shrink-0" style={{ width: '85vw', maxWidth: '340px' }}>
+            {child}
+          </div>
+        ))}
+      </div>
+
+      {/* Dots + swipe hint */}
+      <div className="flex flex-col items-center gap-2 mt-3">
+        <div className="flex gap-2">
+          {Array.from({ length: count }).map((_, i) => (
+            <button key={i} onClick={() => scrollTo(i)}
+              className={`rounded-full transition-all duration-300 ${
+                i === active ? 'w-6 h-2' : 'w-2 h-2 opacity-40'
+              }`}
+              style={{ background: i === active ? 'var(--clr-green)' : 'var(--clr-charcoal)' }} />
+          ))}
+        </div>
+        <p className="text-[11px] text-[var(--clr-text-light)] animate-pulse">Swipe to compare plans</p>
+      </div>
+    </div>
+  );
+}
+
 /* ── Page ───────────────────────────────────────────────────────────── */
 
 export default function Join() {
@@ -365,12 +428,21 @@ export default function Join() {
 
       {/* Primary Plans — 3 cards */}
       <section className="pb-8">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+        {/* Desktop: grid */}
+        <div className="hidden md:block max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-3 gap-5 items-stretch">
             {PRIMARY_PLANS.map(plan => (
               <PrimaryCard key={plan.id} plan={plan} />
             ))}
           </div>
+        </div>
+        {/* Mobile: swipe carousel */}
+        <div className="md:hidden">
+          <MobileCarousel>
+            {PRIMARY_PLANS.map(plan => (
+              <PrimaryCard key={plan.id} plan={plan} />
+            ))}
+          </MobileCarousel>
         </div>
       </section>
 
