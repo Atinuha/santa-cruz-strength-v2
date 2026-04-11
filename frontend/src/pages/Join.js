@@ -4,289 +4,342 @@ import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import { ArrowRight, CheckCircle2, Clock, Users, Zap, Calendar, Star, CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
 
-const PLANS = {
-  daypass: {
+/* ── Plan Data ─────────────────────────────────────────────────────── */
+
+const PRIMARY_PLANS = [
+  {
+    id: 'daypass',
     name: 'Day Pass',
     price: '$20',
-    per: 'one-time',
+    per: '',
+    highlight: false,
     tag: 'Try Us Out',
-    tagColor: 'bg-amber-500/15 text-amber-600 border-amber-500/25',
+    tagColor: 'bg-amber-500/15 text-amber-700 border-amber-500/25',
+    icon: <Clock size={20} />,
     features: [
       'Valid for same-day use only',
-      'Access limited to staffed hours (9am-9pm)',
+      'Access during staffed hours (9am-9pm)',
     ],
+    terms: [],
     link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=50837530f58641c38108fea62255030b',
-    icon: <Clock size={20} />,
+    cta: 'Get a Day Pass',
   },
-  flex: {
+  {
+    id: 'huscler-12',
+    name: 'Huscler',
+    subtitle: '12-Month Membership',
+    price: '$75',
+    per: '/mo',
+    highlight: true,
+    tag: 'Most Popular',
+    tagColor: '',
+    icon: <Star size={20} />,
+    savings: 'Save 38%',
+    compareText: 'vs. $120/mo month-to-month',
+    features: [
+      '24/7 facility access via app',
+      'Unlimited open gym',
+      'Competition-grade equipment',
+    ],
+    terms: [
+      '12-month initial agreement',
+      'Auto-renews to month-to-month at end of term',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
+    ],
+    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=823263ef0c354fd29bade28c18f280f2',
+    cta: 'Join Now',
+  },
+  {
+    id: 'annual',
+    name: 'Annual Huscler',
+    subtitle: 'Paid-in-Full \u2022 Get 1 Month FREE',
+    price: '$825',
+    per: ' one-time',
+    highlight: false,
+    tag: 'Best Value',
+    tagColor: 'bg-[var(--clr-green)]/10 text-[var(--clr-green)] border-[var(--clr-green)]/20',
+    icon: <CreditCard size={20} />,
+    savings: 'Save 47%',
+    monthlyEquiv: '$63/mo effective',
+    features: [
+      '24/7 facility access via app',
+      '13 months total (1 month FREE)',
+      'Unlimited open gym',
+      'Competition-grade equipment',
+    ],
+    terms: [
+      'Paid in full at signup',
+      'Auto-renews to month-to-month at end of term',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
+    ],
+    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=7a1dd8cec5cd4f30af82429e4f5957c5',
+    cta: 'Get 13 Months',
+  },
+];
+
+const MORE_PLANS = [
+  {
+    id: 'flex',
     name: 'Flex Huscler',
-    subtitle: 'Month-to-Month, No Commitment',
+    subtitle: 'Month-to-Month \u2022 No Commitment',
     price: '$120',
     per: '/mo',
-    tag: 'No Commitment',
-    tagColor: 'bg-blue-500/12 text-blue-600 border-blue-500/20',
+    icon: <Zap size={18} />,
     features: [
       '24/7 facility access via app',
-      'Bills monthly until canceled',
-      'Requires 30-day cancellation notice',
+      'No agreement required',
+    ],
+    terms: [
+      'Billed monthly until canceled',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
     ],
     link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=a772569e9c38408c90fab7b9bda49fca',
-    icon: <Zap size={20} />,
   },
-  huscler: {
-    name: 'Huscler',
-    subtitle: 'Commitment Membership',
-    icon: <Star size={20} />,
-    options: [
-      {
-        term: '12 Month',
-        price: '$75',
-        per: '/mo',
-        savings: 'Save 38%',
-        compareText: 'vs. $120/mo no commitment',
-        popular: true,
-        link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=823263ef0c354fd29bade28c18f280f2',
-      },
-      {
-        term: '6 Month',
-        price: '$82',
-        per: '/mo',
-        savings: 'Save 32%',
-        compareText: 'vs. $120/mo no commitment',
-        link: '#', // placeholder
-        placeholder: true,
-      },
-    ],
+  {
+    id: 'huscler-6',
+    name: 'Huscler 6-Month',
+    subtitle: '6-Month Agreement',
+    price: '$82',
+    per: '/mo',
+    savings: 'Save 32%',
+    icon: <Star size={18} />,
     features: [
       '24/7 facility access via app',
-      'Initial agreement term required',
-      'Renews to month-to-month at end of term',
-      'Requires 30-day cancellation notice',
     ],
+    terms: [
+      '6-month initial agreement',
+      'Auto-renews to month-to-month at end of term',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
+    ],
+    link: '#',
+    placeholder: true,
   },
-  couples: {
-    name: 'Couples',
-    subtitle: '2 Members, 1 Price',
-    icon: <Users size={20} />,
-    options: [
-      {
-        term: '12 Month',
-        price: '$120',
-        per: '/mo',
-        perPerson: '$60/person',
-        savings: 'Best Value',
-        compareText: 'for 2 people',
-        link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=fdf12470797b47a1a6ac3c11c764d46e',
-      },
-      {
-        term: '6 Month',
-        price: '$136',
-        per: '/mo',
-        perPerson: '$68/person',
-        compareText: 'for 2 people',
-        link: '#', // placeholder
-        placeholder: true,
-      },
-    ],
+  {
+    id: 'couples-12',
+    name: 'Couples 12-Month',
+    subtitle: '2 Members \u2022 12-Month Agreement',
+    price: '$120',
+    per: '/mo',
+    extra: '$60/person',
+    icon: <Users size={18} />,
     features: [
       'Includes 2 members',
       '24/7 facility access via app',
-      'Initial agreement term required',
-      'Renews to month-to-month at end of term',
-      'Requires 30-day cancellation notice',
     ],
+    terms: [
+      '12-month initial agreement',
+      'Auto-renews to month-to-month at end of term',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
+    ],
+    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=fdf12470797b47a1a6ac3c11c764d46e',
   },
-  weekend: {
-    name: 'Weekend Warrior',
-    subtitle: 'Friday-Sunday Access',
-    icon: <Calendar size={20} />,
-    options: [
-      {
-        term: '12 Month',
-        price: '$45',
-        per: '/mo',
-        savings: 'Save 63%',
-        compareText: 'vs. $120/mo full access',
-        link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=11b156f6da6e43289a145de648034aa9',
-      },
-      {
-        term: '6 Month',
-        price: '$55',
-        per: '/mo',
-        savings: 'Save 54%',
-        compareText: 'vs. $120/mo full access',
-        link: '#', // placeholder
-        placeholder: true,
-      },
-    ],
+  {
+    id: 'couples-6',
+    name: 'Couples 6-Month',
+    subtitle: '2 Members \u2022 6-Month Agreement',
+    price: '$136',
+    per: '/mo',
+    extra: '$68/person',
+    icon: <Users size={18} />,
     features: [
-      'Access limited to Friday-Sunday',
-      'Initial agreement term required',
-      'Renews to month-to-month at end of term',
-      'Requires 30-day cancellation notice',
-    ],
-  },
-  annual: {
-    name: 'Annual Huscler',
-    subtitle: 'Paid in Full - Get 1 Month Free',
-    price: '$900',
-    per: '/year',
-    tag: '13 Months',
-    tagColor: 'bg-[var(--clr-green)]/12 text-[var(--clr-green)] border-[var(--clr-green)]/20',
-    monthlyEquiv: '$69/mo effective',
-    savings: 'Save 42%',
-    features: [
+      'Includes 2 members',
       '24/7 facility access via app',
-      'Paid in full membership',
-      'Includes 1 free month (13 months total)',
-      'Renews to month-to-month at end of term',
-      'Requires 30-day cancellation notice',
     ],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=7a1dd8cec5cd4f30af82429e4f5957c5',
-    icon: <CreditCard size={20} />,
+    terms: [
+      '6-month initial agreement',
+      'Auto-renews to month-to-month at end of term',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
+    ],
+    link: '#',
+    placeholder: true,
   },
-};
+  {
+    id: 'weekend-12',
+    name: 'Weekend Warrior 12-Month',
+    subtitle: 'Friday\u2013Sunday Access Only',
+    price: '$45',
+    per: '/mo',
+    savings: 'Save 63%',
+    icon: <Calendar size={18} />,
+    features: [
+      'Access limited to Friday\u2013Sunday',
+    ],
+    terms: [
+      '12-month initial agreement',
+      'Auto-renews to month-to-month at end of term',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
+    ],
+    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=11b156f6da6e43289a145de648034aa9',
+  },
+  {
+    id: 'weekend-6',
+    name: 'Weekend Warrior 6-Month',
+    subtitle: 'Friday\u2013Sunday Access Only',
+    price: '$55',
+    per: '/mo',
+    savings: 'Save 54%',
+    icon: <Calendar size={18} />,
+    features: [
+      'Access limited to Friday\u2013Sunday',
+    ],
+    terms: [
+      '6-month initial agreement',
+      'Auto-renews to month-to-month at end of term',
+      '30-day cancellation notice required',
+      '$50 Annual Enhancement Fee',
+    ],
+    link: '#',
+    placeholder: true,
+  },
+];
+
+/* ── Components ────────────────────────────────────────────────────── */
 
 function SavingsBadge({ text }) {
   return (
-    <span className="inline-flex items-center text-[11px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+    <span className="inline-flex items-center text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
       style={{ background: 'var(--clr-coral)', color: '#fff' }}>
       {text}
     </span>
   );
 }
 
-function PopularBadge() {
-  return (
-    <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 text-[11px] font-bold uppercase tracking-wider px-4 py-1 rounded-full"
-      style={{ background: 'var(--clr-green)', color: '#fff', letterSpacing: '0.08em' }}>
-      Most Popular
-    </span>
-  );
-}
+function PrimaryCard({ plan }) {
+  const isPopular = plan.highlight;
 
-/* ── Simple single-price card (Day Pass, Flex, Annual) ─────────────── */
-function SimpleCard({ plan }) {
   return (
-    <div className="relative card-light rounded-[var(--radius-xl)] p-6 flex flex-col h-full" data-testid={`plan-${plan.name.toLowerCase().replace(/\s/g, '-')}`}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--clr-bg-green)', color: 'var(--clr-green)' }}>
-          {plan.icon}
-        </div>
-        <div>
-          <h3 className="font-display text-lg tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>{plan.name}</h3>
-          {plan.subtitle && <p className="text-[var(--clr-text-muted)] text-xs">{plan.subtitle}</p>}
-        </div>
-      </div>
-      {plan.tag && (
-        <span className={`self-start text-[11px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full border mb-3 ${plan.tagColor}`}>
+    <div className={`relative rounded-[var(--radius-xl)] flex flex-col h-full transition-all duration-300 ${
+      isPopular
+        ? 'p-7 bg-white scale-[1.02] z-10'
+        : 'p-6 card-light'
+    }`}
+      style={isPopular ? { boxShadow: '0 0 0 2.5px var(--clr-green), 0 20px 60px rgba(13,93,62,0.15)' } : {}}
+      data-testid={`plan-${plan.id}`}>
+
+      {isPopular && (
+        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 text-[11px] font-bold uppercase tracking-wider px-5 py-1.5 rounded-full"
+          style={{ background: 'var(--clr-green)', color: '#fff', letterSpacing: '0.08em' }}>
+          Most Popular
+        </span>
+      )}
+
+      {!isPopular && plan.tag && (
+        <span className={`self-start text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border mb-3 ${plan.tagColor}`}>
           {plan.tag}
         </span>
       )}
+
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'var(--clr-bg-green)', color: 'var(--clr-green)' }}>
+          {plan.icon}
+        </div>
+        <div>
+          <h3 className="font-display text-xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>{plan.name}</h3>
+          {plan.subtitle && <p className="text-[var(--clr-text-muted)] text-xs">{plan.subtitle}</p>}
+        </div>
+      </div>
+
       <div className="flex items-baseline gap-1 mb-1">
-        <span className="text-3xl font-bold" style={{ color: 'var(--clr-charcoal)' }}>{plan.price}</span>
+        <span className={`font-bold ${isPopular ? 'text-4xl' : 'text-3xl'}`} style={{ color: 'var(--clr-charcoal)' }}>{plan.price}</span>
         <span className="text-sm text-[var(--clr-text-muted)]">{plan.per}</span>
       </div>
-      {plan.monthlyEquiv && <p className="text-sm font-semibold" style={{ color: 'var(--clr-green)' }}>{plan.monthlyEquiv}</p>}
-      {plan.savings && <div className="mt-1 mb-2"><SavingsBadge text={plan.savings} /></div>}
-      <ul className="space-y-2 mt-4 mb-6 flex-1">
+
+      {plan.monthlyEquiv && <p className="text-sm font-bold" style={{ color: 'var(--clr-green)' }}>{plan.monthlyEquiv}</p>}
+
+      <div className="flex flex-wrap items-center gap-2 mt-1.5 mb-4">
+        {plan.savings && <SavingsBadge text={plan.savings} />}
+        {plan.compareText && <span className="text-xs text-[var(--clr-text-light)]">{plan.compareText}</span>}
+      </div>
+
+      <ul className="space-y-2.5 mb-4 flex-1">
         {plan.features.map((f, i) => (
-          <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--clr-text)]">
-            <CheckCircle2 size={14} style={{ color: 'var(--clr-green)', marginTop: 2 }} className="shrink-0" />
+          <li key={i} className="flex items-start gap-2.5 text-[13px] font-medium text-[var(--clr-text)]">
+            <CheckCircle2 size={15} style={{ color: 'var(--clr-green)', marginTop: 1 }} className="shrink-0" />
             {f}
           </li>
         ))}
       </ul>
+
+      {plan.terms && plan.terms.length > 0 && (
+        <div className="border-t pt-3 mb-5" style={{ borderColor: 'var(--clr-border)' }}>
+          {plan.terms.map((t, i) => (
+            <p key={i} className="text-[11px] text-[var(--clr-text-light)] leading-relaxed">{t}</p>
+          ))}
+        </div>
+      )}
+
       <a href={plan.link} target="_blank" rel="noopener noreferrer"
-        data-testid={`join-${plan.name.toLowerCase().replace(/\s/g, '-')}`}
-        className="btn-primary w-full py-3 text-sm text-center block">
-        Get Started <ArrowRight size={14} />
+        data-testid={`join-${plan.id}`}
+        className={`w-full py-3.5 text-sm text-center block font-bold rounded-[var(--radius-md)] transition-all duration-200 ${
+          isPopular
+            ? 'btn-coral'
+            : 'btn-primary'
+        }`}>
+        {plan.cta} <ArrowRight size={14} className="inline ml-1" />
       </a>
     </div>
   );
 }
 
-/* ── Multi-option card (Huscler, Couples, Weekend) ─────────────────── */
-function MultiCard({ plan }) {
-  const [selected, setSelected] = useState(0);
-  const opt = plan.options[selected];
-  const popular = plan.options.some(o => o.popular);
-
+function MorePlanRow({ plan }) {
   return (
-    <div className={`relative rounded-[var(--radius-xl)] p-6 flex flex-col h-full ${popular ? 'ring-2' : 'card-light'}`}
-      style={popular ? { background: '#fff', borderColor: 'var(--clr-green)', ringColor: 'var(--clr-green)', boxShadow: '0 0 0 2px var(--clr-green), var(--shadow-lg)' } : {}}
-      data-testid={`plan-${plan.name.toLowerCase().replace(/\s/g, '-')}`}>
-      {popular && <PopularBadge />}
-
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--clr-bg-green)', color: 'var(--clr-green)' }}>
+    <div className="flex items-center justify-between py-4 border-b last:border-b-0" style={{ borderColor: 'var(--clr-border)' }}
+      data-testid={`plan-${plan.id}`}>
+      <div className="flex items-center gap-3 flex-1">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--clr-bg-green)', color: 'var(--clr-green)' }}>
           {plan.icon}
         </div>
-        <div>
-          <h3 className="font-display text-lg tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>{plan.name}</h3>
-          {plan.subtitle && <p className="text-[var(--clr-text-muted)] text-xs">{plan.subtitle}</p>}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="font-display text-sm tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>{plan.name}</h4>
+            {plan.savings && (
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
+                style={{ background: 'var(--clr-coral)', color: '#fff' }}>{plan.savings}</span>
+            )}
+          </div>
+          <p className="text-xs text-[var(--clr-text-muted)] truncate">{plan.subtitle}</p>
         </div>
       </div>
-
-      {/* Term toggle */}
-      <div className="flex gap-2 mb-4">
-        {plan.options.map((o, i) => (
-          <button key={i} onClick={() => setSelected(i)}
-            className={`flex-1 text-xs font-bold py-2 px-3 rounded-lg border transition-all duration-200 ${
-              selected === i
-                ? 'text-white border-transparent'
-                : 'text-[var(--clr-text-muted)] border-[var(--clr-border)] hover:border-[var(--clr-green)]/40'
-            }`}
-            style={selected === i ? { background: 'var(--clr-green)' } : {}}
-            data-testid={`term-toggle-${plan.name.toLowerCase().replace(/\s/g, '-')}-${o.term.toLowerCase().replace(/\s/g, '-')}`}>
-            {o.term}
-          </button>
-        ))}
+      <div className="flex items-center gap-4 shrink-0 ml-4">
+        <div className="text-right">
+          <span className="text-lg font-bold" style={{ color: 'var(--clr-charcoal)' }}>{plan.price}</span>
+          <span className="text-xs text-[var(--clr-text-muted)]">{plan.per}</span>
+          {plan.extra && <p className="text-xs font-semibold" style={{ color: 'var(--clr-green)' }}>{plan.extra}</p>}
+        </div>
+        {plan.placeholder ? (
+          <span className="text-xs font-semibold text-gray-400 px-4 py-2 rounded-lg bg-gray-100">Coming Soon</span>
+        ) : (
+          <a href={plan.link} target="_blank" rel="noopener noreferrer"
+            data-testid={`join-${plan.id}`}
+            className="btn-primary px-5 py-2 text-xs whitespace-nowrap">
+            Join <ArrowRight size={12} className="inline ml-1" />
+          </a>
+        )}
       </div>
-
-      <div className="flex items-baseline gap-1 mb-1">
-        <span className="text-3xl font-bold" style={{ color: 'var(--clr-charcoal)' }}>{opt.price}</span>
-        <span className="text-sm text-[var(--clr-text-muted)]">{opt.per}</span>
-      </div>
-      {opt.perPerson && <p className="text-sm font-semibold" style={{ color: 'var(--clr-green)' }}>{opt.perPerson}</p>}
-      <div className="flex items-center gap-2 mt-1 mb-2">
-        {opt.savings && <SavingsBadge text={opt.savings} />}
-        {opt.compareText && <span className="text-xs text-[var(--clr-text-light)]">{opt.compareText}</span>}
-      </div>
-
-      <ul className="space-y-2 mt-3 mb-6 flex-1">
-        {plan.features.map((f, i) => (
-          <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--clr-text)]">
-            <CheckCircle2 size={14} style={{ color: 'var(--clr-green)', marginTop: 2 }} className="shrink-0" />
-            {f}
-          </li>
-        ))}
-      </ul>
-
-      {opt.placeholder ? (
-        <button disabled className="w-full py-3 text-sm text-center rounded-[var(--radius-md)] bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
-          Coming Soon
-        </button>
-      ) : (
-        <a href={opt.link} target="_blank" rel="noopener noreferrer"
-          data-testid={`join-${plan.name.toLowerCase().replace(/\s/g, '-')}-${opt.term.toLowerCase().replace(/\s/g, '-')}`}
-          className={popular && selected === 0 ? 'btn-coral w-full py-3 text-sm text-center block' : 'btn-primary w-full py-3 text-sm text-center block'}>
-          Join Now <ArrowRight size={14} />
-        </a>
-      )}
     </div>
   );
 }
 
+/* ── Page ───────────────────────────────────────────────────────────── */
+
 export default function Join() {
+  const [showMore, setShowMore] = useState(false);
   const [showFaq, setShowFaq] = useState(null);
 
   const faqs = [
     { q: 'What does 24/7 access mean?', a: 'Members get 24/7 access to the facility via our mobile app. Day pass holders are limited to staffed hours (9am-9pm).' },
-    { q: 'What is the Annual Enhancement Fee?', a: 'A $50 Annual Enhancement Fee applies to all memberships. This helps us maintain and upgrade equipment, facilities, and member experience.' },
-    { q: 'How do cancellations work?', a: 'All memberships require a 30-day cancellation notice. Commitment memberships (6mo/12mo) cannot be canceled before the initial term ends. After the term, they renew to month-to-month and can be canceled with 30-day notice.' },
+    { q: 'What is the $50 Annual Enhancement Fee?', a: 'A $50 Annual Enhancement Fee applies to all memberships once per year. This helps us maintain and upgrade equipment, facilities, and member experience.' },
+    { q: 'How do cancellations work?', a: 'All memberships require a 30-day cancellation notice prior to your last billing date. Commitment memberships (6mo/12mo) cannot be canceled before the initial term ends. After the term, they auto-renew to month-to-month and can be canceled with 30-day notice.' },
+    { q: 'What happens after my commitment term ends?', a: 'All commitment memberships (6-month, 12-month, and annual paid-in-full) automatically renew to an open month-to-month membership at the end of the initial term. You can then cancel anytime with 30-day notice.' },
     { q: 'Can I freeze my membership?', a: 'Yes. Talk to staff about freeze options if you need a temporary hold on your membership.' },
-    { q: 'What happens after my commitment term ends?', a: 'All commitment memberships automatically renew to an open month-to-month membership at the end of the initial term. You can then cancel anytime with 30-day notice.' },
+    { q: 'Is the Flex Huscler really no commitment?', a: 'Yes. The Flex Huscler is billed monthly with no agreement. It will continue to bill each month until you cancel with a 30-day notice.' },
   ];
 
   return (
@@ -294,61 +347,83 @@ export default function Join() {
       <Navbar />
 
       {/* Hero */}
-      <section className="pt-32 pb-12 sm:pb-16" style={{ background: 'var(--clr-bg)' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+      <section className="pt-32 pb-10 sm:pb-14" style={{ background: 'var(--clr-bg)' }}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <span className="green-accent-line mx-auto" />
           <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Memberships</p>
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wide mb-4" style={{ color: 'var(--clr-charcoal)' }}>
             FIND YOUR FIT
           </h1>
-          <p className="text-[var(--clr-text)] text-base max-w-2xl mx-auto">
-            From day passes to annual commitments. The longer you commit, the more you save.
-            <span className="block mt-1 font-semibold" style={{ color: 'var(--clr-coral)' }}>Save up to 42% with an annual membership.</span>
+          <p className="text-[var(--clr-text)] text-base max-w-xl mx-auto mb-2">
+            Three simple options. The longer you commit, the more you save.
+          </p>
+          <p className="text-sm font-bold" style={{ color: 'var(--clr-coral)' }}>
+            Save up to 47% with an annual paid-in-full membership.
           </p>
         </div>
       </section>
 
-      {/* Pricing Cards */}
-      <section className="pb-16 sm:pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-
-          {/* Row 1: Day Pass + Flex + Huscler */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <SimpleCard plan={PLANS.daypass} />
-            <SimpleCard plan={PLANS.flex} />
-            <MultiCard plan={PLANS.huscler} />
-          </div>
-
-          {/* Row 2: Couples + Weekend + Annual */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <MultiCard plan={PLANS.couples} />
-            <MultiCard plan={PLANS.weekend} />
-            <SimpleCard plan={PLANS.annual} />
+      {/* Primary Plans — 3 cards */}
+      <section className="pb-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+            {PRIMARY_PLANS.map(plan => (
+              <PrimaryCard key={plan.id} plan={plan} />
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Comparison highlight */}
+      {/* More Options — expandable */}
+      <section className="pb-14 sm:pb-18">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <button onClick={() => setShowMore(!showMore)}
+            data-testid="show-more-plans"
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl border-2 border-dashed transition-all duration-200 hover:border-[var(--clr-green)]/50"
+            style={{ color: 'var(--clr-green)', borderColor: 'var(--clr-border)' }}>
+            {showMore ? 'Hide additional plans' : 'Need something different? See all plans'}
+            {showMore ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {showMore && (
+            <div className="mt-4 rounded-[var(--radius-xl)] bg-white border px-6" style={{ borderColor: 'var(--clr-border)', boxShadow: 'var(--shadow-sm)' }}>
+              {MORE_PLANS.map(plan => (
+                <MorePlanRow key={plan.id} plan={plan} />
+              ))}
+              <div className="py-3">
+                <p className="text-[11px] text-[var(--clr-text-light)]">
+                  All memberships: $50 Annual Enhancement Fee applies. All cancellations require 30-day notice prior to last billing date.
+                  Commitment memberships auto-renew to open month-to-month at end of initial term.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Why Commit — social proof / comparison */}
       <section className="py-12 border-y" style={{ borderColor: 'var(--clr-border)', background: 'var(--clr-bg-green)' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="font-display text-2xl tracking-wide mb-6" style={{ color: 'var(--clr-charcoal)' }}>WHY COMMIT?</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="p-5 rounded-xl bg-white" style={{ boxShadow: 'var(--shadow-sm)' }}>
-              <p className="text-sm text-[var(--clr-text-muted)] mb-1">No Commitment</p>
-              <p className="text-2xl font-bold" style={{ color: 'var(--clr-charcoal)' }}>$120<span className="text-sm font-normal text-[var(--clr-text-muted)]">/mo</span></p>
+          <h2 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>WHY COMMIT?</h2>
+          <p className="text-sm text-[var(--clr-text-muted)] mb-6">Same gym. Same access. Just smarter pricing.</p>
+          <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+            <div className="p-4 rounded-xl bg-white" style={{ boxShadow: 'var(--shadow-sm)' }}>
+              <p className="text-[11px] text-[var(--clr-text-muted)] mb-1 uppercase tracking-wide font-bold">Monthly</p>
+              <p className="text-xl font-bold" style={{ color: 'var(--clr-charcoal)' }}>$120</p>
+              <p className="text-[11px] text-[var(--clr-text-light)]">/mo</p>
             </div>
-            <div className="p-5 rounded-xl bg-white border-2" style={{ borderColor: 'var(--clr-green)', boxShadow: 'var(--shadow-md)' }}>
-              <p className="text-sm font-bold mb-1" style={{ color: 'var(--clr-green)' }}>12 Month Commitment</p>
-              <p className="text-2xl font-bold" style={{ color: 'var(--clr-charcoal)' }}>$75<span className="text-sm font-normal text-[var(--clr-text-muted)]">/mo</span></p>
-              <p className="text-xs font-bold mt-1" style={{ color: 'var(--clr-coral)' }}>Save $540/year</p>
+            <div className="p-4 rounded-xl bg-white border-2 relative" style={{ borderColor: 'var(--clr-green)', boxShadow: 'var(--shadow-md)' }}>
+              <p className="text-[11px] font-bold mb-1 uppercase tracking-wide" style={{ color: 'var(--clr-green)' }}>12-Month</p>
+              <p className="text-xl font-bold" style={{ color: 'var(--clr-charcoal)' }}>$75</p>
+              <p className="text-[11px] font-bold" style={{ color: 'var(--clr-coral)' }}>Save $540/yr</p>
             </div>
-            <div className="p-5 rounded-xl bg-white" style={{ boxShadow: 'var(--shadow-sm)' }}>
-              <p className="text-sm text-[var(--clr-text-muted)] mb-1">Annual (Paid in Full)</p>
-              <p className="text-2xl font-bold" style={{ color: 'var(--clr-charcoal)' }}>~$69<span className="text-sm font-normal text-[var(--clr-text-muted)]">/mo</span></p>
-              <p className="text-xs font-bold mt-1" style={{ color: 'var(--clr-coral)' }}>Save $540+ plus 1 free month</p>
+            <div className="p-4 rounded-xl bg-white" style={{ boxShadow: 'var(--shadow-sm)' }}>
+              <p className="text-[11px] text-[var(--clr-text-muted)] mb-1 uppercase tracking-wide font-bold">Annual PIF</p>
+              <p className="text-xl font-bold" style={{ color: 'var(--clr-charcoal)' }}>$63</p>
+              <p className="text-[11px] font-bold" style={{ color: 'var(--clr-coral)' }}>Save $684/yr</p>
             </div>
           </div>
-          <p className="text-xs text-[var(--clr-text-light)] mt-4">$50 Annual Enhancement Fee applies to all memberships</p>
+          <p className="text-[11px] text-[var(--clr-text-light)] mt-4">$50 Annual Enhancement Fee applies to all memberships</p>
         </div>
       </section>
 
@@ -364,7 +439,7 @@ export default function Join() {
                   style={{ color: 'var(--clr-charcoal)' }}
                   data-testid={`faq-toggle-${i}`}>
                   {faq.q}
-                  {showFaq === i ? <ChevronUp size={16} className="text-[var(--clr-text-muted)]" /> : <ChevronDown size={16} className="text-[var(--clr-text-muted)]" />}
+                  {showFaq === i ? <ChevronUp size={16} className="shrink-0 ml-2 text-[var(--clr-text-muted)]" /> : <ChevronDown size={16} className="shrink-0 ml-2 text-[var(--clr-text-muted)]" />}
                 </button>
                 {showFaq === i && (
                   <div className="px-5 pb-4 text-sm text-[var(--clr-text)] leading-relaxed border-t" style={{ borderColor: 'var(--clr-border)' }}>
