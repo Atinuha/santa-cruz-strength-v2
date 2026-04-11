@@ -678,50 +678,32 @@ async def login(req: LoginRequest):
     if not user.get('is_active', True):
         raise HTTPException(status_code=403, detail='Account disabled')
 
-    # Check if a valid remembered device token was supplied
-    device_token = (getattr(req, 'device_token', None) or '').strip()
-    if device_token:
-        device_record = await db.device_tokens.find_one({
-            'email': user['email'],
-            'token': device_token,
-            'used': False,
-        })
-        if device_record:
-            exp = datetime.fromisoformat(device_record['expires_at'].replace('Z', '+00:00'))
-            if exp.tzinfo is None:
-                exp = exp.replace(tzinfo=timezone.utc)
-            if now_utc() < exp:
-                # Valid remembered device — skip OTP, issue JWT directly
-                token = create_token({'sub': user['id']})
-                logger.info(f'[AUTH] Device token valid for {user["email"]} — OTP skipped')
-                return {
-                    'access_token': token,
-                    'token_type': 'bearer',
-                    'step': 'authenticated',
-                    'user': {'id': user['id'], 'name': user['name'], 'email': user['email'],
-                             'role': user['role'], 'location': user.get('location', 'santa_cruz')}
-                }
-            else:
-                # Expired — clean it up
-                await db.device_tokens.delete_one({'_id': device_record['_id']})
+    # 2FA is disabled — issue JWT directly on valid credentials
+    token = create_token({'sub': user['id']})
+    logger.info(f'[AUTH] Direct login for {user["email"]} — 2FA disabled')
 
-    # No valid device token — require OTP
-    otp = ''.join(random.choices(string.digits, k=6))
-    expires = now_utc() + timedelta(minutes=10)
-    await db.auth_otps.delete_many({'email': user['email']})
-    await db.auth_otps.insert_one({
+    # Always issue a long-lived device token (90 days)
+    device_token = str(uuid.uuid4())
+    device_expires = now_utc() + timedelta(days=90)
+    await db.device_tokens.delete_many({'email': user['email']})
+    await db.device_tokens.insert_one({
         'email': user['email'],
-        'otp': otp,
-        'expires_at': expires.isoformat(),
+        'token': device_token,
+        'expires_at': device_expires.isoformat(),
         'used': False,
+        'created_at': now_utc().isoformat(),
+        'user_agent': getattr(req, 'user_agent', ''),
     })
-    await send_resend_email(
-        to=user['email'],
-        subject='Your Santa Cruz Strength login code',
-        html=_otp_email_html(user.get('name', 'there'), otp),
-        from_override=SECURITY_FROM,
-    )
-    return {'step': 'otp_required', 'message': f'Code sent to {user["email"]}'}
+
+    return {
+        'access_token': token,
+        'token_type': 'bearer',
+        'step': 'authenticated',
+        'device_token': device_token,
+        'device_token_expires': device_expires.isoformat(),
+        'user': {'id': user['id'], 'name': user['name'], 'email': user['email'],
+                 'role': user['role'], 'location': user.get('location', 'santa_cruz')}
+    }
 
 @api_router.post('/auth/verify-otp')
 async def verify_otp(req: dict):
@@ -1396,6 +1378,10 @@ async def update_user(user_id: str, data: UserUpdate, user=Depends(require_admin
     if data.role is not None: update['role'] = data.role
     if data.is_active is not None: update['is_active'] = data.is_active
     await db.users.update_one({'id': user_id}, {'$set': update})
+    # Auto-revoke all device tokens when deactivating a user
+    if data.is_active is False:
+        await db.device_tokens.delete_many({'email': target['email']})
+        logger.info(f'[AUTH] Device tokens revoked for deactivated user {target["email"]}')
     updated = await db.users.find_one({'id': user_id}, {'_id': 0, 'password_hash': 0})
     return updated
 
@@ -1411,7 +1397,19 @@ async def delete_user(user_id: str, user=Depends(require_admin)):
     result = await db.users.delete_one({'id': user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail='User not found')
+    # Revoke all device tokens when deleting a user
+    await db.device_tokens.delete_many({'email': target['email']})
     return {'message': 'User deleted'}
+
+@api_router.post('/staff/users/{user_id}/revoke-devices')
+async def revoke_user_devices(user_id: str, user=Depends(require_admin)):
+    """Admin: revoke all remembered device tokens for a user (stolen device, security concern)."""
+    target = await db.users.find_one({'id': user_id})
+    if not target:
+        raise HTTPException(status_code=404, detail='User not found')
+    result = await db.device_tokens.delete_many({'email': target['email']})
+    logger.info(f'[AUTH] Admin {user["email"]} revoked {result.deleted_count} device(s) for {target["email"]}')
+    return {'message': f'Revoked {result.deleted_count} device token(s) for {target["email"]}', 'revoked': result.deleted_count}
 
 # --------------- Staffed Hours Settings ---------------
 

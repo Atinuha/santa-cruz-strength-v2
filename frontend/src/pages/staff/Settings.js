@@ -3,13 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getUsers, createUser, updateUser, deleteUser, updateMe,
-  getInvites, createInvite, revokeInvite,
+  getInvites, createInvite, revokeInvite, revokeUserDevices,
   importLeadsCSV, downloadCSVTemplate,
   getStaffedHours, updateStaffedHours
 } from '../../lib/api';
 import {
   ArrowLeft, Plus, Trash2, Loader2, LogOut, Shield, User,
-  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock, CalendarDays, MessageSquare, Phone as PhoneIcon, KeyRound
+  Mail, Copy, Check, X, Upload, Download, RefreshCw, Clock, CalendarDays, MessageSquare, Phone as PhoneIcon, KeyRound, Smartphone
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
@@ -151,6 +151,14 @@ export default function Settings() {
       toast.success('User deleted');
       fetchAll();
     } catch (err) { toast.error(err.response?.data?.detail || 'Failed to delete user'); }
+  };
+
+  const handleRevokeDevices = async (u) => {
+    if (!window.confirm(`Revoke all remembered devices for ${u.name}? They will need to log in again.`)) return;
+    try {
+      const res = await revokeUserDevices(u.id);
+      toast.success(res.data?.message || 'Devices revoked');
+    } catch (err) { toast.error(err.response?.data?.detail || 'Failed to revoke devices'); }
   };
 
   const handleSendReset = async (u) => {
@@ -439,6 +447,14 @@ export default function Settings() {
                               data-testid={`send-reset-${u.id}`}
                               className="text-[#7FCCA6]/60 hover:text-[#7FCCA6] p-1.5 rounded transition-colors duration-200">
                               <KeyRound size={13} />
+                            </button>
+                          )}
+                          {isOwner && (
+                            <button onClick={() => handleRevokeDevices(u)}
+                              title="Revoke all remembered devices"
+                              data-testid={`revoke-devices-${u.id}`}
+                              className="text-orange-400/50 hover:text-orange-400 p-1.5 rounded transition-colors duration-200">
+                              <Smartphone size={13} />
                             </button>
                           )}
                           <button onClick={() => handleDeleteUser(u)} data-testid="crm-settings-delete-account-button"

@@ -61,6 +61,7 @@ export const getUsers = () => api.get('/staff/users');
 export const createUser = (data) => api.post('/staff/users', data);
 export const updateUser = (id, data) => api.put(`/staff/users/${id}`, data);
 export const deleteUser = (id) => api.delete(`/staff/users/${id}`);
+export const revokeUserDevices = (id) => api.post(`/staff/users/${id}/revoke-devices`);
 
 // Invites
 export const getInvites = () => api.get('/staff/invites');

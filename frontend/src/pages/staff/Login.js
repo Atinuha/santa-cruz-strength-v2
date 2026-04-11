@@ -60,27 +60,28 @@ export default function StaffLogin() {
     rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 focus:border-transparent
     transition-colors duration-200`;
 
-  // ── Step 1: submit credentials ─────────────────────────────────────────────
+  // ── Submit credentials — direct login (2FA disabled) ───────────────────────
   const handleCredentials = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      // Include remembered device token if available for this email
-      const deviceToken = getStoredDeviceToken(email);
-      const res = await apiLogin(email, password, deviceToken);
+      const res = await apiLogin(email, password);
 
       if (res.data?.step === 'authenticated') {
-        // Device remembered — skip OTP entirely
-        const { access_token, user: userData } = res.data;
+        const { access_token, user: userData, device_token } = res.data;
+        // Always save device token for persistent sessions
+        if (device_token) {
+          saveDeviceToken(email, device_token);
+        }
         await login(null, null, { access_token, user: userData });
         navigate('/staff/dashboard', { replace: true });
       } else if (res.data?.step === 'otp_required') {
+        // Fallback in case 2FA is re-enabled later
         setPendingEmail(email);
         setStep('otp');
       }
     } catch (err) {
-      // Clear invalid device token on auth failure
       clearDeviceToken();
       setError(err.response?.data?.detail || 'Invalid email or password');
     } finally {
