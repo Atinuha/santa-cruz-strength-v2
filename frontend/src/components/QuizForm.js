@@ -53,7 +53,7 @@ const STEPS = [
   },
 ];
 
-export default function QuizForm({ source = 'book_a_tour', onSuccess }) {
+export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocus = false }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [animDir, setAnimDir] = useState('right');
@@ -72,11 +72,17 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess }) {
   const current = STEPS[step];
   const totalSteps = STEPS.length;
 
-  // Focus first input on step change
+  // Focus first input on step change (skip initial load if noAutoFocus)
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (noAutoFocus && isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    isFirstRender.current = false;
     const t = setTimeout(() => firstInputRef.current?.focus(), 300);
     return () => clearTimeout(t);
-  }, [step]);
+  }, [step, noAutoFocus]);
 
   const validate = () => {
     const e = {};

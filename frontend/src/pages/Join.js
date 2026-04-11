@@ -417,6 +417,13 @@ export default function Join() {
   const [showMore, setShowMore] = useState(false);
   const [showFaq, setShowFaq] = useState(null);
 
+  // Force scroll to top on mount — overrides any autofocus scroll
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const t = setTimeout(() => window.scrollTo(0, 0), 400);
+    return () => clearTimeout(t);
+  }, []);
+
   const faqs = [
     { q: 'What does 24/7 access mean?', a: 'Members get 24/7 access to the facility via our mobile app. Day pass holders are limited to staffed hours (9am-9pm).' },
     { q: 'What is the $50 Annual Enhancement Fee?', a: 'A $50 Annual Enhancement Fee applies to all memberships once per year. This helps us maintain and upgrade equipment, facilities, and member experience.' },
@@ -431,18 +438,15 @@ export default function Join() {
       <Navbar />
 
       {/* Hero */}
-      <section className="pt-32 pb-10 sm:pb-14" style={{ background: 'var(--clr-bg)' }}>
+      <section className="pt-24 pb-6 sm:pt-28 sm:pb-8" style={{ background: 'var(--clr-bg)' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-          <span className="green-accent-line mx-auto" />
-          <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Memberships</p>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wide mb-4" style={{ color: 'var(--clr-charcoal)' }}>
+          <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-2">Memberships</p>
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>
             FIND YOUR FIT
           </h1>
-          <p className="text-[var(--clr-text)] text-base max-w-xl mx-auto mb-2">
+          <p className="text-[var(--clr-text)] text-sm sm:text-base max-w-xl mx-auto">
             Three simple options. The longer you commit, the more you save.
-          </p>
-          <p className="text-sm font-bold" style={{ color: 'var(--clr-coral)' }}>
-            Save up to 47% with an annual paid-in-full membership.
+            <span className="block mt-1 font-bold text-sm" style={{ color: 'var(--clr-coral)' }}>Save up to 47% with an annual paid-in-full membership.</span>
           </p>
         </div>
       </section>
@@ -553,7 +557,7 @@ export default function Join() {
             <h2 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>NOT SURE YET?</h2>
             <p className="text-sm text-[var(--clr-text)]">Book a free tour and see the gym for yourself. Zero pressure.</p>
           </div>
-          <QuizForm source="membership_page" />
+          <QuizForm source="membership_page" noAutoFocus />
         </div>
       </section>
 
