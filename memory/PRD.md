@@ -11,8 +11,8 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 ## Tech Stack
 - **Frontend**: React (CRA + CRACO), Tailwind CSS, Shadcn UI, React Router v6
 - **Backend**: FastAPI, Motor (async MongoDB), APScheduler
-- **Auth**: JWT + 2FA OTP via Resend email + 7-day device remember
-- **Integrations**: OpenAI GPT-4o-mini (Blog Ideas), Resend (Email), MailerSend (SMS), Behold.so (Instagram)
+- **Auth**: JWT + 90-day device tokens (2FA disabled pending Resend upgrade)
+- **Integrations**: OpenAI GPT-4o-mini (Blog Ideas), Resend (Email), Twilio (SMS Primary), MailerSend (SMS Fallback), Behold.so (Instagram)
 
 ## Core Features — All DONE
 - Public website with carousels, Instagram feed, SEO pages, lead capture form
@@ -45,8 +45,11 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 - `GET /api/events` — Public events
 - `POST /api/upload` — Image uploads
 - `POST /api/staff/campaigns/send` — Mass email/SMS
+- `POST /api/webhooks/twilio-sms` — Twilio inbound SMS (returns TwiML, background DB/email)
+- `GET /api/webhooks/twilio-sms` — Webhook health check
+- `POST /api/webhooks/twilio-status` — Twilio delivery status callback
 
-## Completed Work (as of March 2026)
+## Completed Work (as of April 2026)
 - All core features listed above
 - Fix: `import re` bug in server.py (leads endpoint 500 error) — RESOLVED
 - Fix: Missing `GET /staff/leads/{lead_id}` endpoint — RESOLVED (orphaned code had no route decorator)
@@ -62,10 +65,13 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 - Events: Recurring, tickets, sold-out, public page
 - Blog: AI ideas, Google Trends, image upload
 - Mobile PWA staff portal
+- Twilio SMS integration (send/receive) with MailerSend fallback — DONE
+- Fix: Twilio inbound webhook HTTP 520 — RESOLVED (Apr 12, 2026: refactored to return TwiML instantly via fire-and-forget background tasks, added GET health check)
 
 ## Pending / Upcoming
 - **Meta Pixel Tracking (P1)** — Blocked on user providing Pixel ID
 - **Fork for Nightmare Muscle Sacramento (P2)** — Duplicate + rebrand
+- **Re-enable 2FA (P2)** — Blocked on Resend plan upgrade
 
 ## Backlog
 - **Backend refactoring (P2)** — Split server.py into modular routers

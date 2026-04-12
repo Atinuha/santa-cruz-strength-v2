@@ -2629,83 +2629,102 @@ async def mailersend_sms_webhook(request: dict):
 
 # --------------- Twilio Webhooks ---------------
 
-@api_router.post('/webhooks/twilio-sms')
-async def twilio_sms_webhook(request: Request):
-    """
-    Twilio inbound SMS webhook. Handles STOP opt-outs and forwards replies.
-    Set in Twilio Console → Phone Numbers → Messaging → "A message comes in" → POST
-    URL: https://santacruzstrength.com/api/webhooks/twilio-sms
-    """
-    form = await request.form()
-    from_number = form.get('From', '')
-    message     = form.get('Body', '')
-    to_number   = form.get('To', '')
-
-    if not from_number or not message:
-        return Response(content='<Response></Response>', media_type='application/xml')
-
-    logger.info(f'[TWILIO-INBOUND] From {from_number}: {message[:80]}')
-
-    if message.strip().upper() in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
-        lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
-        await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True, 'updated_at': now_utc().isoformat()}})
-        logger.info(f'[TWILIO-INBOUND] STOP received from {from_number} — blacklisted')
-        await db.daily_bounce_log.insert_one({
-            'type': 'sms_optout',
-            'event': 'SMS STOP received (Twilio)',
-            'phone': from_number,
-            'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
-            'email': (lead or {}).get('email', ''),
-            'source': (lead or {}).get('lead_source', ''),
-            'timestamp': now_utc().isoformat(),
-            'date': now_utc().date().isoformat(),
-        })
-        return Response(content='<Response><Message>You have been unsubscribed. Reply START to resubscribe.</Message></Response>', media_type='application/xml')
-
-    if message.strip().upper() == 'START':
-        await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': False, 'blacklisted': False, 'updated_at': now_utc().isoformat()}})
-        logger.info(f'[TWILIO-INBOUND] START/resubscribe from {from_number}')
-        return Response(content='<Response><Message>Welcome back! You\'ve been resubscribed to Santa Cruz Strength updates.</Message></Response>', media_type='application/xml')
-
-    # Auto-reply to any other inbound message
-    auto_reply = (
-        "Hey thanks for reaching out! This number is not monitored for replies. "
-        "Our team will follow up with you shortly.\n\n"
-        "Need to reach us sooner?\n"
-        "Call/Text: (408) 337-6709\n"
-        "Email: management@santacruzstrength.com\n"
-        "Visit: santacruzstrength.com\n\n"
-        "Hours: Mon-Sun 9am-9pm (staffed) | 24/7 member access"
-    )
-
-    # Forward reply to management email
-    lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
-    lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
-    html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
+async def _twilio_inbound_background(from_number: str, message: str, msg_upper: str):
+    """Background task for all DB/email work after TwiML is already returned to Twilio."""
+    try:
+        if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
+            lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
+            await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True, 'updated_at': now_utc().isoformat()}})
+            logger.info(f'[TWILIO-BG] STOP processed for {from_number}')
+            await db.daily_bounce_log.insert_one({
+                'type': 'sms_optout',
+                'event': 'SMS STOP received (Twilio)',
+                'phone': from_number,
+                'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
+                'email': (lead or {}).get('email', ''),
+                'source': (lead or {}).get('lead_source', ''),
+                'timestamp': now_utc().isoformat(),
+                'date': now_utc().date().isoformat(),
+            })
+        elif msg_upper == 'START':
+            await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': False, 'blacklisted': False, 'updated_at': now_utc().isoformat()}})
+            logger.info(f'[TWILIO-BG] START/resubscribe processed for {from_number}')
+        else:
+            lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
+            lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
+            html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
 <h3 style="color:#7FCCA6;">SMS Reply Received</h3>
 <p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong> ({lead_name})</p>
 <p style="color:#aaa;">Message:</p>
 <p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
 <p style="color:#666;font-size:12px;margin-top:12px;">Auto-reply was sent. Follow up via Google Voice: voice.google.com</p>
 </div>"""
-    await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number} ({lead_name})', html=html)
+            await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number} ({lead_name})', html=html)
+            if lead:
+                await db.leads.update_one(
+                    {'phone': from_number},
+                    {'$push': {'activity_log': {
+                        'action': 'sms_reply',
+                        'note': f'Replied via SMS: "{message[:100]}"',
+                        'timestamp': now_utc().isoformat(),
+                    }}}
+                )
+            logger.info(f'[TWILIO-BG] Reply from {from_number} ({lead_name}): {message[:80]} — forwarded')
+    except Exception as e:
+        logger.error(f'[TWILIO-BG] Background processing failed for {from_number}: {e}')
 
-    # Log to lead activity if they exist
-    if lead:
-        await db.leads.update_one(
-            {'phone': from_number},
-            {'$push': {'activity_log': {
-                'action': 'sms_reply',
-                'note': f'Replied via SMS: "{message[:100]}"',
-                'timestamp': now_utc().isoformat(),
-            }}}
-        )
 
-    logger.info(f'[TWILIO-INBOUND] Reply from {from_number} ({lead_name}): {message[:80]} — auto-reply sent')
+@api_router.get('/webhooks/twilio-sms')
+async def twilio_sms_health():
+    """Health check — lets you verify the webhook URL is reachable from a browser."""
     return Response(
-        content=f'<Response><Message>{auto_reply}</Message></Response>',
-        media_type='application/xml'
+        content='<Response><Message>Webhook is live.</Message></Response>',
+        media_type='application/xml',
     )
+
+
+@api_router.post('/webhooks/twilio-sms')
+async def twilio_sms_webhook(request: Request):
+    """
+    Twilio inbound SMS webhook. Returns TwiML IMMEDIATELY, then processes
+    DB updates and email forwarding in a background task to avoid timeouts.
+    URL: https://santacruzstrength.com/api/webhooks/twilio-sms
+    """
+    try:
+        form = await request.form()
+        from_number = form.get('From', '')
+        message     = form.get('Body', '')
+
+        if not from_number or not message:
+            return Response(content='<Response></Response>', media_type='application/xml')
+
+        msg_upper = message.strip().upper()
+        logger.info(f'[TWILIO-INBOUND] From {from_number}: {message[:80]}')
+
+        # Determine the TwiML reply
+        if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
+            twiml = '<Response><Message>You have been unsubscribed. Reply START to resubscribe.</Message></Response>'
+        elif msg_upper == 'START':
+            twiml = "<Response><Message>Welcome back! You've been resubscribed to Santa Cruz Strength updates.</Message></Response>"
+        else:
+            auto_reply = (
+                "Hey thanks for reaching out! This number is not monitored for replies. "
+                "Our team will follow up with you shortly.\n\n"
+                "Need to reach us sooner?\n"
+                "Call/Text: (408) 337-6709\n"
+                "Email: management@santacruzstrength.com\n"
+                "Visit: santacruzstrength.com\n\n"
+                "Hours: Mon-Sun 9am-9pm (staffed) | 24/7 member access"
+            )
+            twiml = f'<Response><Message>{auto_reply}</Message></Response>'
+
+        # Fire-and-forget: all DB/email work happens AFTER the response is sent
+        asyncio.create_task(_twilio_inbound_background(from_number, message, msg_upper))
+
+        return Response(content=twiml, media_type='application/xml')
+    except Exception as e:
+        logger.error(f'[TWILIO-INBOUND] Webhook handler error: {e}')
+        return Response(content='<Response></Response>', media_type='application/xml')
 
 
 @api_router.post('/webhooks/twilio-status')
