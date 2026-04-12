@@ -1,6 +1,6 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -315,16 +315,49 @@ async def send_lead_emails(lead: dict):
 MAILERSEND_API_KEY = os.environ.get('MAILERSEND_API_KEY', '')
 MAILERSEND_FROM   = os.environ.get('MAILERSEND_FROM_NUMBER', '')
 
-# ── Core send ─────────────────────────────────────────────────────────────────
+# ── Twilio Config ──────────────────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID  = os.environ.get('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN   = os.environ.get('TWILIO_AUTH_TOKEN', '')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
+_twilio_client = None
+
+def _get_twilio_client():
+    global _twilio_client
+    if _twilio_client is None and TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
+        from twilio.rest import Client
+        _twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    return _twilio_client
+
+# ── Core send (Twilio primary, MailerSend fallback) ────────────────────────────
 async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
-    """Send SMS via MailerSend REST API. Safe-guards when not configured.
+    """Send SMS via Twilio (primary) with MailerSend fallback.
     lead_info: optional dict with {name, email, phone, lead_id} for failure logging."""
-    if not MAILERSEND_API_KEY or not MAILERSEND_FROM:
-        logger.info(f'[SMS] Not configured — skipping to {to_numbers}')
-        return False
-    # Clean numbers — keep only valid E.164
-    valid = [n.strip() for n in to_numbers if n and n.strip().startswith('+')]
+    valid = [n.strip().replace(' ', '') for n in to_numbers if n and n.strip().startswith('+')]
     if not valid:
+        return False
+
+    # Try Twilio first
+    twilio = _get_twilio_client()
+    if twilio and TWILIO_PHONE_NUMBER:
+        try:
+            all_ok = True
+            for number in valid:
+                msg = twilio.messages.create(
+                    body=text,
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=number,
+                    status_callback=os.environ.get('FRONTEND_URL', '') + '/api/webhooks/twilio-status',
+                )
+                logger.info(f'[SMS-TWILIO] Sent to {number} (SID: {msg.sid})')
+            return True
+        except Exception as e:
+            logger.warning(f'[SMS-TWILIO] Failed: {e} — falling back to MailerSend')
+
+    # Fallback to MailerSend
+    if not MAILERSEND_API_KEY or not MAILERSEND_FROM:
+        logger.info(f'[SMS] No SMS provider configured — skipping to {valid}')
+        if lead_info:
+            await _log_sms_failure(valid, 'no_provider_configured', lead_info)
         return False
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -337,16 +370,15 @@ async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
                 json={'from': MAILERSEND_FROM, 'to': valid, 'text': text},
             )
         if resp.status_code == 202:
-            logger.info(f'[SMS] Sent to {valid}')
+            logger.info(f'[SMS-MAILERSEND] Sent to {valid}')
             return True
         else:
-            logger.warning(f'[SMS] Failed {resp.status_code}: {resp.text[:200]}')
-            # Log SMS failure to daily digest
+            logger.warning(f'[SMS-MAILERSEND] Failed {resp.status_code}: {resp.text[:200]}')
             if lead_info:
                 await _log_sms_failure(valid, resp.status_code, lead_info)
             return False
     except Exception as e:
-        logger.warning(f'[SMS] Error: {e}')
+        logger.warning(f'[SMS-MAILERSEND] Error: {e}')
         if lead_info:
             await _log_sms_failure(valid, str(e), lead_info)
         return False
@@ -2591,8 +2623,87 @@ async def mailersend_sms_webhook(request: dict):
 <p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
 <p style="color:#666;font-size:12px;">Reply via Google Voice: voice.google.com</p>
 </div>"""
-    await send_resend_email(to=STAFF_EMAIL, subject=f'📱 SMS Reply from {from_number}', html=html)
+    await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number}', html=html)
     logger.info(f'[SMS-INBOUND] Reply from {from_number}: {message[:50]}')
+    return {'ok': True}
+
+# --------------- Twilio Webhooks ---------------
+
+@api_router.post('/webhooks/twilio-sms')
+async def twilio_sms_webhook(request: Request):
+    """
+    Twilio inbound SMS webhook. Handles STOP opt-outs and forwards replies.
+    Set in Twilio Console → Phone Numbers → Messaging → "A message comes in" → POST
+    URL: https://santacruzstrength.com/api/webhooks/twilio-sms
+    """
+    form = await request.form()
+    from_number = form.get('From', '')
+    message     = form.get('Body', '')
+    to_number   = form.get('To', '')
+
+    if not from_number or not message:
+        return Response(content='<Response></Response>', media_type='application/xml')
+
+    logger.info(f'[TWILIO-INBOUND] From {from_number}: {message[:80]}')
+
+    if message.strip().upper() in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
+        lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
+        await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True, 'updated_at': now_utc().isoformat()}})
+        logger.info(f'[TWILIO-INBOUND] STOP received from {from_number} — blacklisted')
+        await db.daily_bounce_log.insert_one({
+            'type': 'sms_optout',
+            'event': 'SMS STOP received (Twilio)',
+            'phone': from_number,
+            'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
+            'email': (lead or {}).get('email', ''),
+            'source': (lead or {}).get('lead_source', ''),
+            'timestamp': now_utc().isoformat(),
+            'date': now_utc().date().isoformat(),
+        })
+        return Response(content='<Response><Message>You have been unsubscribed. Reply START to resubscribe.</Message></Response>', media_type='application/xml')
+
+    # Forward reply to management
+    html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
+<h3 style="color:#7FCCA6;">SMS Reply Received (Twilio)</h3>
+<p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong></p>
+<p style="color:#aaa;">To: {to_number}</p>
+<p style="color:#aaa;">Message:</p>
+<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
+<p style="color:#666;font-size:12px;">Reply via Google Voice: voice.google.com</p>
+</div>"""
+    await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number}', html=html)
+    return Response(content='<Response></Response>', media_type='application/xml')
+
+
+@api_router.post('/webhooks/twilio-status')
+async def twilio_status_webhook(request: Request):
+    """
+    Twilio delivery status callback.
+    URL: https://santacruzstrength.com/api/webhooks/twilio-status
+    """
+    form = await request.form()
+    msg_sid    = form.get('MessageSid', '')
+    msg_status = form.get('MessageStatus', '')
+    to_number  = form.get('To', '')
+    error_code = form.get('ErrorCode', '')
+
+    if msg_status in ('failed', 'undelivered'):
+        logger.warning(f'[TWILIO-STATUS] {msg_status} to {to_number} (SID: {msg_sid}, Error: {error_code})')
+        lead = await db.leads.find_one({'phone': to_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
+        if lead:
+            await db.daily_bounce_log.insert_one({
+                'type': 'sms_failure',
+                'event': f'Twilio {msg_status} (Error: {error_code})',
+                'phone': to_number,
+                'name': f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or 'Unknown',
+                'email': lead.get('email', ''),
+                'source': lead.get('lead_source', ''),
+                'timestamp': now_utc().isoformat(),
+                'date': now_utc().date().isoformat(),
+            })
+    else:
+        logger.info(f'[TWILIO-STATUS] {msg_status} to {to_number} (SID: {msg_sid})')
+
     return {'ok': True}
 
 # --------------- Media Upload ---------------
@@ -2623,7 +2734,6 @@ async def upload_image(file: UploadFile = File(...), user=Depends(require_admin)
 @api_router.get('/media/{media_id}')
 async def serve_media(media_id: str):
     """Serve an uploaded image publicly — no auth required."""
-    from fastapi.responses import Response
     media = await db.media.find_one({'id': media_id})
     if not media:
         raise HTTPException(status_code=404, detail='Image not found')
