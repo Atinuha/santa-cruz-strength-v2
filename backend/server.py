@@ -2662,17 +2662,50 @@ async def twilio_sms_webhook(request: Request):
         })
         return Response(content='<Response><Message>You have been unsubscribed. Reply START to resubscribe.</Message></Response>', media_type='application/xml')
 
-    # Forward reply to management
+    if message.strip().upper() == 'START':
+        await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': False, 'blacklisted': False, 'updated_at': now_utc().isoformat()}})
+        logger.info(f'[TWILIO-INBOUND] START/resubscribe from {from_number}')
+        return Response(content='<Response><Message>Welcome back! You\'ve been resubscribed to Santa Cruz Strength updates.</Message></Response>', media_type='application/xml')
+
+    # Auto-reply to any other inbound message
+    auto_reply = (
+        "Hey thanks for reaching out! This number is not monitored for replies. "
+        "Our team will follow up with you shortly.\n\n"
+        "Need to reach us sooner?\n"
+        "Call/Text: (408) 337-6709\n"
+        "Email: management@santacruzstrength.com\n"
+        "Visit: santacruzstrength.com\n\n"
+        "Hours: Mon-Sun 9am-9pm (staffed) | 24/7 member access"
+    )
+
+    # Forward reply to management email
+    lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
+    lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
     html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
-<h3 style="color:#7FCCA6;">SMS Reply Received (Twilio)</h3>
-<p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong></p>
-<p style="color:#aaa;">To: {to_number}</p>
+<h3 style="color:#7FCCA6;">SMS Reply Received</h3>
+<p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong> ({lead_name})</p>
 <p style="color:#aaa;">Message:</p>
 <p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
-<p style="color:#666;font-size:12px;">Reply via Google Voice: voice.google.com</p>
+<p style="color:#666;font-size:12px;margin-top:12px;">Auto-reply was sent. Follow up via Google Voice: voice.google.com</p>
 </div>"""
-    await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number}', html=html)
-    return Response(content='<Response></Response>', media_type='application/xml')
+    await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number} ({lead_name})', html=html)
+
+    # Log to lead activity if they exist
+    if lead:
+        await db.leads.update_one(
+            {'phone': from_number},
+            {'$push': {'activity_log': {
+                'action': 'sms_reply',
+                'note': f'Replied via SMS: "{message[:100]}"',
+                'timestamp': now_utc().isoformat(),
+            }}}
+        )
+
+    logger.info(f'[TWILIO-INBOUND] Reply from {from_number} ({lead_name}): {message[:80]} — auto-reply sent')
+    return Response(
+        content=f'<Response><Message>{auto_reply}</Message></Response>',
+        media_type='application/xml'
+    )
 
 
 @api_router.post('/webhooks/twilio-status')
