@@ -2752,6 +2752,112 @@ async def twilio_status_webhook(request: Request):
 
     return {'ok': True}
 
+
+# --------------- MailerSend Inbound SMS Webhook ---------------
+
+async def _mailersend_inbound_background(from_number: str, message: str, msg_upper: str):
+    """Background task for all DB/email work after 200 is returned to MailerSend."""
+    try:
+        if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
+            lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
+            await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True, 'updated_at': now_utc().isoformat()}})
+            logger.info(f'[MAILERSEND-BG] STOP processed for {from_number}')
+            await db.daily_bounce_log.insert_one({
+                'type': 'sms_optout',
+                'event': 'SMS STOP received (MailerSend)',
+                'phone': from_number,
+                'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
+                'email': (lead or {}).get('email', ''),
+                'source': (lead or {}).get('lead_source', ''),
+                'timestamp': now_utc().isoformat(),
+                'date': now_utc().date().isoformat(),
+            })
+        elif msg_upper == 'START':
+            await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': False, 'blacklisted': False, 'updated_at': now_utc().isoformat()}})
+            logger.info(f'[MAILERSEND-BG] START/resubscribe processed for {from_number}')
+        else:
+            lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
+            lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
+            html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
+<h3 style="color:#7FCCA6;">SMS Reply Received</h3>
+<p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong> ({lead_name})</p>
+<p style="color:#aaa;">Message:</p>
+<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
+<p style="color:#666;font-size:12px;margin-top:12px;">Auto-reply was sent via MailerSend. Follow up via Google Voice: voice.google.com</p>
+</div>"""
+            await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number} ({lead_name})', html=html)
+            if lead:
+                await db.leads.update_one(
+                    {'phone': from_number},
+                    {'$push': {'activity_log': {
+                        'action': 'sms_reply',
+                        'note': f'Replied via SMS: "{message[:100]}"',
+                        'timestamp': now_utc().isoformat(),
+                    }}}
+                )
+            logger.info(f'[MAILERSEND-BG] Reply from {from_number} ({lead_name}): {message[:80]} — forwarded')
+    except Exception as e:
+        logger.error(f'[MAILERSEND-BG] Background processing failed for {from_number}: {e}')
+
+
+@api_router.get('/webhooks/mailersend-sms')
+async def mailersend_sms_health():
+    """Health check for MailerSend inbound route."""
+    return {'status': 'ok', 'webhook': 'mailersend-sms'}
+
+
+@api_router.post('/webhooks/mailersend-sms')
+async def mailersend_sms_webhook(request: Request):
+    """
+    MailerSend inbound SMS webhook. Returns 200 immediately, processes in background.
+    Set in MailerSend → SMS → Inbound Routes → forward_url
+    URL: https://santacruzstrength.com/api/webhooks/mailersend-sms
+    """
+    try:
+        body = await request.json()
+        data = body.get('data', body)
+        sms = data.get('sms', data)
+
+        from_number = sms.get('from', '') or data.get('from', '')
+        message = sms.get('text', '') or data.get('text', '') or sms.get('body', '') or data.get('body', '')
+
+        if not from_number or not message:
+            logger.info(f'[MAILERSEND-INBOUND] Empty payload: {str(body)[:200]}')
+            return {'ok': True}
+
+        msg_upper = message.strip().upper()
+        logger.info(f'[MAILERSEND-INBOUND] From {from_number}: {message[:80]}')
+
+        # Send auto-reply via MailerSend SMS API
+        if msg_upper not in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
+            reply_text = (
+                "Hey thanks for reaching out! This number is not monitored for replies. "
+                "Our team will follow up with you shortly.\n\n"
+                "Need to reach us sooner?\n"
+                "Call/Text: (408) 337-6709\n"
+                "Email: management@santacruzstrength.com\n"
+                "Visit: santacruzstrength.com\n\n"
+                "Hours: Mon-Sun 9am-9pm (staffed) | 24/7 member access"
+            )
+            if MAILERSEND_API_KEY and MAILERSEND_FROM:
+                try:
+                    async with httpx.AsyncClient(timeout=10) as client:
+                        await client.post(
+                            'https://api.mailersend.com/v1/sms',
+                            headers={'Authorization': f'Bearer {MAILERSEND_API_KEY}', 'Content-Type': 'application/json'},
+                            json={'from': MAILERSEND_FROM, 'to': [from_number], 'text': reply_text},
+                        )
+                    logger.info(f'[MAILERSEND-INBOUND] Auto-reply sent to {from_number}')
+                except Exception as e:
+                    logger.warning(f'[MAILERSEND-INBOUND] Auto-reply failed: {e}')
+
+        asyncio.create_task(_mailersend_inbound_background(from_number, message, msg_upper))
+        return {'ok': True}
+    except Exception as e:
+        logger.error(f'[MAILERSEND-INBOUND] Webhook error: {e}')
+        return {'ok': True}
+
+
 # --------------- Media Upload ---------------
 
 import base64 as _base64
