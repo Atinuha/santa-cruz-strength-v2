@@ -330,13 +330,31 @@ def _get_twilio_client():
 
 # ── Core send (Twilio primary, MailerSend fallback) ────────────────────────────
 async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
-    """Send SMS via MailerSend (primary) with Twilio fallback.
-    lead_info: optional dict with {name, email, phone, lead_id} for failure logging."""
+    """Send SMS via Twilio (primary) with MailerSend fallback.
+    lead_info: optional dict with {name, email, phone, lead_id} for failure logging.
+    Note: MailerSend toll-free number requires verification before messages deliver.
+    Once verified, swap priority back to MailerSend."""
     valid = [n.strip().replace(' ', '') for n in to_numbers if n and n.strip().startswith('+')]
     if not valid:
         return False
 
-    # Try MailerSend first (primary)
+    # Try Twilio first (primary — A2P 10DLC registered)
+    twilio = _get_twilio_client()
+    if twilio and TWILIO_PHONE_NUMBER:
+        try:
+            for number in valid:
+                msg = twilio.messages.create(
+                    body=text,
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=number,
+                    status_callback=os.environ.get('FRONTEND_URL', '') + '/api/webhooks/twilio-status',
+                )
+                logger.info(f'[SMS-TWILIO] Sent to {number} (SID: {msg.sid})')
+            return True
+        except Exception as e:
+            logger.warning(f'[SMS-TWILIO] Failed: {e} — falling back to MailerSend')
+
+    # Fallback to MailerSend
     if MAILERSEND_API_KEY and MAILERSEND_FROM:
         try:
             async with httpx.AsyncClient(timeout=10) as client:
@@ -352,25 +370,9 @@ async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
                 logger.info(f'[SMS-MAILERSEND] Sent to {valid}')
                 return True
             else:
-                logger.warning(f'[SMS-MAILERSEND] Failed {resp.status_code}: {resp.text[:200]} — falling back to Twilio')
+                logger.warning(f'[SMS-MAILERSEND] Failed {resp.status_code}: {resp.text[:200]}')
         except Exception as e:
-            logger.warning(f'[SMS-MAILERSEND] Error: {e} — falling back to Twilio')
-
-    # Fallback to Twilio
-    twilio = _get_twilio_client()
-    if twilio and TWILIO_PHONE_NUMBER:
-        try:
-            for number in valid:
-                msg = twilio.messages.create(
-                    body=text,
-                    from_=TWILIO_PHONE_NUMBER,
-                    to=number,
-                    status_callback=os.environ.get('FRONTEND_URL', '') + '/api/webhooks/twilio-status',
-                )
-                logger.info(f'[SMS-TWILIO] Sent to {number} (SID: {msg.sid})')
-            return True
-        except Exception as e:
-            logger.warning(f'[SMS-TWILIO] Fallback also failed: {e}')
+            logger.warning(f'[SMS-MAILERSEND] Error: {e}')
 
     logger.info(f'[SMS] All providers failed — skipping to {valid}')
     if lead_info:
