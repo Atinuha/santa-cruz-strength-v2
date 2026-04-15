@@ -330,17 +330,36 @@ def _get_twilio_client():
 
 # ── Core send (Twilio primary, MailerSend fallback) ────────────────────────────
 async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
-    """Send SMS via Twilio (primary) with MailerSend fallback.
+    """Send SMS via MailerSend (primary) with Twilio fallback.
     lead_info: optional dict with {name, email, phone, lead_id} for failure logging."""
     valid = [n.strip().replace(' ', '') for n in to_numbers if n and n.strip().startswith('+')]
     if not valid:
         return False
 
-    # Try Twilio first
+    # Try MailerSend first (primary)
+    if MAILERSEND_API_KEY and MAILERSEND_FROM:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.post(
+                    'https://api.mailersend.com/v1/sms',
+                    headers={
+                        'Authorization': f'Bearer {MAILERSEND_API_KEY}',
+                        'Content-Type': 'application/json',
+                    },
+                    json={'from': MAILERSEND_FROM, 'to': valid, 'text': text},
+                )
+            if resp.status_code == 202:
+                logger.info(f'[SMS-MAILERSEND] Sent to {valid}')
+                return True
+            else:
+                logger.warning(f'[SMS-MAILERSEND] Failed {resp.status_code}: {resp.text[:200]} — falling back to Twilio')
+        except Exception as e:
+            logger.warning(f'[SMS-MAILERSEND] Error: {e} — falling back to Twilio')
+
+    # Fallback to Twilio
     twilio = _get_twilio_client()
     if twilio and TWILIO_PHONE_NUMBER:
         try:
-            all_ok = True
             for number in valid:
                 msg = twilio.messages.create(
                     body=text,
@@ -351,37 +370,12 @@ async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
                 logger.info(f'[SMS-TWILIO] Sent to {number} (SID: {msg.sid})')
             return True
         except Exception as e:
-            logger.warning(f'[SMS-TWILIO] Failed: {e} — falling back to MailerSend')
+            logger.warning(f'[SMS-TWILIO] Fallback also failed: {e}')
 
-    # Fallback to MailerSend
-    if not MAILERSEND_API_KEY or not MAILERSEND_FROM:
-        logger.info(f'[SMS] No SMS provider configured — skipping to {valid}')
-        if lead_info:
-            await _log_sms_failure(valid, 'no_provider_configured', lead_info)
-        return False
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                'https://api.mailersend.com/v1/sms',
-                headers={
-                    'Authorization': f'Bearer {MAILERSEND_API_KEY}',
-                    'Content-Type': 'application/json',
-                },
-                json={'from': MAILERSEND_FROM, 'to': valid, 'text': text},
-            )
-        if resp.status_code == 202:
-            logger.info(f'[SMS-MAILERSEND] Sent to {valid}')
-            return True
-        else:
-            logger.warning(f'[SMS-MAILERSEND] Failed {resp.status_code}: {resp.text[:200]}')
-            if lead_info:
-                await _log_sms_failure(valid, resp.status_code, lead_info)
-            return False
-    except Exception as e:
-        logger.warning(f'[SMS-MAILERSEND] Error: {e}')
-        if lead_info:
-            await _log_sms_failure(valid, str(e), lead_info)
-        return False
+    logger.info(f'[SMS] All providers failed — skipping to {valid}')
+    if lead_info:
+        await _log_sms_failure(valid, 'all_providers_failed', lead_info)
+    return False
 
 async def _log_sms_failure(numbers: list, error, lead_info: dict):
     """Log an SMS failure to the daily bounce/failure digest."""
