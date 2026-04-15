@@ -2858,6 +2858,47 @@ async def mailersend_sms_webhook(request: Request):
         return {'ok': True}
 
 
+@api_router.post('/webhooks/mailersend-sms-status')
+async def mailersend_sms_status_webhook(request: Request):
+    """
+    MailerSend SMS delivery status webhook (sent, delivered, failed).
+    URL: https://santacruzstrength.com/api/webhooks/mailersend-sms-status
+    """
+    try:
+        body = await request.json()
+        event_type = body.get('type', '')
+        data = body.get('data', {})
+        sms = data.get('sms', data)
+
+        to_number = sms.get('to', '') or data.get('to', '')
+        from_number = sms.get('from', '') or data.get('from', '')
+        sms_text = sms.get('text', '')[:80] if sms.get('text') else ''
+        error_type = sms.get('error_type', '') or data.get('error_type', '')
+        error_desc = sms.get('error_description', '') or data.get('error_description', '')
+
+        if event_type == 'sms.failed':
+            logger.warning(f'[MAILERSEND-STATUS] FAILED to {to_number} — {error_type}: {error_desc}')
+            lead = await db.leads.find_one({'phone': to_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
+            if lead:
+                await db.daily_bounce_log.insert_one({
+                    'type': 'sms_failure',
+                    'event': f'MailerSend failed ({error_type}: {error_desc})',
+                    'phone': to_number,
+                    'name': f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or 'Unknown',
+                    'email': lead.get('email', ''),
+                    'source': lead.get('lead_source', ''),
+                    'timestamp': now_utc().isoformat(),
+                    'date': now_utc().date().isoformat(),
+                })
+        else:
+            logger.info(f'[MAILERSEND-STATUS] {event_type} to {to_number}')
+
+        return {'ok': True}
+    except Exception as e:
+        logger.error(f'[MAILERSEND-STATUS] Webhook error: {e}')
+        return {'ok': True}
+
+
 # --------------- Media Upload ---------------
 
 import base64 as _base64
