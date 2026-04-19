@@ -3630,8 +3630,14 @@ async def startup():
             logger.info('[SEED] Upgraded management@ to owner role')
         else:
             admin_id = str(uuid.uuid4())
-            await db.users.insert_one({'id': admin_id, 'email': 'management@santacruzstrength.com', 'password_hash': hash_password('schuscle01'), 'name': 'Management', 'role': 'owner', 'location': 'santa_cruz', 'is_active': True, 'created_at': now_utc().isoformat()})
+            await db.users.insert_one({'id': admin_id, 'email': 'management@santacruzstrength.com', 'password_hash': hash_password('REDACTED-ROTATED-CREDENTIAL'), 'name': 'Management', 'role': 'owner', 'location': 'santa_cruz', 'is_active': True, 'created_at': now_utc().isoformat()})
             logger.info('[SEED] Created owner: management@santacruzstrength.com')
+    else:
+        # Ensure owner can always log in — reset password if it doesn't match
+        owner = await db.users.find_one({'email': 'management@santacruzstrength.com'})
+        if owner and not verify_password('REDACTED-ROTATED-CREDENTIAL', owner.get('password_hash', '')):
+            await db.users.update_one({'email': 'management@santacruzstrength.com'}, {'$set': {'password_hash': hash_password('REDACTED-ROTATED-CREDENTIAL')}})
+            logger.info('[SEED] Reset owner password for management@santacruzstrength.com')
     logger.info('[STARTUP] Santa Cruz Strength API ready')
     # Start SMS follow-up scheduler
     scheduler = AsyncIOScheduler(timezone='America/Los_Angeles')
