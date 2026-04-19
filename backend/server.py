@@ -3557,44 +3557,51 @@ async def startup():
     await db.team_members.create_index('id', unique=True)
     await db.team_members.create_index('category')
     await db.site_content.create_index('key', unique=True)
-    # Seed site content if none exist
-    content_count = await db.site_content.count_documents({})
-    if content_count == 0:
-        seed_content = [
-            # About Page
-            {'key': 'about_mission', 'value': 'Come as you are, leave how you want!', 'updated_at': now_utc().isoformat()},
-            {'key': 'about_headline', 'value': 'THIS IS SANTA CRUZ STRENGTH', 'updated_at': now_utc().isoformat()},
-            {'key': 'about_story', 'value': "Santa Cruz Strength isn't your average gym. We built this place for lifters, athletes, and anyone who's serious about getting stronger — on their own terms.\n\nWhether you're a first-time lifter or a seasoned competitor, you'll find the equipment, coaching, and community here to match your ambition. No ego. No gimmicks. Just iron, chalk, and people who give a damn.\n\nWe're locally owned, coach-led, and built around one idea: everyone deserves a gym that respects their goals.", 'updated_at': now_utc().isoformat()},
-            {'key': 'about_team_headline', 'value': 'MEET THE TEAM', 'updated_at': now_utc().isoformat()},
-            {'key': 'about_team_subtitle', 'value': 'The people behind the iron', 'updated_at': now_utc().isoformat()},
-            {'key': 'about_trainers_headline', 'value': 'MEET OUR TRAINERS', 'updated_at': now_utc().isoformat()},
-            {'key': 'about_trainers_subtitle', 'value': 'Expert coaching for every level', 'updated_at': now_utc().isoformat()},
-            {'key': 'about_cta_headline', 'value': 'COME SEE FOR YOURSELF', 'updated_at': now_utc().isoformat()},
-            {'key': 'about_cta_text', 'value': "Drop in, take a look around, and meet the crew. No pressure — just good people and heavy weights.", 'updated_at': now_utc().isoformat()},
-            # Home Page
-            {'key': 'home_hero_headline', 'value': 'SERIOUS\nSTRENGTH\nTRAINING.', 'updated_at': now_utc().isoformat()},
-            {'key': 'home_hero_subtitle', 'value': 'A focused gym for athletes, lifters, and people who believe strength matters.', 'updated_at': now_utc().isoformat()},
-            {'key': 'home_hero_subtext', 'value': 'Real training environment. Real community. Santa Cruz.', 'updated_at': now_utc().isoformat()},
-            {'key': 'home_benefits_headline', 'value': 'STRENGTH WITHOUT THE NOISE.', 'updated_at': now_utc().isoformat()},
-            {'key': 'home_benefits_subtitle', 'value': 'No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.', 'updated_at': now_utc().isoformat()},
-            {'key': 'home_environment_headline', 'value': 'WHAT TRAINING\nHERE FEELS LIKE', 'updated_at': now_utc().isoformat()},
-            {'key': 'home_environment_text', 'value': "Walk in and you'll notice it immediately. The space is clean. The equipment is serious. People are focused, not performing.", 'updated_at': now_utc().isoformat()},
-            {'key': 'home_environment_subtext', 'value': 'No music drowning out your thoughts. No influencer corner. Just chalk, iron, and people who came to work.', 'updated_at': now_utc().isoformat()},
-            {'key': 'home_who_headline', 'value': 'IF YOU TRAIN,\nYOU BELONG HERE.', 'updated_at': now_utc().isoformat()},
-            {'key': 'home_who_text', 'value': "Santa Cruz Strength serves the full athletic community of this city. The common thread isn't your sport or your level.", 'updated_at': now_utc().isoformat()},
-            {'key': 'home_who_subtext', 'value': "It's the belief that being strong makes everything else better — your surfing, your climbing, your work, your decades ahead.", 'updated_at': now_utc().isoformat()},
-            # Training Page
-            {'key': 'training_headline', 'value': 'PERSONAL TRAINING\nTHAT RESPECTS YOUR TIME.', 'updated_at': now_utc().isoformat()},
-            {'key': 'training_subtitle', 'value': 'Work directly with a Santa Cruz Strength coach to build real strength, master technique, and train with purpose.', 'updated_at': now_utc().isoformat()},
-            {'key': 'training_cta_headline', 'value': 'READY TO TRAIN WITH PURPOSE?', 'updated_at': now_utc().isoformat()},
-            # Contact Page
-            {'key': 'contact_headline', 'value': 'CONTACT US', 'updated_at': now_utc().isoformat()},
-            {'key': 'contact_subtitle', 'value': 'Questions, tour requests, or just want to know more.', 'updated_at': now_utc().isoformat()},
-            {'key': 'contact_form_headline', 'value': 'REACH OUT', 'updated_at': now_utc().isoformat()},
-            {'key': 'contact_form_subtitle', 'value': 'Fill out the form and we will get back to you within 24 hours.', 'updated_at': now_utc().isoformat()},
-        ]
-        await db.site_content.insert_many(seed_content)
-        logger.info(f'[SEED] Created {len(seed_content)} site content entries')
+    # Seed site content — upsert missing keys (preserves existing edits)
+    seed_content = [
+        # About Page
+        {'key': 'about_mission', 'value': 'Come as you are, leave how you want!'},
+        {'key': 'about_headline', 'value': 'THIS IS SANTA CRUZ STRENGTH'},
+        {'key': 'about_story', 'value': "Santa Cruz Strength isn't your average gym. We built this place for lifters, athletes, and anyone who's serious about getting stronger — on their own terms.\n\nWhether you're a first-time lifter or a seasoned competitor, you'll find the equipment, coaching, and community here to match your ambition. No ego. No gimmicks. Just iron, chalk, and people who give a damn.\n\nWe're locally owned, coach-led, and built around one idea: everyone deserves a gym that respects their goals."},
+        {'key': 'about_team_headline', 'value': 'MEET THE TEAM'},
+        {'key': 'about_team_subtitle', 'value': 'The people behind the iron'},
+        {'key': 'about_trainers_headline', 'value': 'MEET OUR TRAINERS'},
+        {'key': 'about_trainers_subtitle', 'value': 'Expert coaching for every level'},
+        {'key': 'about_cta_headline', 'value': 'COME SEE FOR YOURSELF'},
+        {'key': 'about_cta_text', 'value': "Drop in, take a look around, and meet the crew. No pressure — just good people and heavy weights."},
+        # Home Page
+        {'key': 'home_hero_headline', 'value': 'SERIOUS\nSTRENGTH\nTRAINING.'},
+        {'key': 'home_hero_subtitle', 'value': 'A focused gym for athletes, lifters, and people who believe strength matters.'},
+        {'key': 'home_hero_subtext', 'value': 'Real training environment. Real community. Santa Cruz.'},
+        {'key': 'home_benefits_headline', 'value': 'STRENGTH WITHOUT THE NOISE.'},
+        {'key': 'home_benefits_subtitle', 'value': 'No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.'},
+        {'key': 'home_environment_headline', 'value': 'WHAT TRAINING\nHERE FEELS LIKE'},
+        {'key': 'home_environment_text', 'value': "Walk in and you'll notice it immediately. The space is clean. The equipment is serious. People are focused, not performing."},
+        {'key': 'home_environment_subtext', 'value': 'No music drowning out your thoughts. No influencer corner. Just chalk, iron, and people who came to work.'},
+        {'key': 'home_who_headline', 'value': 'IF YOU TRAIN,\nYOU BELONG HERE.'},
+        {'key': 'home_who_text', 'value': "Santa Cruz Strength serves the full athletic community of this city. The common thread isn't your sport or your level."},
+        {'key': 'home_who_subtext', 'value': "It's the belief that being strong makes everything else better — your surfing, your climbing, your work, your decades ahead."},
+        # Training Page
+        {'key': 'training_headline', 'value': 'PERSONAL TRAINING\nTHAT RESPECTS YOUR TIME.'},
+        {'key': 'training_subtitle', 'value': 'Work directly with a Santa Cruz Strength coach to build real strength, master technique, and train with purpose.'},
+        {'key': 'training_cta_headline', 'value': 'READY TO TRAIN WITH PURPOSE?'},
+        # Contact Page
+        {'key': 'contact_headline', 'value': 'CONTACT US'},
+        {'key': 'contact_subtitle', 'value': 'Questions, tour requests, or just want to know more.'},
+        {'key': 'contact_form_headline', 'value': 'REACH OUT'},
+        {'key': 'contact_form_subtitle', 'value': 'Fill out the form and we will get back to you within 24 hours.'},
+    ]
+    seeded = 0
+    for item in seed_content:
+        result = await db.site_content.update_one(
+            {'key': item['key']},
+            {'$setOnInsert': {'value': item['value'], 'updated_at': now_utc().isoformat()}},
+            upsert=True,
+        )
+        if result.upserted_id:
+            seeded += 1
+    if seeded:
+        logger.info(f'[SEED] Seeded {seeded} new site content keys')
     # Seed team members if none exist
     team_count = await db.team_members.count_documents({})
     if team_count == 0:

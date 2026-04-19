@@ -224,7 +224,7 @@ export default function Dashboard() {
       <header className="sticky top-0 z-40 bg-[var(--ink)]/96 backdrop-blur border-b border-white/8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link to="/" className="flex items-center gap-2 group" title="Back to website">
+            <Link to="/staff" className="flex items-center gap-2 group" title="CRM Dashboard">
               <div className="w-7 h-7 rounded overflow-hidden flex items-center justify-center shrink-0">
                 <img src="https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg"
                   alt="SCS" className="w-full h-full object-contain"
