@@ -143,9 +143,9 @@ export default function BlogManager() {
               className="flex items-center gap-1 text-white/52 hover:text-white text-xs font-medium border border-white/12 hover:border-white/25 px-2.5 py-1.5 rounded-md transition-colors duration-200">
               <Globe size={11} /> View Blog
             </Link>
-            <Link to="/"
+            <Link to="/staff"
               className="flex items-center gap-1 text-white/52 hover:text-white text-xs font-medium border border-white/12 hover:border-white/25 px-2.5 py-1.5 rounded-md transition-colors duration-200">
-              <ArrowLeft size={11} /> Website
+              <ArrowLeft size={11} /> Dashboard
             </Link>
             <button onClick={() => { logout(); navigate('/staff/login'); }} className="text-white/52 hover:text-white/70 p-1.5 rounded">
               <LogOut size={14} />

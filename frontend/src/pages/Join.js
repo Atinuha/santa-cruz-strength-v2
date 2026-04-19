@@ -291,36 +291,31 @@ function PrimaryCard({ plan }) {
 
 function MorePlanRow({ plan }) {
   return (
-    <div className="flex items-center justify-between py-4 border-b last:border-b-0" style={{ borderColor: 'var(--clr-border)' }}
+    <div className="bg-white rounded-[var(--radius-xl)] p-6 flex flex-col h-full"
+      style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--clr-border)' }}
       data-testid={`plan-${plan.id}`}>
-      <div className="flex items-center gap-3 flex-1">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--clr-bg-green)', color: 'var(--clr-green)' }}>
-          {plan.icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h4 className="font-display text-sm tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>{plan.name}</h4>
-            {plan.savings && (
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
-                style={{ background: 'var(--clr-coral)', color: '#fff' }}>{plan.savings}</span>
-            )}
-          </div>
-          <p className="text-xs text-[var(--clr-text-muted)] truncate">{plan.subtitle}</p>
-        </div>
+      <div className="flex items-start justify-between mb-1">
+        <h4 className="font-display text-base tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>{plan.name}</h4>
+        <span className="font-display text-base tracking-wide shrink-0 ml-2" style={{ color: 'var(--clr-coral)' }}>{plan.price}<span className="text-xs">{plan.per}</span></span>
       </div>
-      <div className="flex items-center gap-4 shrink-0 ml-4">
-        <div className="text-right">
-          <span className="text-lg font-bold" style={{ color: 'var(--clr-charcoal)' }}>{plan.price}</span>
-          <span className="text-xs text-[var(--clr-text-muted)]">{plan.per}</span>
-          {plan.extra && <p className="text-xs font-semibold" style={{ color: 'var(--clr-green)' }}>{plan.extra}</p>}
-        </div>
+      <p className="text-xs text-[var(--clr-text-muted)] mb-3">{plan.subtitle}</p>
+      {plan.extra && <p className="text-xs font-semibold mb-2" style={{ color: 'var(--clr-green)' }}>{plan.extra}</p>}
+      <p className="text-xs text-[var(--clr-text-light)] mb-auto leading-relaxed">
+        {plan.terms?.[0] || ''}
+        {plan.terms?.[1] ? `. ${plan.terms[1]}` : ''}
+      </p>
+      <div className="mt-4">
         {plan.placeholder ? (
-          <span className="text-xs font-semibold text-gray-400 px-4 py-2 rounded-lg bg-gray-100">Coming Soon</span>
+          <span className="block w-full text-center text-sm font-semibold py-2.5 rounded-lg border-2"
+            style={{ color: 'var(--clr-text-light)', borderColor: 'var(--clr-border)' }}>
+            Coming Soon
+          </span>
         ) : (
           <a href={plan.link} target="_blank" rel="noopener noreferrer"
             data-testid={`join-${plan.id}`}
-            className="btn-primary px-5 py-2 text-xs whitespace-nowrap">
-            Join <ArrowRight size={12} className="inline ml-1" />
+            className="block w-full text-center text-sm font-bold py-2.5 rounded-lg border-2 transition-all duration-200 hover:bg-[var(--clr-charcoal)] hover:text-white hover:border-[var(--clr-charcoal)]"
+            style={{ color: 'var(--clr-charcoal)', borderColor: 'var(--clr-charcoal)' }}>
+            Get Started ›
           </a>
         )}
       </div>
@@ -478,17 +473,17 @@ export default function Join() {
             data-testid="show-more-plans"
             className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl border-2 border-dashed transition-all duration-200 hover:border-[var(--clr-green)]/50"
             style={{ color: 'var(--clr-green)', borderColor: 'var(--clr-border)' }}>
-            {showMore ? 'Hide additional plans' : 'Need something different? See all plans'}
+            {showMore ? 'Hide plans' : 'See more plans'}
             {showMore ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
           {showMore && (
-            <div className="mt-4 rounded-[var(--radius-xl)] bg-white border px-6" style={{ borderColor: 'var(--clr-border)', boxShadow: 'var(--shadow-sm)' }}>
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {MORE_PLANS.map(plan => (
                 <MorePlanRow key={plan.id} plan={plan} />
               ))}
-              <div className="py-3">
-                <p className="text-[11px] text-[var(--clr-text-light)]">
+              <div className="sm:col-span-2 lg:col-span-3 mt-1">
+                <p className="text-[11px] text-[var(--clr-text-light)] text-center">
                   All memberships: $50 Annual Enhancement Fee applies. All cancellations require 30-day notice prior to last billing date.
                   Commitment memberships auto-renew to open month-to-month at end of initial term.
                 </p>

@@ -239,11 +239,11 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             {/* Website link — always visible on mobile */}
             <Link
-              to="/"
+              to="/staff"
               className="flex items-center gap-1 text-white/58 hover:text-white text-xs font-medium border border-white/12 hover:border-white/28 px-2.5 py-1.5 rounded-md transition-colors duration-200"
             >
               <ArrowLeft size={11} />
-              <span>Website</span>
+              <span>Dashboard</span>
             </Link>
             <Link to="/staff/settings" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Settings">
               <Settings size={14} />
