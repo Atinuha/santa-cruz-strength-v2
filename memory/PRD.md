@@ -67,6 +67,13 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 - Mobile PWA staff portal
 - Twilio SMS integration (send/receive) with MailerSend fallback — DONE
 - Fix: Twilio inbound webhook HTTP 520 — RESOLVED (Apr 12, 2026: refactored to return TwiML instantly via fire-and-forget background tasks, added GET health check)
+- MailerSend SMS integration (primary outbound, delivery status webhooks) — DONE
+- MailerSend inbound SMS webhook endpoint — DONE
+- Twilio A2P 10DLC Brand + Campaign registration — DONE (user-side)
+- A2P Campaign rejection fix — DONE (Apr 19, 2026: strengthened TCPA consent language on QuizForm, Privacy Policy, and Terms pages with program name, frequency, HELP/STOP, data rates, carrier disclosure)
+- Meet the Team / Meet our Trainers sections on Personal Training page — DONE (dynamic from DB)
+- Team Manager admin page (`/staff/team`) with CRUD, photo upload, visibility toggle, reorder — DONE
+- Seeded 7 team members (3 staff + 4 trainers) with photos
 
 ## Pending / Upcoming
 - **Meta Pixel Tracking (P1)** — Blocked on user providing Pixel ID
@@ -75,3 +82,15 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 
 ## Backlog
 - **Backend refactoring (P2)** — Split server.py into modular routers
+
+## Key Endpoints (Updated April 2026)
+- `POST /api/webhooks/twilio-sms` — Twilio inbound SMS (returns TwiML instantly, background DB/email)
+- `GET /api/webhooks/twilio-sms` — Webhook health check
+- `POST /api/webhooks/twilio-status` — Twilio delivery status callback
+- `POST /api/webhooks/mailersend-sms` — MailerSend inbound SMS
+- `POST /api/webhooks/mailersend-sms-status` — MailerSend delivery status (sent/delivered/failed)
+- `GET /api/team` — Public team members
+- `GET /api/staff/team` — Staff: all team members
+- `POST /api/staff/team` — Create team member
+- `PUT /api/staff/team/{id}` — Update team member
+- `DELETE /api/staff/team/{id}` — Delete team member

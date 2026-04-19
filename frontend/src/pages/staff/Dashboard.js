@@ -257,6 +257,9 @@ export default function Dashboard() {
             <Link to="/staff/campaigns" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Campaigns">
               <Megaphone size={14} />
             </Link>
+            <Link to="/staff/team" className="text-white/58 hover:text-white p-1.5 rounded transition-colors duration-200" title="Team Manager">
+              <Users size={14} />
+            </Link>
             <span className="text-white/58 text-xs hidden sm:block max-w-[80px] truncate">{user?.name}</span>
             <button onClick={() => { logout(); navigate('/staff/login'); }}
               className="text-white/52 hover:text-white/70 p-1.5 rounded transition-colors duration-200" title="Logout">

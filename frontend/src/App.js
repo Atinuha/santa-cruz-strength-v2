@@ -33,6 +33,7 @@ import EventsManager from './pages/staff/EventsManager';
 import CampaignManager from './pages/staff/CampaignManager';
 import EmailBuilder from './pages/staff/EmailBuilder';
 import SMSBuilder from './pages/staff/SMSBuilder';
+import TeamManager from './pages/staff/TeamManager';
 
 import './App.css';
 
@@ -100,6 +101,9 @@ export default function App() {
           } />
           <Route path="/staff/campaigns/sms/:campaignId" element={
             <ProtectedRoute><SMSBuilder /></ProtectedRoute>
+          } />
+          <Route path="/staff/team" element={
+            <CRMLayout><ProtectedRoute><TeamManager /></ProtectedRoute></CRMLayout>
           } />
 
           {/* Fallback */}

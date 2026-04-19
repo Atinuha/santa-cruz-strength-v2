@@ -317,10 +317,14 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
           No commitment. A coach will reach out within 24 hours.
         </p>
         <p className="text-center text-[10px] leading-relaxed mt-2" style={{ color: 'var(--clr-text-light)', opacity: 0.75 }}>
-          By submitting, you agree to receive texts &amp; emails from Santa Cruz Strength.
-          Msg &amp; data rates may apply. Reply STOP to opt out. View our{' '}
+          By submitting this form, you expressly consent to receive recurring automated
+          promotional and informational text messages (SMS/MMS) and emails from Santa Cruz
+          Strength at the phone number and email provided. Consent is not a condition of
+          purchase. Message frequency varies. Message and data rates may apply.
+          Reply <strong>STOP</strong> to cancel. Reply <strong>HELP</strong> for help.
+          View our{' '}
           <a href="/privacy" className="underline hover:text-[var(--clr-green)] transition-colors duration-150">Privacy Policy</a>{' '}
-          &amp; <a href="/terms" className="underline hover:text-[var(--clr-green)] transition-colors duration-150">Terms</a>.
+          &amp; <a href="/terms" className="underline hover:text-[var(--clr-green)] transition-colors duration-150">Terms &amp; Conditions</a>.
         </p>
       </div>
     </div>

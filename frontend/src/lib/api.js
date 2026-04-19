@@ -90,4 +90,13 @@ export const importLeadsCSV = (file) => {
 };
 export const downloadCSVTemplate = () => api.get('/staff/leads/template/csv', { responseType: 'blob' });
 
+// Team Members (Public)
+export const getTeamMembers = () => api.get('/team');
+
+// Team Members (Staff)
+export const getStaffTeamMembers = () => api.get('/staff/team');
+export const createTeamMember = (data) => api.post('/staff/team', data);
+export const updateTeamMember = (id, data) => api.put(`/staff/team/${id}`, data);
+export const deleteTeamMember = (id) => api.delete(`/staff/team/${id}`);
+
 export default api;

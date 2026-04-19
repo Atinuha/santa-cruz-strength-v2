@@ -6,7 +6,7 @@ import { GYM_CONFIG } from '../config';
 
 export default function Terms() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
-  const updated = 'March 2025';
+  const updated = 'April 2026';
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
@@ -104,17 +104,46 @@ export default function Terms() {
           </section>
 
           <section>
-            <h2 className="font-bold text-lg mb-3" style={{ color: 'var(--clr-charcoal)' }}>8. SMS Marketing Communications</h2>
-            <p className="text-sm leading-relaxed">
-              By providing your phone number and submitting a form on our website, you consent to receive
-              recurring automated promotional and transactional text messages from Santa Cruz Strength.
-              Consent is not a condition of purchase. Message and data rates may apply. You may opt out at
-              any time by replying STOP. View our{' '}
-              <Link to="/privacy" className="underline underline-offset-2 hover:text-[var(--clr-green)] transition-colors duration-200">
-                Privacy Policy
-              </Link>{' '}
-              for full SMS terms.
-            </p>
+            <h2 className="font-bold text-lg mb-3" style={{ color: 'var(--clr-charcoal)' }}>8. SMS / Text Message Program Terms</h2>
+            <div className="bg-[var(--clr-bg)] border rounded-[var(--radius-lg)] px-5 py-4 mb-4 space-y-3" style={{ borderColor: 'var(--clr-border)' }}>
+              <p className="text-sm font-bold" style={{ color: 'var(--clr-charcoal)' }}>Program Name: Santa Cruz Strength Messaging</p>
+              <p className="text-sm leading-relaxed">
+                By providing your phone number and submitting a form on santacruzstrength.com, or by texting
+                the keyword <strong>START</strong> to (408) 583-6671, you expressly consent to receive recurring
+                automated promotional and informational text messages (SMS/MMS) from Santa Cruz Strength.
+                These messages may include tour scheduling, membership information, follow-up messages,
+                promotional offers, and general gym updates.
+              </p>
+              <p className="text-sm leading-relaxed">
+                <strong>Consent is not a condition of purchase.</strong> You do not need to agree to receive
+                text messages in order to purchase a membership or use our services.
+              </p>
+              <p className="text-sm leading-relaxed">
+                <strong>Message frequency varies.</strong> You may receive up to 10 messages per month
+                depending on your inquiry and membership status.
+              </p>
+              <p className="text-sm leading-relaxed">
+                <strong>Message and data rates may apply.</strong> Standard carrier rates for text messaging
+                apply. Check with your mobile carrier for details on your plan.
+              </p>
+              <p className="text-sm leading-relaxed">
+                <strong>To opt out:</strong> Text <strong>STOP</strong> to any message from Santa Cruz Strength.
+                You will receive a single confirmation message and no further texts will be sent.
+              </p>
+              <p className="text-sm leading-relaxed">
+                <strong>For help:</strong> Text <strong>HELP</strong> to any message from Santa Cruz Strength,
+                or contact us at management@santacruzstrength.com or (408) 337-6709.
+              </p>
+              <p className="text-sm leading-relaxed">
+                Supported carriers include but are not limited to: AT&amp;T, T-Mobile, Verizon, Sprint, and
+                other major US carriers. T-Mobile is not liable for delayed or undelivered messages.
+              </p>
+              <p className="text-sm leading-relaxed">
+                Your mobile phone number will not be shared with third parties for marketing purposes.
+                View our <Link to="/privacy" className="underline underline-offset-2 hover:text-[var(--clr-green)] transition-colors duration-200">Privacy Policy</Link> for
+                full details on how we handle your information.
+              </p>
+            </div>
           </section>
 
           <section>

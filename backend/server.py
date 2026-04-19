@@ -1753,6 +1753,75 @@ async def run_blog_ideas_refresh():
     logger.info('[BLOG IDEAS] Scheduled refresh starting...')
     await _generate_blog_ideas_core()
 
+# --------------- Team Members ---------------
+
+class TeamMemberCreate(BaseModel):
+    name: str
+    role: str
+    bio: str = ''
+    photo_url: str = ''
+    category: str = 'team'  # 'team' or 'trainer'
+    sort_order: int = 0
+    is_visible: bool = True
+
+class TeamMemberUpdate(BaseModel):
+    name: str = None
+    role: str = None
+    bio: str = None
+    photo_url: str = None
+    category: str = None
+    sort_order: int = None
+    is_visible: bool = None
+
+
+@api_router.get('/team')
+async def get_team_members():
+    """Public: get all visible team members."""
+    members = await db.team_members.find({'is_visible': True}, {'_id': 0}).sort('sort_order', 1).to_list(100)
+    return members
+
+
+@api_router.get('/staff/team')
+async def get_all_team_members(user=Depends(require_admin)):
+    """Staff: get all team members including hidden."""
+    members = await db.team_members.find({}, {'_id': 0}).sort('sort_order', 1).to_list(100)
+    return members
+
+
+@api_router.post('/staff/team')
+async def create_team_member(data: TeamMemberCreate, user=Depends(require_admin)):
+    member = {
+        'id': str(uuid.uuid4()),
+        **data.dict(),
+        'created_at': now_utc().isoformat(),
+        'updated_at': now_utc().isoformat(),
+    }
+    await db.team_members.insert_one(member)
+    created = await db.team_members.find_one({'id': member['id']}, {'_id': 0})
+    return created
+
+
+@api_router.put('/staff/team/{member_id}')
+async def update_team_member(member_id: str, data: TeamMemberUpdate, user=Depends(require_admin)):
+    updates = {k: v for k, v in data.dict().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail='No fields to update')
+    updates['updated_at'] = now_utc().isoformat()
+    result = await db.team_members.update_one({'id': member_id}, {'$set': updates})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail='Member not found')
+    updated = await db.team_members.find_one({'id': member_id}, {'_id': 0})
+    return updated
+
+
+@api_router.delete('/staff/team/{member_id}')
+async def delete_team_member(member_id: str, user=Depends(require_admin)):
+    result = await db.team_members.delete_one({'id': member_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail='Member not found')
+    return {'ok': True}
+
+
 # --------------- Events Models ---------------
 
 class EventCreate(BaseModel):
@@ -3393,6 +3462,22 @@ async def startup():
     await db.email_stats.create_index('date', unique=True)
     await db.daily_bounce_log.create_index('date')
     await db.daily_bounce_log.create_index('type')
+    await db.team_members.create_index('id', unique=True)
+    await db.team_members.create_index('category')
+    # Seed team members if none exist
+    team_count = await db.team_members.count_documents({})
+    if team_count == 0:
+        seed_team = [
+            {'id': str(uuid.uuid4()), 'name': 'Mike', 'role': 'Owner', 'bio': '', 'photo_url': 'https://customer-assets.emergentagent.com/job_da9a4a5d-572a-4858-ad1e-163b4849fc8c/artifacts/g5zrk54i_Mike.jpg', 'category': 'team', 'sort_order': 0, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
+            {'id': str(uuid.uuid4()), 'name': 'Teresa', 'role': 'Community Manager', 'bio': '', 'photo_url': 'https://customer-assets.emergentagent.com/job_da9a4a5d-572a-4858-ad1e-163b4849fc8c/artifacts/muymaslx_Teresa.jpg', 'category': 'team', 'sort_order': 1, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
+            {'id': str(uuid.uuid4()), 'name': 'Brit', 'role': 'Resident Badass', 'bio': '', 'photo_url': 'https://customer-assets.emergentagent.com/job_da9a4a5d-572a-4858-ad1e-163b4849fc8c/artifacts/xbzp9o5d_Brit.jpg', 'category': 'team', 'sort_order': 2, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
+            {'id': str(uuid.uuid4()), 'name': 'Morghan King', 'role': 'Resident Olympian', 'bio': '', 'photo_url': '', 'category': 'trainer', 'sort_order': 0, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
+            {'id': str(uuid.uuid4()), 'name': 'Lexi', 'role': 'Strength Coach & Acrobatic Enthusiast', 'bio': '', 'photo_url': 'https://customer-assets.emergentagent.com/job_da9a4a5d-572a-4858-ad1e-163b4849fc8c/artifacts/457i1107_Lexi.jpg', 'category': 'trainer', 'sort_order': 1, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
+            {'id': str(uuid.uuid4()), 'name': 'Chris', 'role': 'Powerlifting Powerhouse', 'bio': '', 'photo_url': 'https://customer-assets.emergentagent.com/job_da9a4a5d-572a-4858-ad1e-163b4849fc8c/artifacts/f0ta5eiu_Chris.jpg', 'category': 'trainer', 'sort_order': 2, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
+            {'id': str(uuid.uuid4()), 'name': 'Syon', 'role': 'Strength & Conditioning Coach Extraordinaire', 'bio': '', 'photo_url': '', 'category': 'trainer', 'sort_order': 3, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
+        ]
+        await db.team_members.insert_many(seed_team)
+        logger.info(f'[SEED] Created {len(seed_team)} team members')
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
     if blog_count == 0:

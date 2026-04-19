@@ -6,7 +6,7 @@ import { GYM_CONFIG } from '../config';
 
 export default function Privacy() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
-  const updated = 'March 2025';
+  const updated = 'April 2026';
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
@@ -61,16 +61,27 @@ export default function Privacy() {
           <section>
             <h2 className="font-bold text-lg mb-3" style={{ color: 'var(--clr-charcoal)' }}>4. SMS / Text Message Communications</h2>
             <p className="text-sm leading-relaxed mb-3">
-              By submitting a form on our website and providing your phone number, you expressly consent to
-              receive text messages from Santa Cruz Strength, including automated messages, at the number
-              provided. Message frequency varies. Standard message and data rates may apply.
+              <strong>Opt-in:</strong> By submitting a form on santacruzstrength.com and providing your phone number,
+              you expressly consent to receive recurring automated promotional and informational text messages
+              (SMS/MMS) from Santa Cruz Strength at the phone number provided. You may also opt in by texting
+              the keyword <strong>START</strong> to (408) 583-6671. Additionally, staff may collect phone numbers
+              and verbal consent during walk-in visits at our gym and enter them into our system.
             </p>
             <p className="text-sm leading-relaxed mb-3">
-              <strong>To opt out:</strong> Reply STOP to any text message we send you. You will receive a
-              one-time confirmation and no further messages will be sent. To opt back in, reply START.
+              <strong>Consent is not a condition of purchase.</strong> Message frequency varies (up to 10 messages per month).
+              Message and data rates may apply.
+            </p>
+            <p className="text-sm leading-relaxed mb-3">
+              <strong>To opt out:</strong> Reply <strong>STOP</strong> to any text message we send you. You will receive a
+              one-time confirmation and no further messages will be sent.
+            </p>
+            <p className="text-sm leading-relaxed mb-3">
+              <strong>For help:</strong> Reply <strong>HELP</strong> or contact us at {GYM_CONFIG.email} or {GYM_CONFIG.phone}.
             </p>
             <p className="text-sm leading-relaxed">
-              <strong>For help:</strong> Reply HELP or contact us at {GYM_CONFIG.email}.
+              Your mobile phone number will not be sold, rented, or shared with third parties or affiliates
+              for promotional or marketing purposes. Information collected through SMS opt-in will not be
+              shared with any third parties.
             </p>
           </section>
 
