@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import { GYM_CONFIG } from '../config';
+import { getSiteContent } from '../lib/api';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 export default function Contact() {
+  const [c, setC] = useState({});
+  useEffect(() => { getSiteContent().then(({ data }) => setC(data)).catch(() => {}); }, []);
+  const g = (key, fallback) => c[key] || fallback;
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
       <Navbar />
@@ -13,8 +18,8 @@ export default function Contact() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <span className="green-accent-line" />
           <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Get In Touch</p>
-          <h1 className="font-display text-5xl sm:text-6xl tracking-wide mb-3" style={{ color: 'var(--clr-charcoal)' }}>CONTACT US</h1>
-          <p className="text-[var(--clr-text-muted)] text-base max-w-lg font-semibold">Questions, tour requests, or just want to know more.</p>
+          <h1 className="font-display text-5xl sm:text-6xl tracking-wide mb-3" style={{ color: 'var(--clr-charcoal)' }}>{g('contact_headline', 'CONTACT US')}</h1>
+          <p className="text-[var(--clr-text-muted)] text-base max-w-lg font-semibold">{g('contact_subtitle', 'Questions, tour requests, or just want to know more.')}</p>
         </div>
       </section>
 
@@ -71,8 +76,8 @@ export default function Contact() {
               </div>
             </div>
             <div className="card-light p-6">
-              <h2 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-green)' }}>REACH OUT</h2>
-              <p className="text-[var(--clr-text-muted)] text-sm mb-5">Fill out the form and we will get back to you within 24 hours.</p>
+              <h2 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-green)' }}>{g('contact_form_headline', 'REACH OUT')}</h2>
+              <p className="text-[var(--clr-text-muted)] text-sm mb-5">{g('contact_form_subtitle', 'Fill out the form and we will get back to you within 24 hours.')}</p>
               <QuizForm source="contact_page" />
             </div>
           </div>

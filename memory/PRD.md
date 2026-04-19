@@ -75,9 +75,10 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 - Team Manager admin page (`/staff/team`) with CRUD, photo upload, visibility toggle, reorder — DONE
 - Seeded 7 team members (3 staff + 4 trainers) with photos
 - About page (`/about`) with editable copy from DB — DONE
-- Content Manager admin page (`/staff/content`) for editing all About page copy — DONE
+- Content Manager admin page (`/staff/content`) for editing all page copy — DONE (covers Home, About, Training, Contact pages)
 - Site content key-value store (DB-backed, editable from admin) — DONE
 - Added "About" to main navbar
+- Campaign flow fixed: waves 2 & 3 now use custom templates, send SMS, check quota, proper completion logic — DONE
 
 ## Pending / Upcoming
 - **Meta Pixel Tracking (P1)** — Blocked on user providing Pixel ID

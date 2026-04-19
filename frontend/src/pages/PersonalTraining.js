@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import Carousel from '../components/Carousel';
 import { GYM_CONFIG } from '../config';
-import { getTeamMembers } from '../lib/api';
+import { getTeamMembers, getSiteContent } from '../lib/api';
 import { CheckCircle2, Target, Zap, Heart, User, ArrowRight } from 'lucide-react';
 
 const PT_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/hvzhmt0n_Chris_5.JPEG';
@@ -27,12 +27,16 @@ const PT_WHO = [
 
 export default function PersonalTraining() {
   const [trainers, setTrainers] = useState([]);
+  const [c, setC] = useState({});
 
   useEffect(() => {
     getTeamMembers().then(({ data }) => {
       setTrainers(data.filter(m => m.category === 'trainer'));
     }).catch(() => {});
+    getSiteContent().then(({ data }) => setC(data)).catch(() => {});
   }, []);
+
+  const g = (key, fallback) => c[key] || fallback;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
@@ -43,8 +47,12 @@ export default function PersonalTraining() {
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
           <span className="green-accent-line" />
           <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">1-on-1 Coaching</p>
-          <h1 className="font-display text-5xl sm:text-6xl tracking-wide mb-4" style={{ color: 'var(--clr-charcoal)' }}>PERSONAL TRAINING<br />THAT RESPECTS YOUR TIME.</h1>
-          <p className="text-[var(--clr-text)] text-base max-w-xl font-semibold">Work directly with a Santa Cruz Strength coach to build real strength, master technique, and train with purpose.</p>
+          <h1 className="font-display text-5xl sm:text-6xl tracking-wide mb-4" style={{ color: 'var(--clr-charcoal)' }}>
+            {(g('training_headline', 'PERSONAL TRAINING\nTHAT RESPECTS YOUR TIME.')).split('\n').map((line, i, arr) => (
+              <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+            ))}
+          </h1>
+          <p className="text-[var(--clr-text)] text-base max-w-xl font-semibold">{g('training_subtitle', 'Work directly with a Santa Cruz Strength coach to build real strength, master technique, and train with purpose.')}</p>
         </div>
       </section>
 
@@ -128,7 +136,7 @@ export default function PersonalTraining() {
 
       <section className="py-14 border-t" style={{ background: 'var(--clr-bg)', borderColor: 'var(--clr-border)' }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="font-display text-3xl sm:text-4xl tracking-wide mb-4" style={{ color: 'var(--clr-charcoal)' }}>READY TO TRAIN WITH PURPOSE?</h2>
+          <h2 className="font-display text-3xl sm:text-4xl tracking-wide mb-4" style={{ color: 'var(--clr-charcoal)' }}>{g('training_cta_headline', 'READY TO TRAIN WITH PURPOSE?')}</h2>
           <a href={GYM_CONFIG.phoneHref} className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm">
             Call Us: {GYM_CONFIG.phone}
           </a>

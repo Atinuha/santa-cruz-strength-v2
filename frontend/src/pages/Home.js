@@ -6,6 +6,7 @@ import QuizForm from '../components/QuizForm';
 import Carousel from '../components/Carousel';
 import InstagramFeed from '../components/InstagramFeed';
 import { GYM_CONFIG } from '../config';
+import { getSiteContent } from '../lib/api';
 import { trackJoinNowClick, trackBookTourClick, trackPhoneClick } from '../utils/analytics';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap, Calendar, Ticket, Check } from 'lucide-react';
@@ -92,11 +93,15 @@ function WaveDivider({ flip = false, from = '#F7F5F0', to = '#FFFFFF' }) {
 
 export default function Home() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [c, setC] = useState({});
 
   useEffect(() => {
     fetch(`${BACKEND}/api/events?upcoming=true`)
       .then(r => r.json()).then(d => setUpcomingEvents((d || []).slice(0, 3))).catch(() => {});
+    getSiteContent().then(({ data }) => setC(data)).catch(() => {});
   }, []);
+
+  const g = (key, fallback) => c[key] || fallback;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
@@ -153,15 +158,15 @@ export default function Home() {
               </div>
               <h1 className="font-display text-5xl sm:text-6xl lg:text-[5rem] leading-[0.92] tracking-wide mb-3"
                 style={{ color: 'var(--clr-charcoal)' }}>
-                SERIOUS<br />
-                <span style={{ color: 'var(--clr-green)' }}>STRENGTH</span><br />
-                TRAINING.
+                {(g('home_hero_headline', 'SERIOUS\nSTRENGTH\nTRAINING.')).split('\n').map((line, i) => (
+                  <span key={i}>{i === 1 ? <span style={{ color: 'var(--clr-green)' }}>{line}</span> : line}{i < 2 && <br />}</span>
+                ))}
               </h1>
               <p className="text-[var(--clr-text)] text-base leading-relaxed mb-1 font-bold max-w-md">
-                A focused gym for athletes, lifters, and people who believe strength matters.
+                {g('home_hero_subtitle', 'A focused gym for athletes, lifters, and people who believe strength matters.')}
               </p>
               <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-5 max-w-sm">
-                Real training environment. Real community. Santa Cruz.
+                {g('home_hero_subtext', 'Real training environment. Real community. Santa Cruz.')}
               </p>
               <div className="flex flex-wrap gap-2 mb-5">
                 {['24/7 via App', 'Flexible Membership', 'All Levels'].map(chip => (
@@ -216,10 +221,10 @@ export default function Home() {
             <span className="green-accent-line mx-auto" />
             <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Why Train Here</p>
             <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>
-              STRENGTH WITHOUT THE NOISE.
+              {g('home_benefits_headline', 'STRENGTH WITHOUT THE NOISE.')}
             </h2>
             <p className="text-[var(--clr-text-muted)] max-w-xl mx-auto mt-3 text-sm leading-relaxed">
-              No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.
+              {g('home_benefits_subtitle', 'No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.')}
             </p>
           </div>
           <Carousel itemWidth="w-64 sm:w-72" className="px-6">
@@ -258,13 +263,15 @@ export default function Home() {
               <span className="green-accent-line" />
               <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">The Environment</p>
               <h2 className="font-display text-4xl sm:text-5xl tracking-wide mb-5" style={{ color: 'var(--clr-charcoal)' }}>
-                WHAT TRAINING<br />HERE FEELS LIKE
+                {(g('home_environment_headline', 'WHAT TRAINING\nHERE FEELS LIKE')).split('\n').map((line, i, arr) => (
+                  <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                ))}
               </h2>
               <p className="text-[var(--clr-text)] leading-relaxed mb-3 font-semibold">
-                Walk in and you\'ll notice it immediately. The space is clean. The equipment is serious. People are focused, not performing.
+                {g('home_environment_text', "Walk in and you'll notice it immediately. The space is clean. The equipment is serious. People are focused, not performing.")}
               </p>
               <p className="text-[var(--clr-text-muted)] leading-relaxed mb-6 text-sm">
-                No music drowning out your thoughts. No influencer corner. Just chalk, iron, and people who came to work.
+                {g('home_environment_subtext', 'No music drowning out your thoughts. No influencer corner. Just chalk, iron, and people who came to work.')}
               </p>
               <ul className="space-y-3">
                 {['Competition-grade racks, barbells, and platforms', 'Coaches who know real strength programming', 'An environment that respects effort over ego', '24/7 access for full members via our app'].map((item, i) => (
@@ -296,13 +303,15 @@ export default function Home() {
               <span className="green-accent-line" />
               <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Who Trains Here</p>
               <h2 className="font-display text-4xl sm:text-5xl tracking-wide mb-5" style={{ color: 'var(--clr-charcoal)' }}>
-                IF YOU TRAIN,<br />YOU BELONG HERE.
+                {(g('home_who_headline', 'IF YOU TRAIN,\nYOU BELONG HERE.')).split('\n').map((line, i, arr) => (
+                  <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                ))}
               </h2>
               <p className="text-[var(--clr-text)] leading-relaxed text-sm mb-3 font-semibold">
-                Santa Cruz Strength serves the full athletic community of this city. The common thread isn\'t your sport or your level.
+                {g('home_who_text', "Santa Cruz Strength serves the full athletic community of this city. The common thread isn't your sport or your level.")}
               </p>
               <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-8">
-                It\'s the belief that being strong makes everything else better — your surfing, your climbing, your work, your decades ahead.
+                {g('home_who_subtext', "It's the belief that being strong makes everything else better — your surfing, your climbing, your work, your decades ahead.")}
               </p>
               <div className="flex flex-wrap gap-2">
                 {WHO_FOR.map((item, i) => (
