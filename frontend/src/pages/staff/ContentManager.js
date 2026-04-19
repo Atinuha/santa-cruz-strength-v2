@@ -227,6 +227,7 @@ export default function ContentManager() {
                 <div className="bg-white/4 border border-white/8 rounded-xl p-5 space-y-4">
                   {section.keys.map(({ key, label, type, rows, help }) => {
                     const changed = content[key] !== original[key];
+                    const currentVal = original[key] || '';
                     return (
                       <div key={key}>
                         <div className="flex items-center justify-between mb-1.5">
@@ -234,20 +235,35 @@ export default function ContentManager() {
                             <label className="text-xs text-white/50 font-medium">{label}</label>
                             {help && <span className="text-[10px] text-white/25 ml-2">{help}</span>}
                           </div>
-                          {changed && (
-                            <button onClick={() => handleSave(key)} disabled={saving[key]}
-                              className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-colors">
-                              {saving[key] ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
-                              Save
-                            </button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {changed && (
+                              <button onClick={() => handleChange(key, original[key] || '')}
+                                className="text-white/30 hover:text-white/60 text-[10px] font-semibold transition-colors">
+                                Undo
+                              </button>
+                            )}
+                            {changed && (
+                              <button onClick={() => handleSave(key)} disabled={saving[key]}
+                                className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-colors">
+                                {saving[key] ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                                Save
+                              </button>
+                            )}
+                          </div>
                         </div>
+                        {/* Current live value */}
+                        {currentVal && (
+                          <div className="mb-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                            <p className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-1">Currently live</p>
+                            <p className="text-xs text-white/45 leading-relaxed whitespace-pre-line">{currentVal}</p>
+                          </div>
+                        )}
                         {type === 'textarea' ? (
                           <textarea
                             data-testid={`content-${key}`}
                             value={content[key] || ''}
                             onChange={e => handleChange(key, e.target.value)}
-                            className={`${inputCls} resize-none`}
+                            className={`${inputCls} resize-none ${changed ? 'border-emerald-500/40' : ''}`}
                             rows={rows || 3}
                           />
                         ) : (
@@ -255,8 +271,11 @@ export default function ContentManager() {
                             data-testid={`content-${key}`}
                             value={content[key] || ''}
                             onChange={e => handleChange(key, e.target.value)}
-                            className={inputCls}
+                            className={`${inputCls} ${changed ? 'border-emerald-500/40' : ''}`}
                           />
+                        )}
+                        {changed && (
+                          <p className="text-[10px] text-emerald-400/60 mt-1">Unsaved changes</p>
                         )}
                       </div>
                     );
