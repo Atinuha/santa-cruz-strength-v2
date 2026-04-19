@@ -2429,21 +2429,51 @@ async def _run_single_campaign(campaign_id: str):
         {'lead_id': 1, '_id': 0}
     ).to_list(1000)
     wave2_done = {s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 2}, {'lead_id': 1, '_id': 0})}
+    sent_wave2 = 0
     for send in wave1_for_w2:
         if send['lead_id'] in wave2_done:
             continue
-        lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1})
+        if not await _check_campaign_quota():
+            logger.warning(f'[CAMPAIGN] Daily quota nearly full — pausing wave 2')
+            break
+        lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'email': 1, 'phone': 1})
         if not lead or not lead.get('email'):
             continue
-        html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=2)
-        ok = await send_resend_email(to=lead['email'], subject="Your spot's still open — 2 months free", html=html)
+        custom_html = campaign.get('email_html_template', '')
+        if custom_html:
+            html = custom_html \
+                .replace('{{first_name}}', lead.get('first_name', 'Friend')) \
+                .replace('{{last_name}}',  lead.get('last_name', '')) \
+                .replace('{{gym_name}}',   'Santa Cruz Strength') \
+                .replace('{{join_url}}',   join_url) \
+                .replace('{{gym_phone}}',  '(408) 337-6709')
+        else:
+            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=2)
+        w2_subject = subjects[1] if len(subjects) > 1 else "Your spot's still open — 2 months free"
+        ok = await send_resend_email(to=lead['email'], subject=w2_subject, html=html)
+        if ok:
+            await _track_email_send(is_campaign=True)
+        sms_ok = False
+        if campaign.get('send_sms') and lead.get('phone'):
+            sms_tpl = campaign.get('sms_template', '')
+            if sms_tpl:
+                sms_text = sms_tpl \
+                    .replace('{{first_name}}', lead.get('first_name', 'there')) \
+                    .replace('{{last_name}}', lead.get('last_name', '')) \
+                    .replace('{{gym_name}}', 'Santa Cruz Strength') \
+                    .replace('{{join_url}}', join_url) \
+                    .replace('{{gym_phone}}', '(408) 337-6709')
+            else:
+                sms_text = _campaign_sms(lead.get('first_name', 'there'), join_url, wave=2)
+            sms_ok = await send_sms([lead['phone']], sms_text)
         if ok:
             try:
                 await db.campaign_sends.insert_one({
                     'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': lead['id'],
-                    'wave': 2, 'email_sent': True, 'sms_sent': False,
-                    'subject': "Your spot's still open", 'sent_at': now_utc().isoformat(),
+                    'wave': 2, 'email_sent': True, 'sms_sent': sms_ok,
+                    'subject': w2_subject, 'sent_at': now_utc().isoformat(),
                 })
+                sent_wave2 += 1
             except Exception:
                 pass
         await asyncio.sleep(0.25)
@@ -2455,34 +2485,68 @@ async def _run_single_campaign(campaign_id: str):
         {'lead_id': 1, '_id': 0}
     ).to_list(1000)
     wave3_done = {s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 3}, {'lead_id': 1, '_id': 0})}
+    sent_wave3 = 0
     for send in wave2_for_w3:
         if send['lead_id'] in wave3_done:
             continue
-        lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1})
+        if not await _check_campaign_quota():
+            logger.warning(f'[CAMPAIGN] Daily quota nearly full — pausing wave 3')
+            break
+        lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'email': 1, 'phone': 1})
         if not lead or not lead.get('email'):
             continue
-        html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=3)
-        ok = await send_resend_email(to=lead['email'], subject="We saved your spot.", html=html)
+        custom_html = campaign.get('email_html_template', '')
+        if custom_html:
+            html = custom_html \
+                .replace('{{first_name}}', lead.get('first_name', 'Friend')) \
+                .replace('{{last_name}}',  lead.get('last_name', '')) \
+                .replace('{{gym_name}}',   'Santa Cruz Strength') \
+                .replace('{{join_url}}',   join_url) \
+                .replace('{{gym_phone}}',  '(408) 337-6709')
+        else:
+            html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=3)
+        w3_subject = subjects[2] if len(subjects) > 2 else "We saved your spot."
+        ok = await send_resend_email(to=lead['email'], subject=w3_subject, html=html)
+        if ok:
+            await _track_email_send(is_campaign=True)
+        sms_ok = False
+        if campaign.get('send_sms') and lead.get('phone'):
+            sms_tpl = campaign.get('sms_template', '')
+            if sms_tpl:
+                sms_text = sms_tpl \
+                    .replace('{{first_name}}', lead.get('first_name', 'there')) \
+                    .replace('{{last_name}}', lead.get('last_name', '')) \
+                    .replace('{{gym_name}}', 'Santa Cruz Strength') \
+                    .replace('{{join_url}}', join_url) \
+                    .replace('{{gym_phone}}', '(408) 337-6709')
+            else:
+                sms_text = _campaign_sms(lead.get('first_name', 'there'), join_url, wave=3)
+            sms_ok = await send_sms([lead['phone']], sms_text)
         if ok:
             try:
                 await db.campaign_sends.insert_one({
                     'id': str(uuid.uuid4()), 'campaign_id': cid, 'lead_id': lead['id'],
-                    'wave': 3, 'email_sent': True, 'sms_sent': False,
-                    'subject': "We saved your spot.", 'sent_at': now_utc().isoformat(),
+                    'wave': 3, 'email_sent': True, 'sms_sent': sms_ok,
+                    'subject': w3_subject, 'sent_at': now_utc().isoformat(),
                 })
+                sent_wave3 += 1
             except Exception:
                 pass
         await asyncio.sleep(0.25)
 
-    # Update campaign progress
+    # Update campaign progress — only "completed" when ALL waves are done for ALL leads
     total_eligible = await db.leads.count_documents({k: v for k, v in lead_query.items() if k != 'id'})
-    total_sent     = await db.campaign_sends.count_documents({'campaign_id': cid, 'wave': 1})
-    new_status     = 'completed' if total_sent >= total_eligible else 'active'
+    total_w1       = await db.campaign_sends.count_documents({'campaign_id': cid, 'wave': 1})
+    total_w3       = await db.campaign_sends.count_documents({'campaign_id': cid, 'wave': 3})
+    # Campaign is complete only when wave 3 has been sent to all wave 1 recipients
+    all_waves_done = total_w1 >= total_eligible and total_w3 >= total_w1
+    new_status     = 'completed' if all_waves_done else 'active'
     await db.campaigns.update_one({'id': cid}, {'$set': {
         'last_sent_date': today, 'status': new_status, 'updated_at': now_utc().isoformat()
     }})
-    if sent_wave1:
-        logger.info(f'[CAMPAIGN] {campaign["name"]}: +{sent_wave1} wave1 sent today ({total_sent}/{total_eligible})')
+    total_actions = sent_wave1 + sent_wave2 + sent_wave3
+    if total_actions:
+        logger.info(f'[CAMPAIGN] {campaign["name"]}: w1={sent_wave1} w2={sent_wave2} w3={sent_wave3} ({total_w1}/{total_eligible} through pipeline)')
 
 async def run_campaign_scheduler():
     """Runs every hour — sends daily campaign batches (waves 2+3 also checked here)."""
