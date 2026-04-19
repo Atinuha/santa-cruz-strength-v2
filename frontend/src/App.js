@@ -18,6 +18,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Events from './pages/Events';
 import ReviewPage from './pages/ReviewPage';
+import About from './pages/About';
 
 // Staff CRM Pages
 import StaffLogin from './pages/staff/Login';
@@ -34,6 +35,7 @@ import CampaignManager from './pages/staff/CampaignManager';
 import EmailBuilder from './pages/staff/EmailBuilder';
 import SMSBuilder from './pages/staff/SMSBuilder';
 import TeamManager from './pages/staff/TeamManager';
+import ContentManager from './pages/staff/ContentManager';
 
 import './App.css';
 
@@ -66,6 +68,7 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/about" element={<About />} />
           <Route path="/review/:token" element={<ReviewPage />} />
 
           {/* Staff Auth */}
@@ -104,6 +107,9 @@ export default function App() {
           } />
           <Route path="/staff/team" element={
             <CRMLayout><ProtectedRoute><TeamManager /></ProtectedRoute></CRMLayout>
+          } />
+          <Route path="/staff/content" element={
+            <CRMLayout><ProtectedRoute><ContentManager /></ProtectedRoute></CRMLayout>
           } />
 
           {/* Fallback */}

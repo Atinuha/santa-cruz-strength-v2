@@ -1753,6 +1753,34 @@ async def run_blog_ideas_refresh():
     logger.info('[BLOG IDEAS] Scheduled refresh starting...')
     await _generate_blog_ideas_core()
 
+# --------------- Site Content (Editable Copy) ---------------
+
+@api_router.get('/content')
+async def get_public_content():
+    """Public: get all site content as key-value map."""
+    docs = await db.site_content.find({}, {'_id': 0}).to_list(200)
+    return {d['key']: d['value'] for d in docs}
+
+
+@api_router.get('/staff/content')
+async def get_all_content(user=Depends(require_admin)):
+    """Staff: get all content entries."""
+    docs = await db.site_content.find({}, {'_id': 0}).to_list(200)
+    return docs
+
+
+@api_router.put('/staff/content/{key}')
+async def update_content(key: str, request: Request, user=Depends(require_admin)):
+    body = await request.json()
+    value = body.get('value', '')
+    result = await db.site_content.update_one(
+        {'key': key},
+        {'$set': {'value': value, 'updated_at': now_utc().isoformat()}},
+        upsert=True,
+    )
+    return {'key': key, 'value': value}
+
+
 # --------------- Team Members ---------------
 
 class TeamMemberCreate(BaseModel):
@@ -3464,6 +3492,23 @@ async def startup():
     await db.daily_bounce_log.create_index('type')
     await db.team_members.create_index('id', unique=True)
     await db.team_members.create_index('category')
+    await db.site_content.create_index('key', unique=True)
+    # Seed site content if none exist
+    content_count = await db.site_content.count_documents({})
+    if content_count == 0:
+        seed_content = [
+            {'key': 'about_mission', 'value': 'Come as you are, leave how you want!', 'updated_at': now_utc().isoformat()},
+            {'key': 'about_headline', 'value': 'THIS IS SANTA CRUZ STRENGTH', 'updated_at': now_utc().isoformat()},
+            {'key': 'about_story', 'value': "Santa Cruz Strength isn't your average gym. We built this place for lifters, athletes, and anyone who's serious about getting stronger — on their own terms.\n\nWhether you're a first-time lifter or a seasoned competitor, you'll find the equipment, coaching, and community here to match your ambition. No ego. No gimmicks. Just iron, chalk, and people who give a damn.\n\nWe're locally owned, coach-led, and built around one idea: everyone deserves a gym that respects their goals.", 'updated_at': now_utc().isoformat()},
+            {'key': 'about_team_headline', 'value': 'MEET THE TEAM', 'updated_at': now_utc().isoformat()},
+            {'key': 'about_team_subtitle', 'value': 'The people behind the iron', 'updated_at': now_utc().isoformat()},
+            {'key': 'about_trainers_headline', 'value': 'MEET OUR TRAINERS', 'updated_at': now_utc().isoformat()},
+            {'key': 'about_trainers_subtitle', 'value': 'Expert coaching for every level', 'updated_at': now_utc().isoformat()},
+            {'key': 'about_cta_headline', 'value': 'COME SEE FOR YOURSELF', 'updated_at': now_utc().isoformat()},
+            {'key': 'about_cta_text', 'value': "Drop in, take a look around, and meet the crew. No pressure — just good people and heavy weights.", 'updated_at': now_utc().isoformat()},
+        ]
+        await db.site_content.insert_many(seed_content)
+        logger.info(f'[SEED] Created {len(seed_content)} site content entries')
     # Seed team members if none exist
     team_count = await db.team_members.count_documents({})
     if team_count == 0:

@@ -74,6 +74,10 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 - Meet the Team / Meet our Trainers sections on Personal Training page — DONE (dynamic from DB)
 - Team Manager admin page (`/staff/team`) with CRUD, photo upload, visibility toggle, reorder — DONE
 - Seeded 7 team members (3 staff + 4 trainers) with photos
+- About page (`/about`) with editable copy from DB — DONE
+- Content Manager admin page (`/staff/content`) for editing all About page copy — DONE
+- Site content key-value store (DB-backed, editable from admin) — DONE
+- Added "About" to main navbar
 
 ## Pending / Upcoming
 - **Meta Pixel Tracking (P1)** — Blocked on user providing Pixel ID

@@ -99,4 +99,11 @@ export const createTeamMember = (data) => api.post('/staff/team', data);
 export const updateTeamMember = (id, data) => api.put(`/staff/team/${id}`, data);
 export const deleteTeamMember = (id) => api.delete(`/staff/team/${id}`);
 
+// Site Content (Public)
+export const getSiteContent = () => api.get('/content');
+
+// Site Content (Staff)
+export const getStaffContent = () => api.get('/staff/content');
+export const updateSiteContent = (key, value) => api.put(`/staff/content/${key}`, { value });
+
 export default api;

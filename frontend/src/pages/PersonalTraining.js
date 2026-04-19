@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import Carousel from '../components/Carousel';
 import { GYM_CONFIG } from '../config';
 import { getTeamMembers } from '../lib/api';
-import { CheckCircle2, Target, Zap, Heart, User } from 'lucide-react';
+import { CheckCircle2, Target, Zap, Heart, User, ArrowRight } from 'lucide-react';
 
 const PT_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/hvzhmt0n_Chris_5.JPEG';
 
@@ -25,12 +26,10 @@ const PT_WHO = [
 ];
 
 export default function PersonalTraining() {
-  const [team, setTeam] = useState([]);
   const [trainers, setTrainers] = useState([]);
 
   useEffect(() => {
     getTeamMembers().then(({ data }) => {
-      setTeam(data.filter(m => m.category === 'team'));
       setTrainers(data.filter(m => m.category === 'trainer'));
     }).catch(() => {});
   }, []);
@@ -116,39 +115,12 @@ export default function PersonalTraining() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* Meet the Team */}
-      {team.length > 0 && (
-        <section className="py-16 bg-white" data-testid="meet-team-section">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="text-center mb-12">
-              <span className="green-accent-line mx-auto" />
-              <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">The People Behind the Iron</p>
-              <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>MEET THE TEAM</h2>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
-              {team.map(t => (
-                <div key={t.id} data-testid={`team-card-${t.id}`}
-                  className="group text-center">
-                  <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-4 border-2 border-transparent group-hover:border-[var(--clr-green)] transition-all duration-300"
-                    style={{ boxShadow: 'var(--shadow-md)' }}>
-                    {t.photo_url ? (
-                      <img src={t.photo_url} alt={t.name}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--clr-bg-green)' }}>
-                        <User size={48} style={{ color: 'var(--clr-green)', opacity: 0.4 }} />
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="font-bold text-base" style={{ color: 'var(--clr-charcoal)' }}>{t.name}</h3>
-                  <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--clr-green)' }}>{t.role}</p>
-                  {t.bio && <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--clr-text-muted)' }}>{t.bio}</p>}
-                </div>
-              ))}
+            <div className="text-center mt-10">
+              <Link to="/about"
+                className="inline-flex items-center gap-2 text-sm font-bold hover:gap-3 transition-all duration-200"
+                style={{ color: 'var(--clr-green)' }}>
+                Meet the full team <ArrowRight size={14} />
+              </Link>
             </div>
           </div>
         </section>
