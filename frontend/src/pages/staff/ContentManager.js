@@ -5,29 +5,61 @@ import { getStaffContent, updateSiteContent } from '../../lib/api';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Save, Loader2, FileText, Type, ExternalLink,
-  Home, Info, Dumbbell, Phone, ChevronRight,
+  Home, Info, Dumbbell, Phone, ChevronRight, Search,
 } from 'lucide-react';
+
+const SEO_KEYWORDS = ['Santa Cruz', 'strength', 'gym', 'training', 'coach', 'fitness', 'powerlifting', 'Santa Cruz Strength', 'personal training'];
+
+const SEO_TIPS = {
+  home_hero_headline: { seo: 'high', tip: 'H1 tag — most important for SEO. Include "strength" and "training".' },
+  home_hero_subtitle: { seo: 'high', tip: 'Visible text under H1. Use natural keywords: gym, Santa Cruz, athletes.' },
+  home_hero_subtext: { seo: 'medium', tip: 'Secondary text. Reinforce location: "Santa Cruz".' },
+  home_benefits_headline: { seo: 'high', tip: 'H2 tag — include "strength" or "training".' },
+  home_benefits_subtitle: { seo: 'medium', tip: 'Describe what makes the gym unique. Use natural language.' },
+  home_environment_headline: { seo: 'high', tip: 'H2 tag — "training" is a strong keyword here.' },
+  home_environment_text: { seo: 'medium', tip: 'Body copy. Mention equipment, coaching, facility.' },
+  home_environment_subtext: { seo: 'low', tip: 'Supporting detail. Keep authentic.' },
+  home_who_headline: { seo: 'high', tip: 'H2 tag — great place for "train" or "belong".' },
+  home_who_text: { seo: 'medium', tip: 'Mention Santa Cruz, community, athletic.' },
+  home_who_subtext: { seo: 'low', tip: 'Describe member types. Helps with long-tail keywords.' },
+  about_headline: { seo: 'high', tip: 'H1 tag — include "Santa Cruz Strength" for brand SEO.' },
+  about_mission: { seo: 'medium', tip: 'Mission statement. Keep it memorable and shareable.' },
+  about_story: { seo: 'high', tip: 'Longest content block — great for keywords. Mention location, gym type, coaching, community.' },
+  about_team_headline: { seo: 'medium', tip: 'H2 tag. "Team" helps with "Santa Cruz Strength team" searches.' },
+  about_team_subtitle: { seo: 'low', tip: 'Short subtitle. Keep descriptive.' },
+  about_trainers_headline: { seo: 'high', tip: 'H2 tag — "trainers" and "coaching" are high-value keywords.' },
+  about_trainers_subtitle: { seo: 'medium', tip: 'Include "coaching" or "personal training".' },
+  about_cta_headline: { seo: 'medium', tip: 'CTA headline. Action-oriented works best.' },
+  about_cta_text: { seo: 'low', tip: 'Keep conversational. Mention the gym or location.' },
+  training_headline: { seo: 'high', tip: 'H1 tag — "personal training" is a top search term.' },
+  training_subtitle: { seo: 'high', tip: 'Include "coach", "strength", "Santa Cruz".' },
+  training_cta_headline: { seo: 'medium', tip: 'CTA — action words help conversion.' },
+  contact_headline: { seo: 'medium', tip: 'H1 tag — "Contact" + brand name helps local SEO.' },
+  contact_subtitle: { seo: 'low', tip: 'Keep friendly and clear.' },
+  contact_form_headline: { seo: 'low', tip: 'Form heading. Keep direct.' },
+  contact_form_subtitle: { seo: 'low', tip: 'Set expectations for response time.' },
+};
 
 const PAGES = [
   {
     id: 'home', label: 'Home', icon: Home, previewPath: '/',
     sections: [
       { heading: 'Hero Section', keys: [
-        { key: 'home_hero_headline', label: 'Hero Headline', type: 'textarea', rows: 3, help: 'Use line breaks for stacked text' },
+        { key: 'home_hero_headline', label: 'Hero Headline (H1)', type: 'textarea', rows: 3, help: 'Use line breaks for stacked text' },
         { key: 'home_hero_subtitle', label: 'Hero Subtitle', type: 'text' },
         { key: 'home_hero_subtext', label: 'Hero Subtext', type: 'text' },
       ]},
       { heading: 'Benefits Section', keys: [
-        { key: 'home_benefits_headline', label: 'Benefits Headline', type: 'text' },
+        { key: 'home_benefits_headline', label: 'Benefits Headline (H2)', type: 'text' },
         { key: 'home_benefits_subtitle', label: 'Benefits Subtitle', type: 'text' },
       ]},
       { heading: 'Training Environment', keys: [
-        { key: 'home_environment_headline', label: 'Environment Headline', type: 'textarea', rows: 2 },
+        { key: 'home_environment_headline', label: 'Environment Headline (H2)', type: 'textarea', rows: 2 },
         { key: 'home_environment_text', label: 'Environment Text', type: 'textarea', rows: 3 },
         { key: 'home_environment_subtext', label: 'Environment Subtext', type: 'text' },
       ]},
       { heading: 'Who Trains Here', keys: [
-        { key: 'home_who_headline', label: 'Who Headline', type: 'textarea', rows: 2 },
+        { key: 'home_who_headline', label: 'Who Headline (H2)', type: 'textarea', rows: 2 },
         { key: 'home_who_text', label: 'Who Text', type: 'text' },
         { key: 'home_who_subtext', label: 'Who Subtext', type: 'text' },
       ]},
@@ -37,16 +69,16 @@ const PAGES = [
     id: 'about', label: 'About', icon: Info, previewPath: '/about',
     sections: [
       { heading: 'Hero & Story', keys: [
-        { key: 'about_headline', label: 'Page Headline', type: 'text' },
+        { key: 'about_headline', label: 'Page Headline (H1)', type: 'text' },
         { key: 'about_mission', label: 'Mission Statement', type: 'text' },
         { key: 'about_story', label: 'Our Story', type: 'textarea', rows: 6 },
       ]},
       { heading: 'Team Section', keys: [
-        { key: 'about_team_headline', label: 'Team Headline', type: 'text' },
+        { key: 'about_team_headline', label: 'Team Headline (H2)', type: 'text' },
         { key: 'about_team_subtitle', label: 'Team Subtitle', type: 'text' },
       ]},
       { heading: 'Trainers Section', keys: [
-        { key: 'about_trainers_headline', label: 'Trainers Headline', type: 'text' },
+        { key: 'about_trainers_headline', label: 'Trainers Headline (H2)', type: 'text' },
         { key: 'about_trainers_subtitle', label: 'Trainers Subtitle', type: 'text' },
       ]},
       { heading: 'Call to Action', keys: [
@@ -59,7 +91,7 @@ const PAGES = [
     id: 'training', label: 'Training', icon: Dumbbell, previewPath: '/personal-training',
     sections: [
       { heading: 'Page Content', keys: [
-        { key: 'training_headline', label: 'Page Headline', type: 'textarea', rows: 2 },
+        { key: 'training_headline', label: 'Page Headline (H1)', type: 'textarea', rows: 2 },
         { key: 'training_subtitle', label: 'Page Subtitle', type: 'text' },
         { key: 'training_cta_headline', label: 'Bottom CTA Headline', type: 'text' },
       ]},
@@ -69,7 +101,7 @@ const PAGES = [
     id: 'contact', label: 'Contact', icon: Phone, previewPath: '/contact',
     sections: [
       { heading: 'Page Content', keys: [
-        { key: 'contact_headline', label: 'Page Headline', type: 'text' },
+        { key: 'contact_headline', label: 'Page Headline (H1)', type: 'text' },
         { key: 'contact_subtitle', label: 'Page Subtitle', type: 'text' },
         { key: 'contact_form_headline', label: 'Form Headline', type: 'text' },
         { key: 'contact_form_subtitle', label: 'Form Subtitle', type: 'text' },
@@ -224,18 +256,34 @@ export default function ContentManager() {
                   <Type size={13} className="text-emerald-400" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-white/60">{section.heading}</h3>
                 </div>
-                <div className="bg-white/4 border border-white/8 rounded-xl p-5 space-y-4">
+                <div className="bg-white/4 border border-white/8 rounded-xl p-5 space-y-5">
                   {section.keys.map(({ key, label, type, rows, help }) => {
                     const changed = content[key] !== original[key];
                     const currentVal = original[key] || '';
+                    const val = content[key] || '';
+                    const seoInfo = SEO_TIPS[key];
+                    const seoLevel = seoInfo?.seo || 'low';
+                    const seoColor = seoLevel === 'high' ? 'text-emerald-400' : seoLevel === 'medium' ? 'text-amber-400' : 'text-white/25';
+                    const seoBg = seoLevel === 'high' ? 'bg-emerald-400' : seoLevel === 'medium' ? 'bg-amber-400' : 'bg-white/20';
+                    // Count which SEO keywords are present in the current value
+                    const valLower = val.toLowerCase();
+                    const foundKeywords = SEO_KEYWORDS.filter(kw => valLower.includes(kw.toLowerCase()));
+                    const missingKeywords = SEO_KEYWORDS.filter(kw => !valLower.includes(kw.toLowerCase()));
+
                     return (
-                      <div key={key}>
+                      <div key={key} className="pb-4 border-b border-white/[0.05] last:border-0 last:pb-0">
                         <div className="flex items-center justify-between mb-1.5">
-                          <div>
+                          <div className="flex items-center gap-2">
                             <label className="text-xs text-white/50 font-medium">{label}</label>
-                            {help && <span className="text-[10px] text-white/25 ml-2">{help}</span>}
+                            {seoInfo && (
+                              <span className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider ${seoColor}`}>
+                                <Search size={8} /> SEO: {seoLevel}
+                              </span>
+                            )}
+                            {help && <span className="text-[10px] text-white/25 ml-1">{help}</span>}
                           </div>
                           <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-white/20">{val.length} chars</span>
                             {changed && (
                               <button onClick={() => handleChange(key, original[key] || '')}
                                 className="text-white/30 hover:text-white/60 text-[10px] font-semibold transition-colors">
@@ -251,6 +299,13 @@ export default function ContentManager() {
                             )}
                           </div>
                         </div>
+                        {/* SEO tip */}
+                        {seoInfo?.tip && (
+                          <p className="text-[10px] text-white/30 mb-2 flex items-center gap-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${seoBg} shrink-0`} />
+                            {seoInfo.tip}
+                          </p>
+                        )}
                         {/* Current live value */}
                         {currentVal && (
                           <div className="mb-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
@@ -261,7 +316,7 @@ export default function ContentManager() {
                         {type === 'textarea' ? (
                           <textarea
                             data-testid={`content-${key}`}
-                            value={content[key] || ''}
+                            value={val}
                             onChange={e => handleChange(key, e.target.value)}
                             className={`${inputCls} resize-none ${changed ? 'border-emerald-500/40' : ''}`}
                             rows={rows || 3}
@@ -269,10 +324,21 @@ export default function ContentManager() {
                         ) : (
                           <input
                             data-testid={`content-${key}`}
-                            value={content[key] || ''}
+                            value={val}
                             onChange={e => handleChange(key, e.target.value)}
                             className={`${inputCls} ${changed ? 'border-emerald-500/40' : ''}`}
                           />
+                        )}
+                        {/* Keyword analysis */}
+                        {seoLevel !== 'low' && val && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {foundKeywords.map(kw => (
+                              <span key={kw} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">{kw}</span>
+                            ))}
+                            {missingKeywords.slice(0, 4).map(kw => (
+                              <span key={kw} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/5 text-white/20">+{kw}</span>
+                            ))}
+                          </div>
                         )}
                         {changed && (
                           <p className="text-[10px] text-emerald-400/60 mt-1">Unsaved changes</p>
@@ -283,6 +349,25 @@ export default function ContentManager() {
                 </div>
               </div>
             ))}
+
+            {/* SEO Reference */}
+            <div className="bg-white/4 border border-white/8 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Search size={13} className="text-emerald-400" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/60">SEO Keywords to Include</h3>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {SEO_KEYWORDS.map(kw => (
+                  <span key={kw} className="text-[10px] font-semibold px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{kw}</span>
+                ))}
+              </div>
+              <div className="space-y-1.5 text-[10px] text-white/35 leading-relaxed">
+                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> <strong className="text-white/50">SEO: HIGH</strong></span> — These fields are H1/H2 headings or primary content. Google weighs them heavily. Always include target keywords naturally.</p>
+                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> <strong className="text-white/50">SEO: MEDIUM</strong></span> — Supporting text. Include keywords where natural. Focus on readability.</p>
+                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-white/20" /> <strong className="text-white/50">SEO: LOW</strong></span> — CTAs and short labels. Focus on conversion, not keywords.</p>
+                <p className="mt-2 text-white/25">Green tags = keywords found in your text. Gray +tags = keywords you could add. Keep it natural — don't stuff keywords.</p>
+              </div>
+            </div>
 
             {/* Preview + Admin Nav */}
             <div className="flex items-center justify-between bg-white/4 border border-white/8 rounded-xl px-5 py-4">
