@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import DOMPurify from 'dompurify';
 import { getBlogPost } from '../lib/api';
 import { Calendar, ArrowLeft, ArrowRight, BookOpen, Tag } from 'lucide-react';
 import { GYM_CONFIG } from '../config';
@@ -110,7 +111,7 @@ export default function BlogPost() {
           <div
             className="text-[var(--clr-text)] leading-relaxed"
             style={{ fontSize: '1rem', lineHeight: '1.75' }}
-            dangerouslySetInnerHTML={{ __html: post?.content || '' }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post?.content || '') }}
           />
         </article>
 

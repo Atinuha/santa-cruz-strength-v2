@@ -71,7 +71,7 @@ export default function Settings() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) { const d = await res.json(); setSmsNumbers(d.numbers || []); }
-      } catch { /* silent */ }
+      } catch (err) { console.error('Failed to load SMS numbers:', err); }
       finally { setSmsLoading(false); }
     }
   };

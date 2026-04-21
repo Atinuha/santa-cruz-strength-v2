@@ -78,7 +78,7 @@ export default function CampaignManager() {
       });
       const res = await fetch(`${BACKEND}/api/staff/campaigns/preview-count?${params}`, { headers });
       if (res.ok) { const d = await res.json(); setPreviewCount(d.count); }
-    } catch { }
+    } catch (err) { console.error('Failed to fetch preview count:', err); }
     finally { setCountLoading(false); }
   };
 
@@ -86,7 +86,7 @@ export default function CampaignManager() {
     try {
       const res = await fetch(`${BACKEND}/api/staff/campaigns`, { headers });
       if (res.ok) setCampaigns(await res.json());
-    } catch { }
+    } catch (err) { console.error('Failed to fetch campaigns:', err); }
     finally { setLoading(false); }
   };
 

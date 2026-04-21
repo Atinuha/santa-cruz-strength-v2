@@ -2122,6 +2122,11 @@ CAMPAIGN_SUBJECTS = [
 ]
 
 def _campaign_email_html(first_name: str, join_url: str, wave: int = 1) -> str:
+    subject_line = f"Hey {first_name},"
+    body = ""
+    cta = "Get Started →"
+    footer = "151 Harvey West Blvd, Santa Cruz CA."
+
     if wave == 1:
         subject_line = f"Hey {first_name},"
         body = f"""

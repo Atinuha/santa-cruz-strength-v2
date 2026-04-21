@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import DOMPurify from 'dompurify';
 import {
   getStaffBlogPosts, getStaffBlogPost, createBlogPost,
   updateBlogPost, deleteBlogPost
@@ -270,7 +271,7 @@ export default function BlogManager() {
                 <div
                   className="text-white/75 prose-article"
                   style={{ fontSize: '0.9375rem', lineHeight: '1.75' }}
-                  dangerouslySetInnerHTML={{ __html: form.content }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(form.content) }}
                 />
                 <style>{`
                   .prose-article h2 { color:#fff;font-family:'Bebas Neue',Impact,sans-serif;font-size:1.5rem;letter-spacing:0.05em;margin:1.5rem 0 0.75rem; }
