@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import {
+import api, {
   getUsers, createUser, updateUser, deleteUser, updateMe,
   getInvites, createInvite, revokeInvite, revokeUserDevices,
   importLeadsCSV, downloadCSVTemplate,
@@ -65,12 +65,8 @@ export default function Settings() {
     if (isOwner) {
       try {
         setSmsLoading(true);
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-        const token = localStorage.getItem('scs_token');
-        const res = await fetch(`${backendUrl}/api/staff/settings/sms-numbers`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) { const d = await res.json(); setSmsNumbers(d.numbers || []); }
+        const res = await api.get('/staff/settings/sms-numbers');
+        setSmsNumbers(res.data.numbers || []);
       } catch (err) { console.error('Failed to load SMS numbers:', err); }
       finally { setSmsLoading(false); }
     }
@@ -163,15 +159,9 @@ export default function Settings() {
 
   const handleSendReset = async (u) => {
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const token = localStorage.getItem('scs_token');
-      const res = await fetch(`${backendUrl}/api/staff/users/${u.id}/send-reset`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed');
+      await api.post(`/staff/users/${u.id}/send-reset`);
       toast.success(`Password reset email sent to ${u.email}`);
-    } catch { toast.error('Failed to send reset email'); }
+    } catch (err) { console.error('Failed to send reset:', err); toast.error('Failed to send reset email'); }
   };
 
   const handleSaveHours = async () => {
@@ -187,18 +177,10 @@ export default function Settings() {
   const saveSmsNumbers = async (numbers) => {
     setSmsSaving(true);
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const token = localStorage.getItem('scs_token');
-      const res = await fetch(`${backendUrl}/api/staff/settings/sms-numbers`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numbers }),
-      });
-      if (!res.ok) throw new Error('Failed to save');
-      const d = await res.json();
-      setSmsNumbers(d.numbers);
+      const res = await api.put('/staff/settings/sms-numbers', { numbers });
+      setSmsNumbers(res.data.numbers);
       toast.success('SMS numbers updated');
-    } catch { toast.error('Failed to save SMS numbers'); }
+    } catch (err) { console.error('Failed to save SMS numbers:', err); toast.error('Failed to save SMS numbers'); }
     finally { setSmsSaving(false); }
   };
 

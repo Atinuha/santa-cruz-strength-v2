@@ -3,13 +3,12 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatPhone } from '../../utils/phone';
 import ImageUploadField from '../../components/ImageUploadField';
+import api from '../../lib/api';
 import {
   Plus, Trash2, Loader2, ArrowLeft, Calendar, Pencil, Eye, EyeOff,
   ExternalLink, Users, Ticket, X, Check, ChevronDown, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 
 const CATEGORIES = ['Powerlifting Meet', 'Workshop', 'Open Gym', 'Community', 'Challenge', 'General'];
 const TICKET_TYPES = [
@@ -221,7 +220,6 @@ function formatDate(d) {
 
 export default function EventsManager() {
   const { user } = useAuth();
-  const token = localStorage.getItem('scs_token');
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState('list');    // 'list' | 'create' | 'edit'
@@ -230,14 +228,12 @@ export default function EventsManager() {
   const [rsvpModal, setRsvpModal] = useState(null);
   const [rsvps, setRsvps] = useState([]);
 
-  const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND}/api/staff/events`, { headers });
-      setEvents(await res.json());
-    } catch { toast.error('Failed to load events'); }
+      const res = await api.get('/staff/events');
+      setEvents(res.data);
+    } catch (err) { console.error('Failed to load events:', err); toast.error('Failed to load events'); }
     finally { setLoading(false); }
   };
 
@@ -248,40 +244,40 @@ export default function EventsManager() {
     try {
       const payload = { ...form, max_capacity: form.max_capacity ? parseInt(form.max_capacity) : null };
       if (editing) {
-        await fetch(`${BACKEND}/api/staff/events/${editing.id}`, { method: 'PUT', headers, body: JSON.stringify(payload) });
+        await api.put(`/staff/events/${editing.id}`, payload);
         toast.success('Event updated');
       } else {
-        await fetch(`${BACKEND}/api/staff/events`, { method: 'POST', headers, body: JSON.stringify(payload) });
+        await api.post('/staff/events', payload);
         toast.success('Event created');
       }
       await fetchEvents();
       setMode('list'); setEditing(null);
-    } catch { toast.error('Failed to save event'); }
+    } catch (err) { console.error('Failed to save event:', err); toast.error('Failed to save event'); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this event? This cannot be undone.')) return;
     try {
-      await fetch(`${BACKEND}/api/staff/events/${id}`, { method: 'DELETE', headers });
+      await api.delete(`/staff/events/${id}`);
       toast.success('Event deleted');
       await fetchEvents();
-    } catch { toast.error('Failed to delete'); }
+    } catch (err) { console.error('Failed to delete event:', err); toast.error('Failed to delete'); }
   };
 
   const togglePublish = async (event) => {
     try {
-      await fetch(`${BACKEND}/api/staff/events/${event.id}`, {
-        method: 'PUT', headers, body: JSON.stringify({ published: !event.published }),
-      });
+      await api.put(`/staff/events/${event.id}`, { published: !event.published });
       await fetchEvents();
-    } catch { toast.error('Failed to update'); }
+    } catch (err) { console.error('Failed to toggle publish:', err); toast.error('Failed to update'); }
   };
 
   const viewRsvps = async (event) => {
-    const res = await fetch(`${BACKEND}/api/staff/events/${event.id}/rsvps`, { headers });
-    setRsvps(await res.json());
-    setRsvpModal(event);
+    try {
+      const res = await api.get(`/staff/events/${event.id}/rsvps`);
+      setRsvps(res.data);
+      setRsvpModal(event);
+    } catch (err) { console.error('Failed to load RSVPs:', err); toast.error('Failed to load RSVPs'); }
   };
 
   if (mode === 'create' || mode === 'edit') {

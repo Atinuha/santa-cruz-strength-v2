@@ -10,8 +10,8 @@ import {
   BLOCK_TYPES, DEFAULT_BLOCK, MERGE_FIELDS, blocksToPreviewHTML, blocksToHTML
 } from '../../utils/emailBlocks';
 import ImageUploadField from '../../components/ImageUploadField';
+import api from '../../lib/api';
 
-const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 const GIPHY_KEY = 'dc6zaTOxFJmzC'; // free public beta key
 
 // ── Colour presets ────────────────────────────────────────────────────────────
@@ -233,8 +233,6 @@ function BlockEditor({ block, onChange, onInsertMerge }) {
 export default function EmailBuilder() {
   const { campaignId } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem('scs_token');
-  const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const [campaign, setCampaign]   = useState(null);
   const [blocks, setBlocks]       = useState([]);
@@ -249,9 +247,9 @@ export default function EmailBuilder() {
 
   // Load campaign
   useEffect(() => {
-    fetch(`${BACKEND}/api/staff/campaigns/${campaignId}`, { headers })
-      .then(r => r.json())
-      .then(d => {
+    api.get(`/staff/campaigns/${campaignId}`)
+      .then(res => {
+        const d = res.data;
         setCampaign(d);
         setBlocks(d.blocks?.length ? d.blocks : getDefaultBlocks());
         if (d.subject_options?.[0]) setSubject(d.subject_options[0]);
@@ -324,26 +322,18 @@ export default function EmailBuilder() {
     try {
       const html = blocksToHTML(blocks, { first_name: '{{first_name}}', last_name: '{{last_name}}',
         gym_name: 'Santa Cruz Strength', join_url: '{{join_url}}', gym_phone: '(408) 337-6709' });
-      const res = await fetch(`${BACKEND}/api/staff/campaigns/${campaignId}`, {
-        method: 'PUT', headers,
-        body: JSON.stringify({ blocks, email_html_template: html, subject_options: [subject] }),
-      });
-      if (!res.ok) throw new Error('Save failed');
+      await api.put(`/staff/campaigns/${campaignId}`, { blocks, email_html_template: html, subject_options: [subject] });
       toast.success('Email saved');
-    } catch { toast.error('Failed to save'); }
+    } catch (err) { console.error('Failed to save email:', err); toast.error('Failed to save'); }
     finally { setSaving(false); }
   };
 
   const handleTestSend = async () => {
     setTestSending(true);
     try {
-      const res = await fetch(`${BACKEND}/api/staff/campaigns/${campaignId}/test-send`, {
-        method: 'POST', headers,
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || 'Failed');
-      toast.success(`Test email sent to ${d.sent_to}`);
-    } catch (err) { toast.error(err.message); }
+      const res = await api.post(`/staff/campaigns/${campaignId}/test-send`);
+      toast.success(`Test email sent to ${res.data.sent_to}`);
+    } catch (err) { toast.error(err.response?.data?.detail || 'Failed to send test'); }
     finally { setTestSending(false); }
   };
 

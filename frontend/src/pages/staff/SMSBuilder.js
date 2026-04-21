@@ -3,8 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Send, Save, Loader2, Check, Smartphone, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { MERGE_FIELDS } from '../../utils/emailBlocks';
-
-const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+import api from '../../lib/api';
 
 // TCPA-required opt-out footer
 const OPT_OUT_SUFFIX = ' Reply STOP to opt out.';
@@ -58,8 +57,6 @@ function PhoneMockup({ text, gymName = 'Santa Cruz Strength' }) {
 export default function SMSBuilder() {
   const { campaignId } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem('scs_token');
-  const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const [campaign, setCampaign] = useState(null);
   const [smsText, setSmsText]   = useState('');
@@ -67,12 +64,11 @@ export default function SMSBuilder() {
   const [testSending, setTestSending] = useState(false);
 
   useEffect(() => {
-    fetch(`${BACKEND}/api/staff/campaigns/${campaignId}`, { headers })
-      .then(r => r.json())
-      .then(d => {
-        setCampaign(d);
-        setSmsText(d.sms_template || defaultSMS(d));
-      });
+    api.get(`/staff/campaigns/${campaignId}`)
+      .then(res => {
+        setCampaign(res.data);
+        setSmsText(res.data.sms_template || defaultSMS(res.data));
+      }).catch(() => toast.error('Failed to load campaign'));
   }, [campaignId]);
 
   function defaultSMS(c) {
@@ -98,14 +94,10 @@ export default function SMSBuilder() {
     setSaving(true);
     const finalText = ensureOptOut(smsText);
     try {
-      const res = await fetch(`${BACKEND}/api/staff/campaigns/${campaignId}`, {
-        method: 'PUT', headers,
-        body: JSON.stringify({ sms_template: finalText }),
-      });
-      if (!res.ok) throw new Error('Save failed');
+      await api.put(`/staff/campaigns/${campaignId}`, { sms_template: finalText });
       setSmsText(finalText);
       toast.success('SMS saved');
-    } catch { toast.error('Failed to save'); }
+    } catch (err) { console.error('Failed to save SMS:', err); toast.error('Failed to save'); }
     finally { setSaving(false); }
   };
 
@@ -113,13 +105,9 @@ export default function SMSBuilder() {
     if (!campaign) return;
     setTestSending(true);
     try {
-      const res = await fetch(`${BACKEND}/api/staff/campaigns/${campaignId}/test-sms`, {
-        method: 'POST', headers,
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || 'Failed');
-      toast.success(`Test SMS sent to ${d.sent_to}`);
-    } catch (err) { toast.error(err.message || 'SMS test failed — check MailerSend setup'); }
+      const res = await api.post(`/staff/campaigns/${campaignId}/test-sms`);
+      toast.success(`Test SMS sent to ${res.data.sent_to}`);
+    } catch (err) { toast.error(err.response?.data?.detail || 'SMS test failed — check MailerSend setup'); }
     finally { setTestSending(false); }
   };
 

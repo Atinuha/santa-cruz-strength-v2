@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getLead, updateLead, addNote } from '../../lib/api';
+import api, { getLead, updateLead, addNote } from '../../lib/api';
 import { LEAD_STATUSES, LEAD_SOURCES, GYM_CONFIG, PREFERRED_CONTACTS } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import { gvCall, gvText } from '../../utils/googleVoice';
@@ -134,15 +134,10 @@ export default function LeadDetail() {
 
   const handleToggleBlacklist = async () => {
     try {
-      const token = localStorage.getItem('scs_token');
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const res = await fetch(`${backendUrl}/api/staff/leads/${id}/blacklist`, {
-        method: 'POST', headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await res.json();
-      toast.success(data.message || 'Blacklist updated');
+      await api.post(`/staff/leads/${id}/blacklist`);
+      toast.success('Blacklist updated');
       await fetchLead();
-    } catch { toast.error('Failed to update blacklist'); }
+    } catch (err) { console.error('Failed to update blacklist:', err); toast.error('Failed to update blacklist'); }
   };
 
   const inputClass = 'w-full bg-white/5 border border-white/12 text-white placeholder:text-white/52 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors duration-200';

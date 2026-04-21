@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/api';
 import {
   ArrowLeft, Play, Pause, Plus, Loader2, CheckCircle2,
   Clock, Mail, MessageSquare, Users, BarChart2, Zap, RefreshCw, Pencil, Eye, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 const JOIN_URL = 'https://onlinejoin.abcfitness.com/signup/plan?club=31691';
 
 const SUBJECTS_DEFAULT = [
@@ -35,8 +35,6 @@ function ProgressBar({ value, max, color = '#1B7A4A' }) {
 
 export default function CampaignManager() {
   const { user } = useAuth();
-  const token = localStorage.getItem('scs_token');
-  const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -76,23 +74,25 @@ export default function CampaignManager() {
         interest: f.interest_filter || '',
         statuses: (f.status_filter || []).join(','),
       });
-      const res = await fetch(`${BACKEND}/api/staff/campaigns/preview-count?${params}`, { headers });
-      if (res.ok) { const d = await res.json(); setPreviewCount(d.count); }
+      const res = await api.get(`/staff/campaigns/preview-count?${params}`);
+      setPreviewCount(res.data.count);
     } catch (err) { console.error('Failed to fetch preview count:', err); }
     finally { setCountLoading(false); }
   };
 
   const fetchCampaigns = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/staff/campaigns`, { headers });
-      if (res.ok) setCampaigns(await res.json());
+      const res = await api.get('/staff/campaigns');
+      setCampaigns(res.data);
     } catch (err) { console.error('Failed to fetch campaigns:', err); }
     finally { setLoading(false); }
   };
 
   const fetchDetail = async (id) => {
-    const res = await fetch(`${BACKEND}/api/staff/campaigns/${id}`, { headers });
-    if (res.ok) setDetail(await res.json());
+    try {
+      const res = await api.get(`/staff/campaigns/${id}`);
+      setDetail(res.data);
+    } catch (err) { console.error('Failed to fetch campaign detail:', err); }
   };
 
   useEffect(() => { fetchCampaigns(); }, []);
@@ -102,27 +102,28 @@ export default function CampaignManager() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch(`${BACKEND}/api/staff/campaigns`, {
-        method: 'POST', headers, body: JSON.stringify({ ...form, subject_options: SUBJECTS_DEFAULT }),
-      });
-      if (!res.ok) throw new Error('Failed');
+      await api.post('/staff/campaigns', { ...form, subject_options: SUBJECTS_DEFAULT });
       toast.success('Campaign created');
       await fetchCampaigns();
       setCreating(false);
-    } catch { toast.error('Failed to create campaign'); }
+    } catch (err) { console.error('Failed to create campaign:', err); toast.error('Failed to create campaign'); }
     finally { setSaving(false); }
   };
 
   const handleStart = async (id) => {
-    const res = await fetch(`${BACKEND}/api/staff/campaigns/${id}/start`, { method: 'POST', headers });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok) { toast.success(data.message || 'Campaign started — first batch sending now'); await fetchCampaigns(); fetchDetail(id); }
-    else { toast.error(data.detail || 'Failed to start'); }
+    try {
+      const res = await api.post(`/staff/campaigns/${id}/start`);
+      toast.success(res.data.message || 'Campaign started — first batch sending now');
+      await fetchCampaigns(); fetchDetail(id);
+    } catch (err) { toast.error(err.response?.data?.detail || 'Failed to start'); }
   };
 
   const handlePause = async (id) => {
-    const res = await fetch(`${BACKEND}/api/staff/campaigns/${id}/pause`, { method: 'POST', headers });
-    if (res.ok) { toast.success('Campaign paused'); await fetchCampaigns(); fetchDetail(id); }
+    try {
+      await api.post(`/staff/campaigns/${id}/pause`);
+      toast.success('Campaign paused');
+      await fetchCampaigns(); fetchDetail(id);
+    } catch (err) { console.error('Failed to pause campaign:', err); }
   };
 
   const inputCls = 'w-full bg-white/5 border border-white/12 text-white placeholder:text-white/35 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B7A4A]/50';

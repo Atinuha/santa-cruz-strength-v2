@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { updateLead, addNote, createManualLead } from '../../lib/api';
+import api, { updateLead, addNote, createManualLead } from '../../lib/api';
 import { gvCall, gvText } from '../../utils/googleVoice';
 import { formatPhone } from '../../utils/phone';
 import {
@@ -273,13 +273,9 @@ export default function MobilePortal() {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const token = localStorage.getItem('scs_token');
-      const res = await fetch(`${BACKEND}/api/staff/mobile/dashboard`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed');
-      setData(await res.json());
-    } catch { toast.error('Could not load dashboard'); }
+      const res = await api.get('/staff/mobile/dashboard');
+      setData(res.data);
+    } catch (err) { console.error('Failed to load dashboard:', err); toast.error('Could not load dashboard'); }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
