@@ -585,6 +585,7 @@ class LeadCreate(BaseModel):
     lead_source: Optional[str] = 'website_form'
     notes: Optional[str] = ''
     tags: Optional[List[str]] = []
+    sms_consent: Optional[bool] = False
 
 class LeadUpdate(BaseModel):
     status: Optional[str] = None
@@ -982,6 +983,8 @@ async def create_lead_public(lead: LeadCreate):
         'lead_source': lead.lead_source or 'website_form',
         'notes': lead.notes or '',
         'tags': lead.tags or [],
+        'sms_consent': lead.sms_consent or False,
+        'sms_consent_date': now.isoformat() if lead.sms_consent else None,
         'status': 'New',
         'next_follow_up_date': None,
         'next_follow_up_time': None,
@@ -991,9 +994,13 @@ async def create_lead_public(lead: LeadCreate):
         'updated_at': now.isoformat()
     }
     if existing:
+        update_fields = {'phone': doc['phone'], 'interest_type': doc['interest_type'], 'training_goals': doc['training_goals'], 'updated_at': now.isoformat()}
+        if lead.sms_consent:
+            update_fields['sms_consent'] = True
+            update_fields['sms_consent_date'] = now.isoformat()
         await db.leads.update_one(
             {'email': lead.email.lower().strip(), 'location': lead.location},
-            {'$set': {'phone': doc['phone'], 'interest_type': doc['interest_type'], 'training_goals': doc['training_goals'], 'updated_at': now.isoformat()},
+            {'$set': update_fields,
              '$push': {'activity_log': {'action': 'Re-inquiry', 'note': f'Re-submitted via {lead.lead_source}', 'staff_id': None, 'staff_name': 'System', 'timestamp': now.isoformat()}}}
         )
         await asyncio.gather(send_lead_emails(doc), send_lead_sms(doc), return_exceptions=True)

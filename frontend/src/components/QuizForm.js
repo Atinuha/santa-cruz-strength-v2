@@ -65,7 +65,7 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
     first_name: '', last_name: '', phone: '', email: '',
     interest_type: '', start_timeline: '', training_goals: '',
     preferred_contact: 'call', lead_source: source, location: GYM_CONFIG.location,
-    notes: '',
+    notes: '', sms_consent: false,
   });
   const [errors, setErrors] = useState({});
 
@@ -93,6 +93,7 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
       if (!form.phone.trim()) e.phone = 'Phone number required';
       if (!form.email.trim()) e.email = 'Email required';
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Valid email required';
+      if (!form.sms_consent) e.sms_consent = 'Please agree to receive text messages to continue';
     }
     return e;
   };
@@ -226,6 +227,21 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
                 data-testid="lead-form-email-input" />
               {errors.email && <p className="text-[var(--clr-coral)] text-xs mt-1 font-semibold">{errors.email}</p>}
             </div>
+            <label className="flex items-start gap-2.5 cursor-pointer group" data-testid="sms-consent-checkbox">
+              <input
+                type="checkbox"
+                checked={form.sms_consent}
+                onChange={e => { setForm(p => ({...p, sms_consent: e.target.checked})); setErrors(p => ({...p, sms_consent: undefined})); }}
+                className="mt-0.5 w-4 h-4 rounded border-2 border-[var(--clr-border)] accent-[var(--clr-green)] cursor-pointer shrink-0"
+              />
+              <span className="text-[11px] leading-relaxed" style={{ color: 'var(--clr-text-muted)' }}>
+                I agree to receive recurring automated text messages (SMS/MMS) from Santa Cruz Strength
+                at the phone number provided. Consent is not a condition of purchase. Msg &amp; data rates
+                may apply. Msg frequency varies. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for
+                help. <a href="/privacy" target="_blank" className="underline hover:text-[var(--clr-green)]">Privacy Policy</a> &amp; <a href="/terms" target="_blank" className="underline hover:text-[var(--clr-green)]">Terms</a>.
+              </span>
+            </label>
+            {errors.sms_consent && <p className="text-[var(--clr-coral)] text-xs font-semibold">{errors.sms_consent}</p>}
           </div>
         )}
 
@@ -317,8 +333,8 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
           No commitment. A coach will reach out within 24 hours.
         </p>
         <p className="text-center text-[10px] leading-relaxed mt-2" style={{ color: 'var(--clr-text-light)', opacity: 0.75 }}>
-          By submitting this form, you expressly consent to receive recurring automated
-          promotional and informational text messages (SMS/MMS) and emails from Santa Cruz
+          By submitting this form and checking the SMS consent box above, you expressly agree to receive recurring
+          automated promotional and informational text messages (SMS/MMS) and emails from Santa Cruz
           Strength at the phone number and email provided. Consent is not a condition of
           purchase. Message frequency varies. Message and data rates may apply.
           Reply <strong>STOP</strong> to cancel. Reply <strong>HELP</strong> for help.
