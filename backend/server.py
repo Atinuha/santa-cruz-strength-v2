@@ -1788,6 +1788,237 @@ async def update_content(key: str, request: Request, user=Depends(require_admin)
     return {'key': key, 'value': value}
 
 
+# --------------- Corporate / Local Wellness Leads ---------------
+
+CORPORATE_STAGES = [
+    'New Corporate Lead', 'Contacted', 'Discovery Scheduled',
+    'Proposal Sent', 'Verbal Yes', 'Active Corporate Account', 'Lost / Not Now'
+]
+
+DISCOUNT_TIERS = {
+    '3-5': '10%', '6-10': '15%', '11-20': '20%', '21+': 'Custom'
+}
+
+def _calc_discount_tier(enrolled: int) -> str:
+    if enrolled >= 21: return '21+'
+    if enrolled >= 11: return '11-20'
+    if enrolled >= 6: return '6-10'
+    if enrolled >= 3: return '3-5'
+    return 'Under 3'
+
+
+class CorporateLeadCreate(BaseModel):
+    business_name: str
+    contact_name: str
+    contact_title: str = ''
+    email: str
+    phone: str = ''
+    business_address: str = ''
+    website_or_instagram: str = ''
+    employee_count: int = 0
+    estimated_enrolled: int = 0
+    contribution_model: str = 'not_sure'
+    desired_start_date: str = ''
+    notes: str = ''
+    email_consent: bool = False
+    sms_consent: bool = False
+
+
+async def _send_corporate_lead_emails(lead: dict):
+    """Send confirmation to business contact + internal staff notification."""
+    name = lead.get('contact_name', 'there').split()[0]
+    tasks = []
+    if lead.get('email'):
+        html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:32px;border-radius:12px;max-width:600px;">
+<h2 style="color:#7FCCA6;margin-bottom:16px;">We got your corporate membership request</h2>
+<p style="color:#ccc;font-size:15px;line-height:1.6;">Hey {name},</p>
+<p style="color:#ccc;font-size:15px;line-height:1.6;">Thanks for reaching out about corporate memberships at Santa Cruz Strength.</p>
+<p style="color:#ccc;font-size:15px;line-height:1.6;">We'll review your team size, contribution preference, and goals, then follow up with the best option for your business.</p>
+<p style="color:#ccc;font-size:15px;line-height:1.6;">Whether you want to cover the full membership, split the cost with employees, or just give your team a preferred local rate, we can make it simple.</p>
+<p style="color:#ccc;font-size:15px;line-height:1.6;margin-top:24px;">Talk soon,<br/><strong style="color:#fff;">Santa Cruz Strength</strong></p>
+<p style="color:#555;font-size:11px;margin-top:24px;">151 Harvey West Blvd Ste D, Santa Cruz CA 95060</p>
+</div>"""
+        tasks.append(send_resend_email(
+            to=lead['email'],
+            subject='We got your corporate membership request',
+            html=html,
+            reply_to='management@santacruzstrength.com'
+        ))
+
+    contrib_labels = {'employer_pays_all': 'Employer Pays All', 'employer_pays_part': 'Employer Pays Part', 'employee_discount': 'Employee Discount Only', 'not_sure': 'Not Sure Yet'}
+    staff_html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
+<h3 style="color:#7FCCA6;">New Corporate Lead</h3>
+<table style="color:#ccc;font-size:14px;line-height:1.8;">
+<tr><td style="color:#888;padding-right:16px;">Company</td><td><strong style="color:#fff;">{lead.get('business_name','')}</strong></td></tr>
+<tr><td style="color:#888;">Contact</td><td>{lead.get('contact_name','')} — {lead.get('contact_title','')}</td></tr>
+<tr><td style="color:#888;">Email</td><td>{lead.get('email','')}</td></tr>
+<tr><td style="color:#888;">Phone</td><td>{lead.get('phone','')}</td></tr>
+<tr><td style="color:#888;">Employees</td><td>{lead.get('employee_count',0)} total, ~{lead.get('estimated_enrolled',0)} interested</td></tr>
+<tr><td style="color:#888;">Model</td><td>{contrib_labels.get(lead.get('contribution_model',''), lead.get('contribution_model',''))}</td></tr>
+<tr><td style="color:#888;">Discount Tier</td><td>{lead.get('discount_tier','')}</td></tr>
+<tr><td style="color:#888;">Start Date</td><td>{lead.get('desired_start_date','Not specified')}</td></tr>
+<tr><td style="color:#888;">Notes</td><td>{lead.get('notes','—')}</td></tr>
+<tr><td style="color:#888;">SMS Consent</td><td>{'Yes' if lead.get('sms_consent') else 'No'}</td></tr>
+</table>
+<p style="color:#666;font-size:12px;margin-top:16px;">Follow up within 1 business day.</p>
+</div>"""
+    tasks.append(send_resend_email(
+        to=STAFF_EMAIL,
+        subject=f"New Corporate Lead: {lead.get('business_name','')} ({lead.get('estimated_enrolled',0)} employees)",
+        html=staff_html,
+    ))
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+
+@api_router.post('/corporate-leads')
+async def create_corporate_lead(data: CorporateLeadCreate):
+    """Public endpoint: corporate membership inquiry form submission."""
+    now = now_utc()
+    lead_id = str(uuid.uuid4())
+    tier = _calc_discount_tier(data.estimated_enrolled)
+    doc = {
+        'id': lead_id,
+        'business_name': data.business_name.strip(),
+        'contact_name': data.contact_name.strip(),
+        'contact_title': data.contact_title.strip(),
+        'email': data.email.lower().strip(),
+        'phone': normalize_phone(data.phone.strip()) if data.phone else '',
+        'business_address': data.business_address.strip(),
+        'website_or_instagram': data.website_or_instagram.strip(),
+        'employee_count': data.employee_count,
+        'estimated_enrolled': data.estimated_enrolled,
+        'contribution_model': data.contribution_model,
+        'discount_tier': tier,
+        'desired_start_date': data.desired_start_date,
+        'notes': data.notes,
+        'email_consent': data.email_consent,
+        'sms_consent': data.sms_consent,
+        'sms_consent_date': now.isoformat() if data.sms_consent else None,
+        'status': 'New Corporate Lead',
+        'lead_source': 'corporate_landing_page',
+        'assigned_to': None,
+        'next_follow_up_date': (now + timedelta(days=1)).date().isoformat(),
+        'last_contact_date': None,
+        'proposal': None,
+        'activity_log': [{'action': 'Corporate Lead Created', 'note': f'Submitted via corporate landing page', 'staff_name': 'System', 'timestamp': now.isoformat()}],
+        'created_at': now.isoformat(),
+        'updated_at': now.isoformat(),
+    }
+    await db.corporate_leads.insert_one(doc)
+
+    # Send emails + optional SMS in background
+    async def _bg():
+        await _send_corporate_lead_emails(doc)
+        if data.sms_consent and doc.get('phone'):
+            name = data.contact_name.split()[0]
+            await send_sms([doc['phone']], f"Hey {name}, this is Santa Cruz Strength. We got your corporate membership request and will follow up soon. Reply STOP to opt out.")
+    asyncio.create_task(_bg())
+
+    return {'id': lead_id, 'status': 'created', 'discount_tier': tier}
+
+
+@api_router.get('/staff/corporate-leads')
+async def list_corporate_leads(user=Depends(require_staff)):
+    leads = await db.corporate_leads.find({}, {'_id': 0}).sort('created_at', -1).to_list(500)
+    return leads
+
+
+@api_router.get('/staff/corporate-leads/stats')
+async def corporate_lead_stats(user=Depends(require_staff)):
+    now = now_utc()
+    week_ago = (now - timedelta(days=7)).isoformat()
+    total = await db.corporate_leads.count_documents({})
+    new_this_week = await db.corporate_leads.count_documents({'created_at': {'$gte': week_ago}})
+    followups_due = await db.corporate_leads.count_documents({
+        'next_follow_up_date': {'$lte': now.date().isoformat()},
+        'status': {'$nin': ['Active Corporate Account', 'Lost / Not Now']}
+    })
+    proposals = await db.corporate_leads.count_documents({'status': 'Proposal Sent'})
+    active = await db.corporate_leads.count_documents({'status': 'Active Corporate Account'})
+    pipeline = [
+        {'$match': {'status': 'Active Corporate Account'}},
+        {'$group': {'_id': None, 'total_enrolled': {'$sum': '$estimated_enrolled'}}}
+    ]
+    agg = await db.corporate_leads.aggregate(pipeline).to_list(1)
+    enrolled = agg[0]['total_enrolled'] if agg else 0
+    return {
+        'total': total, 'new_this_week': new_this_week, 'followups_due': followups_due,
+        'proposals_sent': proposals, 'active_accounts': active, 'enrolled_employees': enrolled,
+    }
+
+
+@api_router.get('/staff/corporate-leads/{lead_id}')
+async def get_corporate_lead(lead_id: str, user=Depends(require_staff)):
+    lead = await db.corporate_leads.find_one({'id': lead_id}, {'_id': 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail='Corporate lead not found')
+    return lead
+
+
+@api_router.put('/staff/corporate-leads/{lead_id}')
+async def update_corporate_lead(lead_id: str, request: Request, user=Depends(require_staff)):
+    body = await request.json()
+    body['updated_at'] = now_utc().isoformat()
+    if 'estimated_enrolled' in body:
+        body['discount_tier'] = _calc_discount_tier(body['estimated_enrolled'])
+    result = await db.corporate_leads.update_one({'id': lead_id}, {'$set': body})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail='Not found')
+    updated = await db.corporate_leads.find_one({'id': lead_id}, {'_id': 0})
+    return updated
+
+
+@api_router.post('/staff/corporate-leads/{lead_id}/note')
+async def add_corporate_note(lead_id: str, request: Request, user=Depends(require_staff)):
+    body = await request.json()
+    note_text = body.get('note', '')
+    if not note_text:
+        raise HTTPException(status_code=400, detail='Note is required')
+    entry = {
+        'action': 'Note Added',
+        'note': note_text,
+        'staff_name': user.get('name', 'Staff'),
+        'timestamp': now_utc().isoformat(),
+    }
+    await db.corporate_leads.update_one(
+        {'id': lead_id},
+        {'$push': {'activity_log': entry}, '$set': {'updated_at': now_utc().isoformat()}}
+    )
+    return {'ok': True}
+
+
+@api_router.delete('/staff/corporate-leads/{lead_id}')
+async def delete_corporate_lead(lead_id: str, user=Depends(require_admin)):
+    result = await db.corporate_leads.delete_one({'id': lead_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail='Not found')
+    return {'ok': True}
+
+
+@api_router.post('/staff/corporate-leads/{lead_id}/proposal')
+async def generate_proposal(lead_id: str, request: Request, user=Depends(require_staff)):
+    body = await request.json()
+    proposal = {
+        'company_name': body.get('company_name', ''),
+        'employee_count': body.get('employee_count', 0),
+        'estimated_participants': body.get('estimated_participants', 0),
+        'contribution_model': body.get('contribution_model', ''),
+        'discount_tier': body.get('discount_tier', ''),
+        'proposed_monthly_price': body.get('proposed_monthly_price', ''),
+        'notes': body.get('notes', ''),
+        'generated_at': now_utc().isoformat(),
+        'generated_by': user.get('name', 'Staff'),
+    }
+    await db.corporate_leads.update_one(
+        {'id': lead_id},
+        {
+            '$set': {'proposal': proposal, 'status': 'Proposal Sent', 'updated_at': now_utc().isoformat()},
+            '$push': {'activity_log': {'action': 'Proposal Generated', 'note': f'Proposal for {proposal["estimated_participants"]} employees at {proposal["proposed_monthly_price"]}', 'staff_name': user.get('name', 'Staff'), 'timestamp': now_utc().isoformat()}}
+        }
+    )
+    return proposal
+
+
 # --------------- Team Members ---------------
 
 class TeamMemberCreate(BaseModel):
@@ -3569,6 +3800,9 @@ async def startup():
     await db.team_members.create_index('id', unique=True)
     await db.team_members.create_index('category')
     await db.site_content.create_index('key', unique=True)
+    await db.corporate_leads.create_index('id', unique=True)
+    await db.corporate_leads.create_index('status')
+    await db.corporate_leads.create_index('created_at')
     # Seed site content — upsert missing keys (preserves existing edits)
     seed_content = [
         # About Page

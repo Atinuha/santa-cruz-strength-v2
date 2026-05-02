@@ -19,6 +19,7 @@ import Terms from './pages/Terms';
 import Events from './pages/Events';
 import ReviewPage from './pages/ReviewPage';
 import About from './pages/About';
+import LocalWellness from './pages/LocalWellness';
 
 // Staff CRM Pages
 import StaffLogin from './pages/staff/Login';
@@ -36,6 +37,7 @@ import EmailBuilder from './pages/staff/EmailBuilder';
 import SMSBuilder from './pages/staff/SMSBuilder';
 import TeamManager from './pages/staff/TeamManager';
 import ContentManager from './pages/staff/ContentManager';
+import CorporateLeads from './pages/staff/CorporateLeads';
 
 import './App.css';
 
@@ -69,6 +71,7 @@ export default function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/events" element={<Events />} />
           <Route path="/about" element={<About />} />
+          <Route path="/local-wellness" element={<LocalWellness />} />
           <Route path="/review/:token" element={<ReviewPage />} />
 
           {/* Staff Auth */}
@@ -110,6 +113,9 @@ export default function App() {
           } />
           <Route path="/staff/content" element={
             <CRMLayout><ProtectedRoute><ContentManager /></ProtectedRoute></CRMLayout>
+          } />
+          <Route path="/staff/corporate" element={
+            <CRMLayout><ProtectedRoute><CorporateLeads /></ProtectedRoute></CRMLayout>
           } />
 
           {/* Fallback */}

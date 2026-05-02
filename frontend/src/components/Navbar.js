@@ -14,6 +14,7 @@ export default function Navbar() {
   const links = [
     { to: '/join',              label: 'Membership' },
     { to: '/personal-training', label: 'Training' },
+    { to: '/local-wellness',    label: 'Local Wellness' },
     { to: '/about',             label: 'About' },
     { to: '/events',            label: 'Events' },
     { to: '/blog',              label: 'Blog' },
