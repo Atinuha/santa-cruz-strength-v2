@@ -115,8 +115,7 @@ const MORE_PLANS = [
       '30-day cancellation notice required',
       '$50 Annual Enhancement Fee',
     ],
-    link: '#',
-    placeholder: true,
+    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=5efa1abd3436408a99c4ce18c6216be2',
   },
   {
     id: 'couples-12',
@@ -157,8 +156,7 @@ const MORE_PLANS = [
       '30-day cancellation notice required',
       '$50 Annual Enhancement Fee',
     ],
-    link: '#',
-    placeholder: true,
+    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=5d08a9e72aef4c8da136ab822f550eca',
   },
   {
     id: 'weekend-12',
@@ -196,8 +194,7 @@ const MORE_PLANS = [
       '30-day cancellation notice required',
       '$50 Annual Enhancement Fee',
     ],
-    link: '#',
-    placeholder: true,
+    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=4383e794de444449b5a1dd4b5160a6b4',
   },
 ];
 
