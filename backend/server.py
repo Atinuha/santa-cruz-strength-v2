@@ -1790,10 +1790,109 @@ async def update_content(key: str, request: Request, user=Depends(require_admin)
 
 # --------------- Corporate / Local Wellness Leads ---------------
 
+# Santa Cruz Strength coordinates
+SCS_LAT = 36.9741
+SCS_LNG = -122.0308
+
 CORPORATE_STAGES = [
-    'New Corporate Lead', 'Contacted', 'Discovery Scheduled',
-    'Proposal Sent', 'Verbal Yes', 'Active Corporate Account', 'Lost / Not Now'
+    'Discovered', 'Queued', 'Email 1 Sent', 'Email 2 Sent', 'Email 3 Sent',
+    'Replied', 'Discovery Scheduled', 'Proposal Sent', 'Verbal Yes',
+    'Active Corporate Account', 'Lost / Not Now'
 ]
+
+COLD_EMAIL_TEMPLATES = [
+    {
+        'wave': 1,
+        'subject': 'Corporate gym memberships for your team',
+        'body': """Hey {{contact_name}},
+
+I'm reaching out from Santa Cruz Strength here in Santa Cruz.
+
+We're opening up corporate membership options for local businesses that want to offer their employees a real wellness perk — access to a strength gym, supportive community, and a place to train without the big-box gym feel.
+
+You can cover all of the membership, part of it, or simply give your team access to a preferred employee rate.
+
+Would it be worth sending over the quick breakdown?
+
+— Santa Cruz Strength
+151 Harvey West Blvd Ste D, Santa Cruz CA 95060
+If this is not a fit, reply 'no thanks' and we won't follow up."""
+    },
+    {
+        'wave': 2,
+        'subject': 'Quick idea for your employees',
+        'body': """Hey {{contact_name}},
+
+Quick follow-up.
+
+A lot of businesses want to offer better employee perks, but most wellness programs are either too expensive, too complicated, or barely used.
+
+Our corporate membership setup is simple:
+- Your team gets discounted gym access
+- You choose whether the company pays all, part, or none
+- We handle the membership setup
+- Your employees get a real local gym community
+
+Want me to send the options?
+
+— Santa Cruz Strength
+151 Harvey West Blvd Ste D, Santa Cruz CA 95060
+If this is not a fit, reply 'no thanks' and we won't follow up."""
+    },
+    {
+        'wave': 3,
+        'subject': 'Should I close the loop?',
+        'body': """Hey {{contact_name}},
+
+Last note from me.
+
+If employee wellness, team perks, or discounted gym access is something you want to explore, I'd be happy to send over the corporate membership options.
+
+If not, no worries at all — just reply 'no thanks' and I won't follow up.
+
+Appreciate you,
+Santa Cruz Strength
+151 Harvey West Blvd Ste D, Santa Cruz CA 95060"""
+    },
+]
+
+OVERPASS_CATEGORIES = {
+    'cafe': 'Coffee Shop',
+    'restaurant': 'Restaurant',
+    'bar': 'Bar / Brewery',
+    'pub': 'Bar / Brewery',
+    'shop': 'Retail',
+    'clinic': 'Healthcare',
+    'doctors': 'Healthcare',
+    'dentist': 'Healthcare',
+    'pharmacy': 'Healthcare',
+    'fitness_centre': 'Fitness',
+    'school': 'School',
+    'office': 'Office',
+    'coworking_space': 'Office',
+    'surf_school': 'Surf / Outdoor',
+    'outdoor': 'Surf / Outdoor',
+}
+
+def _score_lead(lead: dict) -> int:
+    """Score a corporate lead 0-100 based on engagement & fit."""
+    score = 20  # base
+    if lead.get('email'): score += 10
+    if lead.get('phone'): score += 5
+    if lead.get('website_or_instagram'): score += 5
+    enrolled = lead.get('estimated_enrolled', 0)
+    if enrolled >= 21: score += 25
+    elif enrolled >= 11: score += 20
+    elif enrolled >= 6: score += 15
+    elif enrolled >= 3: score += 10
+    if lead.get('contribution_model') == 'employer_pays_all': score += 10
+    elif lead.get('contribution_model') == 'employer_pays_part': score += 5
+    status = lead.get('status', '')
+    if status in ('Replied', 'Discovery Scheduled'): score += 15
+    elif status == 'Proposal Sent': score += 20
+    elif status == 'Verbal Yes': score += 25
+    return min(score, 100)
+
 
 DISCOUNT_TIERS = {
     '3-5': '10%', '6-10': '15%', '11-20': '20%', '21+': 'Custom'
@@ -1947,14 +2046,6 @@ async def corporate_lead_stats(user=Depends(require_staff)):
     }
 
 
-@api_router.get('/staff/corporate-leads/{lead_id}')
-async def get_corporate_lead(lead_id: str, user=Depends(require_staff)):
-    lead = await db.corporate_leads.find_one({'id': lead_id}, {'_id': 0})
-    if not lead:
-        raise HTTPException(status_code=404, detail='Corporate lead not found')
-    return lead
-
-
 @api_router.put('/staff/corporate-leads/{lead_id}')
 async def update_corporate_lead(lead_id: str, request: Request, user=Depends(require_staff)):
     body = await request.json()
@@ -2017,6 +2108,233 @@ async def generate_proposal(lead_id: str, request: Request, user=Depends(require
         }
     )
     return proposal
+
+
+@api_router.get('/staff/corporate-leads/discover')
+async def discover_businesses(user=Depends(require_staff), category: str = 'cafe', radius: int = 3000):
+    """Use Overpass API to find local businesses near Santa Cruz Strength."""
+    cat_map = {
+        'cafe': '["amenity"="cafe"]',
+        'restaurant': '["amenity"="restaurant"]',
+        'bar': '["amenity"="bar"]',
+        'brewery': '["craft"="brewery"]',
+        'retail': '["shop"]',
+        'healthcare': '["amenity"~"clinic|doctors|dentist|pharmacy"]',
+        'fitness': '["leisure"="fitness_centre"]',
+        'office': '["office"]',
+        'school': '["amenity"="school"]',
+    }
+    osm_filter = cat_map.get(category, '["amenity"="cafe"]')
+    query = f'[out:json][timeout:15];(node{osm_filter}(around:{radius},{SCS_LAT},{SCS_LNG});way{osm_filter}(around:{radius},{SCS_LAT},{SCS_LNG}););out center 50;'
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.post('https://overpass.kumi.systems/api/interpreter', data={'data': query})
+        logger.info(f'[CORPORATE-DISCOVER] Overpass status={resp.status_code} len={len(resp.text)}')
+        if resp.status_code != 200:
+            logger.warning(f'[CORPORATE-DISCOVER] Overpass returned {resp.status_code}: {resp.text[:300]}')
+            return {'businesses': [], 'error': f'Overpass returned {resp.status_code}'}
+        data = resp.json()
+        logger.info(f'[CORPORATE-DISCOVER] Overpass returned {len(data.get("elements",[]))} elements for {category} r={radius}')
+        existing_names = set()
+        existing_leads = await db.corporate_leads.find({}, {'_id': 0, 'business_name': 1}).to_list(1000)
+        for l in existing_leads:
+            existing_names.add(l.get('business_name', '').lower().strip())
+
+        businesses = []
+        skipped_no_name = 0
+        skipped_existing = 0
+        for el in data.get('elements', []):
+            tags = el.get('tags', {})
+            name = tags.get('name', '')
+            if not name:
+                skipped_no_name += 1
+                continue
+            if name.lower().strip() in existing_names:
+                skipped_existing += 1
+                continue
+            lat = el.get('lat') or (el.get('center', {}).get('lat'))
+            lon = el.get('lon') or (el.get('center', {}).get('lon'))
+            businesses.append({
+                'name': name,
+                'category': OVERPASS_CATEGORIES.get(tags.get('amenity', tags.get('shop', tags.get('leisure', ''))), category.title()),
+                'address': f"{tags.get('addr:street', '')} {tags.get('addr:housenumber', '')}".strip() or tags.get('addr:full', ''),
+                'city': tags.get('addr:city', 'Santa Cruz'),
+                'phone': tags.get('phone', tags.get('contact:phone', '')),
+                'website': tags.get('website', tags.get('contact:website', '')),
+                'email': tags.get('email', tags.get('contact:email', '')),
+                'lat': lat, 'lon': lon,
+                'osm_id': el.get('id'),
+                'already_in_crm': False,
+            })
+        logger.info(f'[CORPORATE-DISCOVER] Results: {len(businesses)} businesses, skipped_no_name={skipped_no_name}, skipped_existing={skipped_existing}')
+        return {'businesses': businesses[:50], 'total_found': len(businesses)}
+    except Exception as e:
+        logger.error(f'[CORPORATE-DISCOVER] Overpass error: {e}')
+        return {'businesses': [], 'error': str(e)}
+
+
+@api_router.post('/staff/corporate-leads/import-discovered')
+async def import_discovered_business(request: Request, user=Depends(require_staff)):
+    """Import a business from discovery into the corporate leads pipeline."""
+    body = await request.json()
+    now = now_utc()
+    lead_id = str(uuid.uuid4())
+    doc = {
+        'id': lead_id,
+        'business_name': body.get('name', '').strip(),
+        'contact_name': body.get('contact_name', '').strip(),
+        'contact_title': body.get('contact_title', '').strip(),
+        'email': body.get('email', '').lower().strip(),
+        'phone': normalize_phone(body.get('phone', '').strip()) if body.get('phone') else '',
+        'business_address': body.get('address', '').strip(),
+        'website_or_instagram': body.get('website', '').strip(),
+        'employee_count': body.get('employee_count', 0),
+        'estimated_enrolled': body.get('estimated_enrolled', 0),
+        'contribution_model': 'not_sure',
+        'discount_tier': _calc_discount_tier(body.get('estimated_enrolled', 0)),
+        'desired_start_date': '',
+        'notes': body.get('notes', ''),
+        'email_consent': False,
+        'sms_consent': False,
+        'sms_consent_date': None,
+        'status': 'Discovered',
+        'lead_source': body.get('lead_source', 'overpass_discovery'),
+        'category': body.get('category', ''),
+        'assigned_to': user.get('name', None),
+        'next_follow_up_date': now.date().isoformat(),
+        'last_contact_date': None,
+        'cold_email_wave': 0,
+        'last_email_sent_at': None,
+        'proposal': None,
+        'score': 20,
+        'activity_log': [{'action': 'Discovered', 'note': f"Added from {body.get('lead_source', 'local discovery')} by {user.get('name', 'Staff')}", 'staff_name': user.get('name', 'Staff'), 'timestamp': now.isoformat()}],
+        'created_at': now.isoformat(),
+        'updated_at': now.isoformat(),
+    }
+    await db.corporate_leads.insert_one(doc)
+    return {'id': lead_id, 'status': 'imported'}
+
+
+@api_router.post('/staff/corporate-leads/{lead_id}/send-cold-email')
+async def send_cold_email(lead_id: str, request: Request, user=Depends(require_staff)):
+    """Send the next cold email wave to a corporate lead."""
+    lead = await db.corporate_leads.find_one({'id': lead_id}, {'_id': 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail='Lead not found')
+    if not lead.get('email'):
+        raise HTTPException(status_code=400, detail='Lead has no email address')
+
+    current_wave = lead.get('cold_email_wave', 0)
+    next_wave = current_wave + 1
+    if next_wave > 3:
+        raise HTTPException(status_code=400, detail='All 3 email waves already sent')
+
+    template = COLD_EMAIL_TEMPLATES[next_wave - 1]
+    contact_name = lead.get('contact_name', 'there').split()[0]
+    body_text = template['body'].replace('{{contact_name}}', contact_name)
+    subject = template['subject']
+
+    # Convert plain text to simple HTML
+    html_body = f"""<div style="font-family:sans-serif;color:#222;font-size:15px;line-height:1.7;max-width:600px;">
+{''.join(f'<p>{line}</p>' if line.strip() else '<br/>' for line in body_text.split(chr(10)))}
+</div>"""
+
+    ok = await send_resend_email(
+        to=lead['email'],
+        subject=subject,
+        html=html_body,
+        reply_to='management@santacruzstrength.com'
+    )
+    if not ok:
+        raise HTTPException(status_code=500, detail='Email send failed — check daily quota')
+
+    # Update lead status
+    new_status = f'Email {next_wave} Sent'
+    await db.corporate_leads.update_one(
+        {'id': lead_id},
+        {
+            '$set': {
+                'cold_email_wave': next_wave,
+                'last_email_sent_at': now_utc().isoformat(),
+                'status': new_status,
+                'updated_at': now_utc().isoformat(),
+                'score': _score_lead({**lead, 'status': new_status}),
+            },
+            '$push': {'activity_log': {
+                'action': f'Cold Email {next_wave} Sent',
+                'note': f'Subject: "{subject}" sent to {lead["email"]}',
+                'staff_name': user.get('name', 'Staff'),
+                'timestamp': now_utc().isoformat(),
+            }}
+        }
+    )
+    return {'ok': True, 'wave': next_wave, 'subject': subject, 'sent_to': lead['email']}
+
+
+@api_router.post('/staff/corporate-leads/bulk-action')
+async def bulk_corporate_action(request: Request, user=Depends(require_staff)):
+    """Bulk actions: send emails, change status, delete."""
+    body = await request.json()
+    lead_ids = body.get('lead_ids', [])
+    action = body.get('action', '')
+    if not lead_ids:
+        raise HTTPException(status_code=400, detail='No leads selected')
+
+    results = {'success': 0, 'failed': 0, 'errors': []}
+
+    if action == 'send_next_email':
+        for lid in lead_ids:
+            try:
+                lead = await db.corporate_leads.find_one({'id': lid}, {'_id': 0})
+                if not lead or not lead.get('email'):
+                    results['failed'] += 1; continue
+                wave = lead.get('cold_email_wave', 0)
+                if wave >= 3:
+                    results['failed'] += 1; continue
+                template = COLD_EMAIL_TEMPLATES[wave]
+                contact_name = lead.get('contact_name', 'there').split()[0]
+                body_text = template['body'].replace('{{contact_name}}', contact_name)
+                html_body = f"<div style='font-family:sans-serif;color:#222;font-size:15px;line-height:1.7;max-width:600px;'>{''.join(f'<p>{l}</p>' if l.strip() else '<br/>' for l in body_text.split(chr(10)))}</div>"
+                ok = await send_resend_email(to=lead['email'], subject=template['subject'], html=html_body, reply_to='management@santacruzstrength.com')
+                if ok:
+                    new_wave = wave + 1
+                    await db.corporate_leads.update_one({'id': lid}, {'$set': {'cold_email_wave': new_wave, 'status': f'Email {new_wave} Sent', 'last_email_sent_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()}, '$push': {'activity_log': {'action': f'Cold Email {new_wave} Sent', 'note': f'Bulk send by {user.get("name", "Staff")}', 'staff_name': user.get('name', 'Staff'), 'timestamp': now_utc().isoformat()}}})
+                    results['success'] += 1
+                else:
+                    results['failed'] += 1
+                await asyncio.sleep(0.5)  # rate limit
+            except Exception as e:
+                results['failed'] += 1; results['errors'].append(str(e))
+
+    elif action == 'change_status':
+        new_status = body.get('new_status', '')
+        if new_status not in CORPORATE_STAGES:
+            raise HTTPException(status_code=400, detail='Invalid status')
+        result = await db.corporate_leads.update_many(
+            {'id': {'$in': lead_ids}},
+            {'$set': {'status': new_status, 'updated_at': now_utc().isoformat()}}
+        )
+        results['success'] = result.modified_count
+
+    elif action == 'delete':
+        result = await db.corporate_leads.delete_many({'id': {'$in': lead_ids}})
+        results['success'] = result.deleted_count
+
+    return results
+
+
+@api_router.get('/staff/corporate-leads/email-templates')
+async def get_email_templates(user=Depends(require_staff)):
+    """Return the cold email templates for preview."""
+    return COLD_EMAIL_TEMPLATES
+
+
+@api_router.get('/staff/corporate-leads/{lead_id}')
+async def get_corporate_lead(lead_id: str, user=Depends(require_staff)):
+    lead = await db.corporate_leads.find_one({'id': lead_id}, {'_id': 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail='Corporate lead not found')
+    return lead
 
 
 # --------------- Team Members ---------------

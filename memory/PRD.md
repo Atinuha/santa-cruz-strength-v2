@@ -79,6 +79,15 @@ Build a custom, mobile-first, high-converting gym website and lightweight lead C
 - Site content key-value store (DB-backed, editable from admin) — DONE
 - Added "About" to main navbar
 - Campaign flow fixed: waves 2 & 3 now use custom templates, send SMS, check quota, proper completion logic — DONE
+- B2B Corporate Lead Discovery & Cold Email System — DONE (May 2026)
+  - Overpass API business discovery (cafe, restaurant, bar, retail, healthcare, fitness, office, school)
+  - 10-stage corporate pipeline (Discovered → Active Corporate Account)
+  - 3-wave cold email sequence with CAN-SPAM compliance
+  - Lead scoring (0-100 based on engagement, team size, contribution model)
+  - Bulk import from discovery + bulk email actions
+  - Proposal generator modal
+  - Corporate landing page quiz form (`/local-wellness`)
+  - CRM dashboard with stats, pipeline, discover, and cold email tabs
 
 ## Pending / Upcoming
 - **Meta Pixel Tracking (P1)** — Blocked on user providing Pixel ID
