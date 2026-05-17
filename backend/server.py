@@ -1969,6 +1969,39 @@ async def _send_corporate_lead_emails(lead: dict):
     await asyncio.gather(*tasks, return_exceptions=True)
 
 
+@api_router.get('/corporate-unsubscribe/{lead_id}')
+async def corporate_unsubscribe(lead_id: str):
+    """Public: one-click email unsubscribe for corporate leads."""
+    lead = await db.corporate_leads.find_one({'id': lead_id}, {'_id': 0, 'business_name': 1, 'email': 1})
+    if not lead:
+        return Response(content=_unsub_page('Unknown', False), media_type='text/html')
+
+    await db.corporate_leads.update_one(
+        {'id': lead_id},
+        {
+            '$set': {'email_opted_out': True, 'updated_at': now_utc().isoformat()},
+            '$push': {'activity_log': {
+                'action': 'Email Unsubscribed',
+                'note': f'{lead.get("email", "")} clicked unsubscribe link',
+                'staff_name': 'System',
+                'timestamp': now_utc().isoformat(),
+            }}
+        }
+    )
+    logger.info(f'[CORPORATE] Unsubscribe: {lead.get("email", "")} ({lead.get("business_name", "")})')
+    return Response(content=_unsub_page(lead.get('business_name', ''), True), media_type='text/html')
+
+
+def _unsub_page(name: str, success: bool) -> str:
+    msg = "You've been unsubscribed from Santa Cruz Strength corporate outreach emails. We won't email you again." if success else "We couldn't find that subscription, but you won't receive further emails."
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribed — Santa Cruz Strength</title>
+<style>body{{font-family:-apple-system,sans-serif;background:#F7F5F0;color:#222;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;}}
+.card{{background:#fff;border-radius:16px;padding:40px;max-width:420px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06);}}
+h1{{font-size:20px;margin:0 0 12px;}}p{{font-size:14px;color:#666;line-height:1.6;margin:0 0 20px;}}
+a{{color:#3A7D5C;text-decoration:none;font-weight:600;}}</style></head>
+<body><div class="card"><h1>You're unsubscribed.</h1><p>{msg}</p><a href="https://santacruzstrength.com">← Back to Santa Cruz Strength</a></div></body></html>"""
+
+
 @api_router.post('/corporate-leads')
 async def create_corporate_lead(data: CorporateLeadCreate):
     """Public endpoint: corporate membership inquiry form submission."""
@@ -2223,6 +2256,8 @@ async def send_cold_email(lead_id: str, request: Request, user=Depends(require_s
         raise HTTPException(status_code=404, detail='Lead not found')
     if not lead.get('email'):
         raise HTTPException(status_code=400, detail='Lead has no email address')
+    if lead.get('email_opted_out'):
+        raise HTTPException(status_code=400, detail='This contact has opted out of emails')
 
     current_wave = lead.get('cold_email_wave', 0)
     next_wave = current_wave + 1
@@ -2234,9 +2269,16 @@ async def send_cold_email(lead_id: str, request: Request, user=Depends(require_s
     body_text = template['body'].replace('{{contact_name}}', contact_name)
     subject = template['subject']
 
-    # Convert plain text to simple HTML
+    site_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+    unsub_url = f'{site_url}/api/corporate-unsubscribe/{lead_id}'
+
     html_body = f"""<div style="font-family:sans-serif;color:#222;font-size:15px;line-height:1.7;max-width:600px;">
 {''.join(f'<p>{line}</p>' if line.strip() else '<br/>' for line in body_text.split(chr(10)))}
+<hr style="border:none;border-top:1px solid #ddd;margin:24px 0 12px;" />
+<p style="font-size:11px;color:#999;line-height:1.5;">
+Santa Cruz Strength &middot; 151 Harvey West Blvd Ste D, Santa Cruz CA 95060<br/>
+<a href="{unsub_url}" style="color:#999;">Unsubscribe</a> from future emails.
+</p>
 </div>"""
 
     ok = await send_resend_email(
@@ -2248,7 +2290,6 @@ async def send_cold_email(lead_id: str, request: Request, user=Depends(require_s
     if not ok:
         raise HTTPException(status_code=500, detail='Email send failed — check daily quota')
 
-    # Update lead status
     new_status = f'Email {next_wave} Sent'
     await db.corporate_leads.update_one(
         {'id': lead_id},
@@ -2286,7 +2327,7 @@ async def bulk_corporate_action(request: Request, user=Depends(require_staff)):
         for lid in lead_ids:
             try:
                 lead = await db.corporate_leads.find_one({'id': lid}, {'_id': 0})
-                if not lead or not lead.get('email'):
+                if not lead or not lead.get('email') or lead.get('email_opted_out'):
                     results['failed'] += 1; continue
                 wave = lead.get('cold_email_wave', 0)
                 if wave >= 3:
@@ -2294,7 +2335,9 @@ async def bulk_corporate_action(request: Request, user=Depends(require_staff)):
                 template = COLD_EMAIL_TEMPLATES[wave]
                 contact_name = lead.get('contact_name', 'there').split()[0]
                 body_text = template['body'].replace('{{contact_name}}', contact_name)
-                html_body = f"<div style='font-family:sans-serif;color:#222;font-size:15px;line-height:1.7;max-width:600px;'>{''.join(f'<p>{l}</p>' if l.strip() else '<br/>' for l in body_text.split(chr(10)))}</div>"
+                site_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+                unsub_url = f'{site_url}/api/corporate-unsubscribe/{lid}'
+                html_body = f"<div style='font-family:sans-serif;color:#222;font-size:15px;line-height:1.7;max-width:600px;'>{''.join(f'<p>{l}</p>' if l.strip() else '<br/>' for l in body_text.split(chr(10)))}<hr style='border:none;border-top:1px solid #ddd;margin:24px 0 12px;'/><p style='font-size:11px;color:#999;line-height:1.5;'>Santa Cruz Strength &middot; 151 Harvey West Blvd Ste D, Santa Cruz CA 95060<br/><a href='{unsub_url}' style='color:#999;'>Unsubscribe</a> from future emails.</p></div>"
                 ok = await send_resend_email(to=lead['email'], subject=template['subject'], html=html_body, reply_to='management@santacruzstrength.com')
                 if ok:
                     new_wave = wave + 1
