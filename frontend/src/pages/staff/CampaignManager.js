@@ -299,9 +299,9 @@ export default function CampaignManager() {
                   {/* Preview subject lines */}
                   <div className="bg-white/3 border border-white/8 rounded-xl p-4">
                     <p className="text-white/50 text-xs font-bold uppercase tracking-wider mb-2">Subject lines (A/B rotated)</p>
-                    {SUBJECTS_DEFAULT.map((s, i) => (
-                      <p key={i} className="text-white/60 text-xs py-1 border-b border-white/5 last:border-0">
-                        {i + 1}. "{s}"
+                    {SUBJECTS_DEFAULT.map((s) => (
+                      <p key={s} className="text-white/60 text-xs py-1 border-b border-white/5 last:border-0">
+                        &ldquo;{s}&rdquo;
                       </p>
                     ))}
                   </div>
@@ -459,8 +459,8 @@ export default function CampaignManager() {
                   <>
                     <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 mb-2">
                       <p className="text-white/40 text-[10px]">Subject (A/B rotated)</p>
-                      {(detail.subject_options || []).map((s, i) => (
-                        <p key={i} className="text-white/70 text-xs">{i + 1}. "{s}"</p>
+                      {(detail.subject_options || []).map((s) => (
+                        <p key={s} className="text-white/70 text-xs">&ldquo;{s}&rdquo;</p>
                       ))}
                     </div>
                     <iframe

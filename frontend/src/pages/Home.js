@@ -228,8 +228,8 @@ export default function Home() {
             </p>
           </div>
           <Carousel itemWidth="w-64 sm:w-72" className="px-6">
-            {BENEFITS.map((b, i) => (
-              <div key={i} className={`${b.color} rounded-[var(--radius-lg)] p-6 h-full transition-transform duration-200 hover:-translate-y-1`}
+            {BENEFITS.map((b) => (
+              <div key={b.title} className={`${b.color} rounded-[var(--radius-lg)] p-6 h-full transition-transform duration-200 hover:-translate-y-1`}
                 style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--clr-border)', minHeight: '180px' }}>
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-4 text-[var(--clr-green)]"
                   style={{ boxShadow: 'var(--shadow-sm)' }}>
@@ -356,12 +356,12 @@ export default function Home() {
             <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>HEAR IT FROM THE MEMBERS</h2>
           </div>
           <Carousel itemWidth="w-72 sm:w-80 md:w-[360px]" className="px-6">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="card-light p-6 hover:-translate-y-1 transition-transform duration-200 h-full flex flex-col">
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="card-light p-6 hover:-translate-y-1 transition-transform duration-200 h-full flex flex-col">
                 <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, j) => <Star key={j} size={14} fill="var(--clr-coral)" className="text-[var(--clr-coral)]" />)}
                 </div>
-                <p className="text-[var(--clr-text)] text-sm leading-relaxed mb-5 flex-1">"{t.text}"</p>
+                <p className="text-[var(--clr-text)] text-sm leading-relaxed mb-5 flex-1">&ldquo;{t.text}&rdquo;</p>
                 <div className="border-t pt-4" style={{ borderColor: 'var(--clr-border)' }}>
                   <p className="text-[var(--clr-charcoal)] font-bold text-sm">{t.name}</p>
                   <p className="text-[var(--clr-text-light)] text-xs mt-0.5">{t.detail}</p>
@@ -381,7 +381,7 @@ export default function Home() {
                 <div>
                   <span className="green-accent-line" />
                   <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-2">Community</p>
-                  <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>WHAT'S HAPPENING</h2>
+                  <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>WHAT&apos;S HAPPENING</h2>
                 </div>
                 <Link to="/events" className="btn-outline-green px-4 py-2 text-sm shrink-0 hidden sm:flex items-center gap-1.5">
                   All Events <ChevronRight size={14} />
@@ -466,8 +466,8 @@ export default function Home() {
             </h2>
           </div>
           <Accordion type="single" collapsible className="space-y-3">
-            {FAQ_ITEMS.map((item, i) => (
-              <AccordionItem key={i} value={`faq-${i}`}
+            {FAQ_ITEMS.map((item) => (
+              <AccordionItem key={item.q} value={item.q}
                 className="bg-white rounded-[var(--radius-lg)] px-5 border-none"
                 style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--clr-border)' }}>
                 <AccordionTrigger

@@ -99,15 +99,15 @@ export default function CorporateLeads() {
   };
 
   const handleBulkImport = async () => {
-    const toImport = discovered.filter((_, i) => selectedBiz.has(i));
+    const toImport = discovered.filter(b => selectedBiz.has(b.name));
     for (const biz of toImport) {
       try {
         await api.post('/staff/corporate-leads/import-discovered', { name: biz.name, address: `${biz.address}, ${biz.city}`, phone: biz.phone, website: biz.website, email: biz.email, category: biz.category, lead_source: 'overpass_discovery' });
-      } catch {}
+      } catch (err) { console.error('Import failed:', err); }
     }
     toast.success(`${toImport.length} businesses imported`);
     setSelectedBiz(new Set());
-    setDiscovered(prev => prev.filter((_, i) => !selectedBiz.has(i)));
+    setDiscovered(prev => prev.filter(b => !selectedBiz.has(b.name)));
     load();
   };
 
@@ -176,8 +176,8 @@ export default function CorporateLeads() {
             { label: 'Proposals Sent', val: stats.proposals_sent || 0, icon: FileText },
             { label: 'Active Accounts', val: stats.active_accounts || 0, icon: CheckCircle2 },
             { label: 'Enrolled Employees', val: stats.enrolled_employees || 0, icon: Users },
-          ].map((s, i) => { const Icon = s.icon; return (
-            <div key={i} className="bg-white/4 border border-white/8 rounded-xl p-3">
+          ].map((s) => { const Icon = s.icon; return (
+            <div key={s.label} className="bg-white/4 border border-white/8 rounded-xl p-3">
               <div className="flex items-center gap-1.5 mb-1"><Icon size={12} className={s.warn && s.val > 0 ? 'text-amber-400' : 'text-white/30'} /><span className="text-[10px] text-white/40 uppercase tracking-wider font-bold">{s.label}</span></div>
               <p className="text-xl font-bold text-white">{s.val}</p>
             </div>
@@ -227,9 +227,9 @@ export default function CorporateLeads() {
             {discovered.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-xs text-white/40 mb-2">{discovered.length} businesses found near Santa Cruz Strength — not yet in your CRM</p>
-                {discovered.map((biz, i) => (
-                  <div key={i} className="flex items-center gap-3 bg-white/4 border border-white/8 rounded-xl px-4 py-3 hover:bg-white/6 transition-colors">
-                    <input type="checkbox" checked={selectedBiz.has(i)} onChange={() => setSelectedBiz(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; })}
+                {discovered.map((biz) => (
+                  <div key={biz.osm_id || biz.name} className="flex items-center gap-3 bg-white/4 border border-white/8 rounded-xl px-4 py-3 hover:bg-white/6 transition-colors">
+                    <input type="checkbox" checked={selectedBiz.has(biz.name)} onChange={() => setSelectedBiz(prev => { const n = new Set(prev); n.has(biz.name) ? n.delete(biz.name) : n.add(biz.name); return n; })}
                       className="w-4 h-4 rounded accent-emerald-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-white truncate">{biz.name}</p>
@@ -360,8 +360,8 @@ export default function CorporateLeads() {
                         <div>
                           <span className="text-[10px] text-white/35 uppercase tracking-wider font-bold block mb-2">Activity</span>
                           <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {[...detail.activity_log].reverse().map((a, i) => (
-                              <div key={i} className="flex items-start gap-2 text-xs">
+                            {[...detail.activity_log].reverse().map((a) => (
+                              <div key={`${a.timestamp}-${a.action}`} className="flex items-start gap-2 text-xs">
                                 <span className="text-white/20 shrink-0">{new Date(a.timestamp).toLocaleDateString()}</span>
                                 <div><span className="text-white/50 font-semibold">{a.action}</span>{a.note && <p className="text-white/35">{a.note}</p>}</div>
                               </div>

@@ -160,8 +160,8 @@ export default function LocalWellness() {
                     { range: '6–10 enrolled', note: 'Growing team discount' },
                     { range: '11–20 enrolled', note: 'Mid-size team discount' },
                     { range: '21+ enrolled', note: 'Custom package — let\'s talk' },
-                  ].map((t, i) => (
-                    <div key={i} className="flex items-center justify-between py-2.5 px-3 rounded-xl" style={{ background: 'var(--clr-bg)' }}>
+                  ].map((t) => (
+                    <div key={t.range} className="flex items-center justify-between py-2.5 px-3 rounded-xl" style={{ background: 'var(--clr-bg)' }}>
                       <span className="text-sm font-bold" style={{ color: 'var(--clr-charcoal)' }}>{t.range}</span>
                       <span className="text-xs font-semibold" style={{ color: 'var(--clr-green)' }}>{t.note}</span>
                     </div>
@@ -179,11 +179,11 @@ export default function LocalWellness() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <span className="green-accent-line mx-auto" />
           <h2 className="font-display text-3xl sm:text-4xl tracking-wide mb-5" style={{ color: 'var(--clr-charcoal)' }}>
-            EMPLOYEE WELLNESS THAT ISN'T WASTED.
+            EMPLOYEE WELLNESS THAT ISN&apos;T WASTED.
           </h2>
           <p className="text-[var(--clr-text)] text-sm leading-relaxed max-w-2xl mx-auto mb-8 font-medium">
             Most employee wellness programs are either too expensive, too complicated, or barely used.
-            A meditation app subscription doesn't cut it. Your team wants something real —
+            A meditation app subscription doesn&apos;t cut it. Your team wants something real —
             a local Santa Cruz gym where they can train, build strength, reduce stress, and feel connected.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -191,8 +191,8 @@ export default function LocalWellness() {
               { icon: Zap, title: 'Strength training that works', desc: 'A real gym, not a globo gym. Focused equipment, serious coaching, results your team can feel.' },
               { icon: Users, title: 'A local community', desc: 'Your employees join a supportive Santa Cruz fitness community — not an anonymous cardio floor.' },
               { icon: Shield, title: 'Simple setup, zero hassle', desc: 'We handle memberships, billing, and onboarding. You pick the contribution model and we do the rest.' },
-            ].map((b, i) => (
-              <div key={i} className="text-left p-5 rounded-2xl" style={{ background: 'var(--clr-bg)', border: '1px solid var(--clr-border)' }}>
+            ].map((b) => (
+              <div key={b.title} className="text-left p-5 rounded-2xl" style={{ background: 'var(--clr-bg)', border: '1px solid var(--clr-border)' }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: 'var(--clr-bg-green)' }}>
                   <b.icon size={18} style={{ color: 'var(--clr-green)' }} />
                 </div>
@@ -213,8 +213,8 @@ export default function LocalWellness() {
             <h2 className="font-display text-3xl sm:text-4xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>HOW IT WORKS</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {HOW_STEPS.map((s, i) => (
-              <div key={i}>
+            {HOW_STEPS.map((s) => (
+              <div key={s.num}>
                 <span className="font-display text-5xl tracking-wide" style={{ color: 'var(--clr-green)', opacity: 0.15 }}>{s.num}</span>
                 <h3 className="font-bold text-sm mt-1 mb-2" style={{ color: 'var(--clr-charcoal)' }}>{s.title}</h3>
                 <p className="text-xs text-[var(--clr-text-muted)] leading-relaxed">{s.desc}</p>
@@ -267,10 +267,10 @@ export default function LocalWellness() {
             </h2>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
-            {BUSINESSES.map((b, i) => {
+            {BUSINESSES.map((b) => {
               const Icon = b.icon;
               return (
-                <div key={i} className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full border" style={{ borderColor: 'var(--clr-border)', boxShadow: 'var(--shadow-sm)' }}>
+                <div key={b.label} className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full border" style={{ borderColor: 'var(--clr-border)', boxShadow: 'var(--shadow-sm)' }}>
                   <Icon size={14} style={{ color: 'var(--clr-green)' }} />
                   <span className="text-xs font-bold" style={{ color: 'var(--clr-charcoal)' }}>{b.label}</span>
                 </div>
@@ -289,7 +289,7 @@ export default function LocalWellness() {
               <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--clr-bg-green)' }}>
                 <CheckCircle2 size={32} style={{ color: 'var(--clr-green)' }} />
               </div>
-              <h3 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>WE'RE ON IT.</h3>
+              <h3 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>WE&apos;RE ON IT.</h3>
               <p className="text-[var(--clr-text-muted)] text-sm mb-6 max-w-md mx-auto">
                 Thanks for your interest in corporate wellness at Santa Cruz Strength! Our team will follow up within 1 business day with a custom proposal.
               </p>
@@ -307,8 +307,8 @@ export default function LocalWellness() {
                 )}
               </div>
               <div className="flex gap-1 mb-6">
-                {FORM_STEPS.map((_, i) => (
-                  <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300"
+                {FORM_STEPS.map((fs, i) => (
+                  <div key={fs.id} className="flex-1 h-1 rounded-full transition-all duration-300"
                     style={{ background: i <= step ? 'var(--clr-green)' : 'var(--clr-border)' }} />
                 ))}
               </div>
