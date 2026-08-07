@@ -112,6 +112,14 @@ class RecordingCrmAdapter:
     be mistaken for a real provider identifier in logs or in the outbox.
     """
 
+    # KNOWN LIMIT, must be closed before this channel is ever wired to a real
+    # CRM. Both of these are process memory. The adapter is built once at
+    # startup and reused by the dispatcher, so they grow unbounded for the life
+    # of the process and are empty again after a restart. That means the
+    # exactly-once claim below holds within a process and not across one: an
+    # operator replaying a quarantined job after a restart would record the
+    # prospect twice. Before going live, key deduplication off the outbox
+    # document rather than off this set.
     writes: list[RecordedCrmWrite] = field(default_factory=list)
     seen_keys: set[str] = field(default_factory=set)
 

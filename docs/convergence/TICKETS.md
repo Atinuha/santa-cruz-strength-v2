@@ -26,7 +26,7 @@ T-5 and T-6 touch disjoint files and may run in either order.
 Everything below passed at the last commit. Re-run before trusting it.
 
 ```
-cd backend   && for t in tests/test_*.py; do python -m unittest "tests.$(basename $t .py)"; done   # 91 tests, 13 modules  (verified at T-9)
+cd backend   && for t in tests/test_*.py; do python -m unittest "tests.$(basename $t .py)"; done   # 95 tests, 14 modules  (verified at T-9)
 cd frontend  && CI=true npx craco test --watchAll=false                                            # 20 tests, 8 suites
 cd frontend  && node scripts/validate-seo.mjs                                                      # 17 checks
 cd frontend  && npx craco build                                                                    # green
@@ -57,6 +57,7 @@ Current state of these lives in `LOCAL-SAFETY.md`.
 | B-04 | CRM credentials, field mapping, idempotency key, cutover date | Owner and vendor |
 | ~~B-05~~ | ~~Email provider precedence~~ CLOSED. It was never two email providers; MailerSend was an SMS fallback and is removed | closed |
 | B-11 | Rotate the disclosed owner credential. Now actually sticks, since the startup force-reset is gone | User |
+| B-CRM | CRM recording dedup lives in process memory, so exactly-once does not survive a restart. Close before the channel is wired to a real CRM. No live impact today: nothing enqueues a crm job yet | Engineering |
 | B-LLM | `EMERGENT_LLM_KEY` still powers the staff blog idea generator via the platform's model proxy. A working feature behind a vendor key, not residue. Swap to a direct provider key or retire the feature | User |
 | B-02b | Higher resolution, better framed facility photographs. Quality request, not a blocker | Owner |
 

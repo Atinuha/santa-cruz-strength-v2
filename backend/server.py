@@ -2620,11 +2620,30 @@ class CorporateLeadCreate(BaseModel):
 
 
 async def _send_corporate_lead_emails(lead: dict):
-    """Send confirmation to business contact + internal staff notification."""
+    """Send confirmation to business contact + internal staff notification.
+
+    The contact confirmation is gated on the consent the submitter actually
+    gave. The endpoint validates that email_consent and the consent object agree
+    before storing them, which shows the gate was always intended, but the send
+    never consulted it: any corporate submission with an email address produced
+    a confirmation regardless of consent.
+
+    The downstream guard could not catch it either. _email_delivery_allowed
+    looks the recipient up in db.leads, and corporate leads are written to
+    db.corporate_leads, so it returned "allowed" on a record it never found.
+
+    The staff notification below is internal and is not gated. Nobody consents
+    on the gym's behalf to being told it has a lead.
+    """
     contact_parts = safe_sms_text(lead.get('contact_name', 'there'), 200).split()
     name = escape_html(contact_parts[0] if contact_parts else 'there')
     tasks = []
-    if lead.get('email'):
+    contact_email_permitted = (
+        lead.get('email_operational_opt_in') is True
+        and not lead.get('email_opted_out')
+        and not lead.get('blacklisted')
+    )
+    if lead.get('email') and contact_email_permitted:
         html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:32px;border-radius:12px;max-width:600px;">
 <h2 style="color:#7FCCA6;margin-bottom:16px;">We got your corporate membership request</h2>
 <p style="color:#ccc;font-size:15px;line-height:1.6;">Hey {name},</p>
