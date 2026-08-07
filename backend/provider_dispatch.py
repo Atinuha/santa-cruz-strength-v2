@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import html
 import logging
+import json
 import os
 import re
 from dataclasses import dataclass, field
@@ -71,6 +72,9 @@ class DispatchConfig:
     enabled: bool = False
     resend_enabled: bool = False
     twilio_enabled: bool = False
+    # Records intended CRM writes locally. There is no live CRM adapter; see
+    # crm_boundary. This flag cannot cause a network call.
+    crm_recording_enabled: bool = False
     schedulers_enabled: bool = False
     database_writes_enabled: bool = False
     email_sends_enabled: bool = False
@@ -103,6 +107,7 @@ class DispatchConfig:
             enabled=_flag(env, "ALLOW_LEAD_OUTBOX_DISPATCH"),
             resend_enabled=_flag(env, "ALLOW_LEAD_RESEND"),
             twilio_enabled=_flag(env, "ALLOW_LEAD_TWILIO"),
+            crm_recording_enabled=_flag(env, "ALLOW_LEAD_CRM_RECORDING"),
             schedulers_enabled=_flag(env, "ALLOW_SCHEDULERS"),
             database_writes_enabled=_flag(env, "ALLOW_DATABASE_WRITES"),
             email_sends_enabled=_flag(env, "ALLOW_EMAIL_SENDS"),
@@ -133,7 +138,7 @@ class DispatchConfig:
 
     def validate(self) -> None:
         if not self.enabled:
-            if self.resend_enabled or self.twilio_enabled:
+            if self.resend_enabled or self.twilio_enabled or self.crm_recording_enabled:
                 raise ValueError("Lead provider flags require ALLOW_LEAD_OUTBOX_DISPATCH=true")
             return
         if not self.database_writes_enabled or not self.schedulers_enabled:
@@ -417,10 +422,26 @@ def _message_for(job: Mapping[str, Any], lead: Mapping[str, Any], config: Dispat
                 "will follow up about your visit. Reply STOP to opt out."
             ),
         )
+    if channel == "crm" and template == "prospect_upsert":
+        # No consent gate here on purpose. Creating a prospect record in the
+        # gym's own CRM is not a message to the person, so suppressing it on a
+        # marketing opt out would lose the lead entirely. Consent travels inside
+        # the payload so the CRM knows which channels it may use.
+        from crm_boundary import build_prospect_payload
+        return DeliveryMessage(
+            channel="crm",
+            recipient=str(lead.get("id") or ""),
+            idempotency_key=delivery_key,
+            text_body=json.dumps(build_prospect_payload(lead, delivery_key=delivery_key)),
+        )
     raise DeliveryError("unsupported_outbox_contract", "Outbox channel or template is unsupported", retryable=False)
 
 
 def _recipient_allowed(message: DeliveryMessage, config: DispatchConfig) -> bool:
+    if message.channel == "crm":
+        # A recorded CRM write never leaves this machine, so the allowlist that
+        # protects real phones and inboxes has nothing to protect here.
+        return True
     if not config.test_recipient_mode:
         return True
     if message.channel == "email":
@@ -580,4 +601,8 @@ def build_adapters(config: DispatchConfig) -> dict[str, DeliveryAdapter]:
         adapters["email"] = ResendAdapter(config)
     if config.twilio_enabled:
         adapters["sms"] = TwilioAdapter(config)
+    if config.crm_recording_enabled:
+        # Recording only. No live CRM adapter exists to install here.
+        from crm_boundary import RecordingCrmAdapter
+        adapters["crm"] = RecordingCrmAdapter()
     return adapters
