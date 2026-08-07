@@ -196,7 +196,7 @@ export default function Home() {
             </div>
             <div className="scs-photo-pair" aria-label="Santa Cruz Strength community photographs">
               <PublicImage src={MEDIA.community} alt="A group sharing a light moment between training sessions" width="1672" height="941" />
-              <PublicImage src={MEDIA.podium} alt="An active open-gym floor with lifters training together" width="1672" height="941" />
+              <PublicImage src={MEDIA.podium} alt="Squat racks, benches and bumper plate storage along the painted Santa Cruz Strength wall" width="1672" height="941" />
             </div>
           </div>
         </section>
@@ -243,7 +243,7 @@ export default function Home() {
                 <li><span>2</span><div><strong>Coordinate a time</strong><small>The team will follow up about a suitable visit.</small></div></li>
                 <li><span>3</span><div><strong>See the floor</strong><small>Tour the space, equipment and membership options.</small></div></li>
               </ol>
-              <PublicImage src={MEDIA.coach} alt="A coach guiding an athlete through a barbell deadlift" width="1672" height="941" />
+              <PublicImage src={MEDIA.coach} alt="Santa Cruz Strength coaching and event crew together on the lifting platform" width="1672" height="941" />
             </div>
           </div>
         </section>

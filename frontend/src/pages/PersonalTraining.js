@@ -69,7 +69,7 @@ export default function PersonalTraining() {
 
         <section className="scs-section scs-coaching-fit" aria-labelledby="coaching-fit-title">
           <div className="scs-shell scs-room-layout">
-            <div className="scs-room-image"><PublicImage src={SCS_MEDIA.coachingFloor} alt="A coach cueing an athlete during a deadlift session" width="1672" height="941" /></div>
+            <div className="scs-room-image"><PublicImage src={SCS_MEDIA.coachingFloor} alt="Santa Cruz Strength coaching and event crew together on the lifting platform" width="1672" height="941" /></div>
             <div className="scs-room-copy">
               <h2 id="coaching-fit-title">Who personal training can help</h2>
               <ul className="scs-check-list">
