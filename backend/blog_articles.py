@@ -759,3 +759,21 @@ def get_articles():
         article['noindex'] = False
         result.append(article)
     return result
+
+
+# Blog cover photographs, vendored locally from the vendor CDN so no remote host
+# remains in the build. They are genuine photographs of this gym, confirmed by
+# the painted wall seal and the green stripe, but every one shows identifiable
+# people, so they are held under the same likeness permission blocker as the
+# frames in SCS_MEDIA_AWAITING_PERMISSION. The seed publishes no cover until
+# permission lands, rather than applying a stricter rule to new photographs than
+# to ones that happened to be live already.
+#
+# All four are also small, between 168x300 and 533x400, which is workable for a
+# card and thin for anything larger.
+BLOG_COVERS_AWAITING_PERMISSION = {
+    'group_class_floor': '/assets/scs/blog/group-class-floor.jpg',
+    'group_class_wall_seal': '/assets/scs/blog/group-class-wall-seal.jpg',
+    'training_floor_lifting': '/assets/scs/blog/training-floor-lifting.jpg',
+    'exterior_signage': '/assets/scs/blog/exterior-signage.jpg',
+}

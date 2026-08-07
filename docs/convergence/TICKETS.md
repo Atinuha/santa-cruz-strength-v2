@@ -14,8 +14,8 @@ Donors are read-only: `../SantaCruzrepo-new` (content), `../scs-build` (engineer
 | T-3 | Hero filled with the real gym, alt text corrected | DONE | 652cb9a |
 | T-4 | Ten long form articles imported, corpus 7 to 17 | DONE | 4e22717 |
 | T-5 | Twilio declared the sole SMS provider, fallback removed | DONE | fa6c49b |
-| T-6 | Remove vendor residue: platform config, model key, tarball dependency, thumbnail cover images | **NEXT** | |
-| T-7 | CRM disabled adapter boundary with a fake client | pending | |
+| T-6 | Vendor residue removed, zero remote hosts in source | DONE | pending |
+| T-7 | CRM disabled adapter boundary with a fake client | **NEXT** | |
 | T-8 | Rotate the disclosed owner credential (human action) | pending | |
 | T-9 | Final integrated review | blocked by the above | |
 
@@ -26,7 +26,7 @@ T-5 and T-6 touch disjoint files and may run in either order.
 Everything below passed at the last commit. Re-run before trusting it.
 
 ```
-cd backend   && for t in tests/test_*.py; do python -m unittest "tests.$(basename $t .py)"; done   # 80 tests, 11 modules
+cd backend   && for t in tests/test_*.py; do python -m unittest "tests.$(basename $t .py)"; done   # 84 tests, 12 modules
 cd frontend  && CI=true npx craco test --watchAll=false                                            # 20 tests, 8 suites
 cd frontend  && node scripts/validate-seo.mjs                                                      # 17 checks
 cd frontend  && npx craco build                                                                    # green
@@ -57,6 +57,7 @@ Current state of these lives in `LOCAL-SAFETY.md`.
 | B-04 | CRM credentials, field mapping, idempotency key, cutover date | Owner and vendor |
 | ~~B-05~~ | ~~Email provider precedence~~ CLOSED. It was never two email providers; MailerSend was an SMS fallback and is removed | closed |
 | B-11 | Rotate the disclosed owner credential. Now actually sticks, since the startup force-reset is gone | User |
+| B-LLM | `EMERGENT_LLM_KEY` still powers the staff blog idea generator via the platform's model proxy. A working feature behind a vendor key, not residue. Swap to a direct provider key or retire the feature | User |
 | B-02b | Higher resolution, better framed facility photographs. Quality request, not a blocker | Owner |
 
 ## Corrections on record
