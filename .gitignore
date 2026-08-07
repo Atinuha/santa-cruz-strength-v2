@@ -101,6 +101,11 @@ frontend/node_modules/.cache/default-development/13.pack
 .env
 .env.*
 *.env
+# The example carries no secrets, only placeholders. It documents every
+# ALLOW_* safety flag, so ignoring it would make the default-deny
+# configuration undiscoverable to the next person who runs this.
+!.env.example
+!**/.env.example
 credentials.json
 *.key
 .credentials

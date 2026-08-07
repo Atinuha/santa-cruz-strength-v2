@@ -1,0 +1,476 @@
+<title>SCS Convergence Specification</title>
+<style>
+  :root {
+    --green:#0D5D3E; --green-dk:#094831; --green-mut:#E8F5EE; --coral:#FA5A5C;
+    --bg:#F7F5F0; --card:#FFF; --text:#2A2A2A; --muted:#5C6370; --line:rgba(28,28,28,.12);
+    --crit:#C42B2B; --major:#C77700; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#12160F;--card:#191E17;--text:#E8E6E0;--muted:#9AA394;--line:rgba(232,230,224,.14);--green-mut:#16281F;--green:#4FBF8B;--green-dk:#3FA876;}}
+  :root[data-theme="dark"]{--bg:#12160F;--card:#191E17;--text:#E8E6E0;--muted:#9AA394;--line:rgba(232,230,224,.14);--green-mut:#16281F;--green:#4FBF8B;--green-dk:#3FA876;}
+  :root[data-theme="light"]{--bg:#F7F5F0;--card:#FFF;--text:#2A2A2A;--muted:#5C6370;--line:rgba(28,28,28,.12);--green-mut:#E8F5EE;--green:#0D5D3E;--green-dk:#094831;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.62}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px 90px}
+  header.hero{background:var(--green);color:#fff;padding:42px 0 34px;margin-bottom:26px}
+  header.hero .wrap{padding-bottom:0}
+  .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.82;margin:0 0 10px}
+  h1{font-size:clamp(27px,5vw,40px);line-height:1.13;margin:0 0 12px;font-weight:800;letter-spacing:-.02em}
+  .sub{font-size:17px;opacity:.93;margin:0 0 18px;max-width:66ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px}
+  .meta span{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);padding:5px 11px;border-radius:999px;font-size:12.5px}
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:28px}
+  nav.toc strong{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px;font-size:14.5px}
+  @media(max-width:640px){nav.toc ol{columns:1}}
+  nav.toc a{color:var(--text);text-decoration:none}
+  nav.toc a:hover{color:var(--green);text-decoration:underline}
+  section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px 26px;margin-bottom:22px}
+  @media(max-width:640px){section{padding:20px 17px}}
+  section>h2{margin:0 0 14px;font-size:22px;letter-spacing:-.01em}
+  .num{color:var(--green);font-weight:800;margin-right:8px}
+  h3{font-size:16.5px;margin:22px 0 8px}
+  h4{font-size:13.5px;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  p{margin:0 0 12px}
+  ul,ol{margin:0 0 12px;padding-left:22px}
+  li{margin-bottom:5px}
+  code{font-family:var(--mono);font-size:.88em;background:var(--green-mut);padding:1.5px 5px;border-radius:4px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:12px 0 16px}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:540px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--green-mut);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--green-dk);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .p-crit{background:var(--crit);color:#fff}.p-major{background:var(--major);color:#fff}
+  .p-ok{background:var(--green);color:#fff}.p-min{background:var(--muted);color:#fff}
+  .note{border-left:3px solid var(--coral);background:rgba(250,90,92,.06);padding:12px 15px;border-radius:0 8px 8px 0;margin:14px 0;font-size:14.5px}
+  .inv{border-left:3px solid var(--green);background:var(--green-mut);padding:12px 15px;border-radius:0 8px 8px 0;margin:14px 0}
+  footer{text-align:center;color:var(--muted);font-size:13.5px;padding-top:26px;border-top:1px solid var(--line);margin-top:32px}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Implementation Specification</p>
+    <h1>Santa Cruz Strength Convergence</h1>
+    <p class="sub">Frozen model for converging three divergent codebases into one safe, truthful, production-worthy local system.</p>
+    <div class="meta">
+      <span>SCS-SPEC-001</span><span>2026-08-07</span><span>Destination: /Users/atifmac/SantaCruzrepo</span>
+      <span>Local only</span><span>Supersedes PRD v4.0 where noted</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="toc"><strong>Contents</strong><ol>
+<li><a href="#s1">Problem and Desired End State</a></li>
+<li><a href="#s2">Governing Authority</a></li>
+<li><a href="#s3">User and Business Behaviors</a></li>
+<li><a href="#s4">Convergence Decisions</a></li>
+<li><a href="#s5">Architecture and Data Contracts</a></li>
+<li><a href="#s6">Local Safety Invariants</a></li>
+<li><a href="#s7">Visual and Media Truth</a></li>
+<li><a href="#s8">Search and Content Contract</a></li>
+<li><a href="#s9">Testing Decisions</a></li>
+<li><a href="#s10">GymMaster Readiness</a></li>
+<li><a href="#s11">Out of Scope</a></li>
+<li><a href="#s12">Acceptance</a></li>
+<li><a href="#s13">Open Blockers</a></li>
+<li><a href="#s14">Execution Brief</a></li>
+</ol></nav>
+
+<section id="s1">
+  <h2><span class="num">1</span>Problem and Desired End State</h2>
+  <p>Three codebases hold disjoint halves of one product. The destination repository owns the project's identity and history but the weakest implementation: a single-file backend, no tests, no runtime safety, and startup behaviour that resets a production password and launches five outbound schedulers unconditionally. A second repository holds the only written blog bodies. A third holds every reliability guarantee the product needs and the only tests that prove them. None of the three is shippable alone.</p>
+
+  <h4>End state</h4>
+  <p>The destination repository must become the single system: it keeps its identity, its history and its remote, and receives the proven implementation from the hardened donor plus the written content from the content donor. When convergence is done, all of the following are true locally:</p>
+  <ul>
+    <li>No runtime path can reach a live provider, a production database or a real customer without a deliberate, explicitly enabled configuration change.</li>
+    <li>Every public claim traces to a verified source, and no fabricated rating, ranking or count survives anywhere in the tree.</li>
+    <li>Every image is a real photograph of this gym, its real people or its real events, served from the repository rather than a vendor CDN.</li>
+    <li>The lead acquisition path works end to end against local fakes: capture, validation, consent, persistence, queued delivery, observable outcome.</li>
+    <li>The regression suite that currently protects the hardened donor protects the destination instead.</li>
+  </ul>
+  <p>The business objective behind it is unchanged: a local gym site capable of supporting roughly 25 qualified member leads per month, where the owner can defend every word on it.</p>
+</section>
+
+<section id="s2">
+  <h2><span class="num">2</span>Governing Authority</h2>
+
+  <div class="note">
+    <b>SCS-CD-001 does not exist.</b> The session governor names it as the top authority and states it supersedes PRD v4.0. Exhaustive search across the strategy folder and all three repositories returns zero occurrences and no directive-named file. It was never written. Its supersessions are therefore taken from the governor text itself, which is the only place they appear. Nothing is inferred about contents that were never authored.
+  </div>
+
+  <h3>Supersessions carried from the governor text</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>What changes</th><th>PRD v4.0 said</th><th>Now governs</th></tr></thead>
+    <tbody>
+      <tr><td>Implementation destination</td><td>Consolidate on the hardened tree</td><td>The destination repository is fixed. The hardened tree becomes a read-only donor</td></tr>
+      <tr><td>Donor roles</td><td>Not addressed</td><td>Two read-only donors: one for experience and content, one for engineering</td></tr>
+      <tr><td>Runtime posture</td><td>Local review only</td><td>Unchanged, plus an explicit precondition: prove isolation before any runtime loads configuration</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Corrections this specification makes to PRD v4.0</h3>
+  <p>Recorded as contradictions rather than silent rewrites, per the governor.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>PRD v4.0 claim</th><th>Corrected finding</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>No photograph of the room exists. Every lifting-action frame is watermarked. Blockers B-01 and B-02 are Critical</td><td><b>False.</b> Seven real, unwatermarked camera files including a wide empty facility floor, an entrance and signage frame, and a clean bench-press action frame</td><td>The homepage hero is unblocked. See section 7</td></tr>
+      <tr><td>The seven blog slugs cannot be verified without database access</td><td>Verifiable without it. The content donor holds ten different article bodies with <b>zero</b> slug overlap</td><td>See section 8</td></tr>
+      <tr><td>Backend tests are blocked on a missing test runner</td><td>They run under the standard library runner. All pass</td><td>Regression evidence is available today</td></tr>
+    </tbody>
+  </table></div>
+  <p>Everything else in PRD v4.0 survives: the verified business facts, the claims discipline, the consent-at-dispatch trace, the acknowledgement-email defect and its fix, the quarantined-replay hazard and its fix, the outbox retention gap, and the open owner decisions.</p>
+
+  <h3>Source precedence</h3>
+  <p>When two artifacts disagree, this order decides. It exists because the project's original failure was ambiguity about which artifact was authoritative.</p>
+  <ol>
+    <li><b>Prices, terms, tiers, fees, cancellation:</b> the live public site, mirrored into configuration. Never a mockup, never a rebuild.</li>
+    <li><b>Hours:</b> a single configuration source. No page states hours independently. Owner confirmation still pending.</li>
+    <li><b>Testimonials and named people:</b> reviews as published, quoted verbatim with attribution. Never an unattributed quote.</li>
+    <li><b>Photography:</b> documentary only. A slot with no honest photograph renders nothing rather than substituting a different subject.</li>
+    <li><b>Membership transaction:</b> the external hosted provider. Derived from one configuration constant so a club or CRM change is a single edit.</li>
+    <li><b>Brand colour:</b> green, corroborated by the live site, the merchandise, and the painted stripe visible in the facility photographs.</li>
+    <li><b>Layout and structure only:</b> the approved mockups. Every word of copy on them is placeholder. The owner approved direction, not content.</li>
+    <li><b>Indexable routes and canonicals:</b> the route registry, enforced by an automated validator.</li>
+  </ol>
+</section>
+
+<section id="s3">
+  <h2><span class="num">3</span>User and Business Behaviors</h2>
+  <p>These must survive convergence or improve. They are stated as behaviours, not components, because the implementation will move between files.</p>
+
+  <h3>Public experience</h3>
+  <p>The public route set is identical across all three repositories, so convergence risks nothing at the level of breadth. Fourteen public surfaces must continue to exist and render: home, about, join, personal training, events, blog index, blog article, contact, local wellness, pride, privacy, terms, thank you, and a review submission page reached by token. An unknown path must render a real not-found view and must not be indexable.</p>
+
+  <h3>Conversion behaviours</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Behaviour</th><th>Must be true</th></tr></thead>
+    <tbody>
+      <tr><td>Tour or membership enquiry</td><td>A visitor submits identity and interest, receives an immediate on-page confirmation, and is persisted before any confirmation is shown. A successful-looking UI over a failed write is prohibited</td></tr>
+      <tr><td>Lead acknowledgement</td><td>The person who submitted a contact request receives an acknowledgement. This failed permanently and silently for every consumer lead in the donor and the fix must survive convergence</td></tr>
+      <tr><td>Staff notification</td><td>Staff are alerted to a new lead independently of the consumer acknowledgement, so one failing never hides the other</td></tr>
+      <tr><td>Membership purchase</td><td>Handed off to the external provider. The site captures leads and never processes money. Nine published tiers each resolve to their own plan identifier</td></tr>
+      <tr><td>Day pass and pricing discovery</td><td>Prices, terms, fees and cancellation language are visible and match the live site exactly</td></tr>
+      <tr><td>Phone contact</td><td>A tappable number, instrumented, because phone is a primary channel for a local gym</td></tr>
+      <tr><td>Consent capture</td><td>Email and SMS eligibility captured and stored separately, never as one flag</td></tr>
+      <tr><td>Unsubscribe</td><td>Token-verified, acted on by an explicit confirmation rather than by following a link, because mail scanners follow links</td></tr>
+      <tr><td>Duplicate submission</td><td>A resubmitted form must not produce duplicate outbound messages</td></tr>
+      <tr><td>Review request</td><td>Reachable by token, single use, expiring. Token minting must require authorisation</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Measurement boundary</h3>
+  <p>Because the membership transaction is hosted externally, the site can observe intent to join and cannot observe a completed membership. The funnel is truthful up to the handoff and blind after it. No membership conversion rate or acquisition cost may be claimed from site data alone.</p>
+</section>
+
+<section id="s4">
+  <h2><span class="num">4</span>Convergence Decisions</h2>
+  <p>Resolved on evidence during reconnaissance. Recorded here as the change ledger; this section is the single source of truth for these decisions.</p>
+
+  <div class="scroll"><table>
+    <thead><tr><th>ID</th><th>Decision</th><th>Resolution</th><th>Basis</th></tr></thead>
+    <tbody>
+      <tr><td>D-1</td><td>Merge strategy</td><td><b>Near-total replacement</b> of backend and frontend source from the engineering donor</td><td>Destination has one backend module against seven, and zero tests against sixty-eight. Hand-merging thousands of divergent lines with no regression floor reintroduces the defects</td></tr>
+      <tr><td>D-2</td><td>Ordering</td><td><b>Safety first, as the opening work</b></td><td>Eleven of twelve runtime surfaces are unsafe in application code, not configuration. No environment arrangement fixes them</td></tr>
+      <tr><td>D-3</td><td>Remote protection</td><td>Set the destination's push target to a non-pushable value</td><td>The destination has a live remote. The donor did not. Discipline alone already failed once here</td></tr>
+      <tr><td>D-4</td><td>Credential rotation</td><td>Rotate <b>only after</b> the seed is fixed</td><td>Startup force-resets the owner password on every boot. Rotating first is silently reverted</td></tr>
+      <tr><td>D-5</td><td>Missing directive</td><td>Governor text stands as the directive</td><td>Zero occurrences anywhere</td></tr>
+      <tr><td>D-6</td><td>Vendor assets</td><td>Already vendored in the engineering donor, confirmed by checksum. <b>Rewire the media map to them</b>, then retire the CDN, the platform config and the platform key</td><td>The CDN held the only facility, entrance and clean-action photography. The donor already carries all of it locally, so the port delivers the assets and only the mapping is outstanding</td></tr>
+      <tr><td>D-7</td><td>Blog corpus</td><td>Adopt the content donor's ten written bodies. Retire the seven declared-published slugs</td><td>Two disjoint corpora, zero overlap. Seven have no bodies anywhere; ten have bodies and no route</td></tr>
+      <tr><td>D-8</td><td>People in photography</td><td><b>Publish the two people-free facility frames now.</b> Hold the four with identifiable faces until permission is on file</td><td>Assumed pending owner confirmation. The empty room raises no likeness question, so holding it buys no compliance benefit</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Convergence matrix</h3>
+  <p>Capability by capability. "Target" is the destination as it stands, "Content" and "Engineering" are the two donors.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Capability</th><th>Target</th><th>Content donor</th><th>Engineering donor</th><th>Source</th><th>Risk</th></tr></thead>
+    <tbody>
+      <tr><td>Owner seed</td><td>Hardcoded, force-reset each boot</td><td>Same defect</td><td>Environment driven, minimum length enforced</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Scheduler control</td><td>Ungated, five jobs</td><td>Ungated</td><td>Explicit enable flag</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Webhook verification</td><td>None, six open endpoints</td><td>None</td><td>Signature validation, fails closed</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Runtime safety layer</td><td>Absent</td><td>Absent</td><td>Present, twelve tests</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Durable outbox</td><td>Absent</td><td>Absent</td><td>Full state machine, sixteen tests</td><td><b>Engineering</b></td><td>Medium, largest port</td></tr>
+      <tr><td>Consent at dispatch</td><td>Absent</td><td>Absent</td><td>Fail closed, re-reads live record</td><td><b>Engineering</b></td><td>Medium</td></tr>
+      <tr><td>Lead contracts</td><td>Absent</td><td>Absent</td><td>Present, including the acknowledgement fix</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Analytics consent gate</td><td>Absent</td><td>Absent</td><td>Present</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Membership tiers</td><td>None, join URL hardcoded</td><td>Unverified</td><td>Nine tiers with plan identifiers</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Search plumbing</td><td>Absent</td><td>Partial registry</td><td>Registry, generators, validator</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Blog bodies</td><td>None</td><td><b>Ten written articles</b></td><td>Seven slugs, no bodies</td><td><b>Content</b></td><td>Medium, needs re-slugging</td></tr>
+      <tr><td>Real photography</td><td><b>Seven real files on the CDN</b></td><td>None</td><td>Ten event photographs</td><td><b>Both</b></td><td>Low</td></tr>
+      <tr><td>Fabricated claims</td><td>Present</td><td>Clean</td><td>Clean</td><td><b>Engineering</b></td><td>Low</td></tr>
+      <tr><td>Repository identity</td><td><b>Owns it</b></td><td>Separate</td><td>None</td><td><b>Target</b></td><td>n/a</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Protected target work</h3>
+  <p>Must survive intact: the git identity, remote and full commit history; the exported lead records, test reports, memory notes and planning documents. No capability was found in the destination that the engineering donor lacks, so nothing else needs preserving on functional grounds.</p>
+
+  <h3>Retired</h3>
+  <p>The vendor platform configuration, the vendor language-model key, the vendor build-tooling dependency fetched from a non-registry URL, the remote CDN image references once vendored, the fabricated rating and ranking claims, the hardcoded join URL, and the seven bodyless blog slugs.</p>
+</section>
+
+<section id="s5">
+  <h2><span class="num">5</span>Architecture and Data Contracts</h2>
+
+  <h3>Shape</h3>
+  <p>A single-page public application talks to an HTTP API, which persists to a document store and enqueues work into a durable outbox. A worker claims outbox jobs and dispatches to external providers. Nothing calls a provider inline on the request path. The membership transaction sits entirely outside this system.</p>
+
+  <h3>Lead contract</h3>
+  <p>One canonical builder produces the lead payload for every consumer form, and a separate builder serves the business enquiry form. The consumer payload carries identity, interest, timeline, attribution, a request identifier for idempotency, and a consent object. <b>Consent must be channel split</b>: operational email eligibility and operational SMS eligibility are distinct fields, and marketing eligibility is distinct again from both.</p>
+  <div class="note">
+    <b>Contract invariant, learned the hard way.</b> A field the frontend omits becomes a false default at the backend, and a fail-closed gate downstream then suppresses delivery permanently and silently. Every consent field the dispatcher reads must be explicitly present in the payload the form sends. Tests must assert presence, not merely correctness of the fields that happen to be sent.
+  </div>
+
+  <h3>Lifecycle</h3>
+  <p>Lead lifecycle state is tracked separately from human contact state. Lifecycle answers "what stage is this lead at". Contact state answers "has a person actually been reached", across phone, SMS, email and in person, with an outcome. Transitions are governed by an explicit allowed-transition map rather than free assignment. Collapsing these two into one field is prohibited, because it produces the classic failure where a lead sits in "contacted" after one unanswered voicemail.</p>
+
+  <h3>Outbox</h3>
+  <p>Five delivery states: pending, processing, retry scheduled, succeeded, terminal failed. Required properties:</p>
+  <ul>
+    <li><b>Atomic claim.</b> A single conditional update carries every guard in its filter. No read-then-write.</li>
+    <li><b>Reservation token</b>, not worker identity, is the lock. Colliding worker identities across processes cannot double commit.</li>
+    <li><b>Bounded retry</b> with exponential backoff and a ceiling.</li>
+    <li><b>Quarantine on unknown outcome.</b> If a provider call began and the lease expired, nobody can prove whether the provider accepted it. That job is quarantined, never auto-retried.</li>
+    <li><b>Operator replay is gated.</b> Replaying a quarantined job requires explicit confirmation, because the SMS provider accepts no idempotency key and a blind replay delivers a second real message. Ordinary terminal failures replay in one step.</li>
+    <li><b>Error redaction</b> before persistence, so provider errors carrying personal data are not stored raw.</li>
+    <li><b>Retention.</b> No policy exists today. Succeeded and terminal jobs accumulate without bound. Deferred, but must be recorded rather than forgotten.</li>
+  </ul>
+  <p><b>Known limitation to preserve honestly:</b> lease expiry is compared against the worker host's clock rather than a single authoritative clock. Inert for a single worker. With two workers on skewed clocks it is the one remaining path to a double delivery. Either derive lease comparisons from one authoritative clock or document and enforce single-worker operation.</p>
+
+  <h3>Provider dispatch</h3>
+  <p>Dispatch re-reads the live lead record after claiming the job and before building the message. Consent is evaluated at that moment, not at enqueue time. A suppressed lead terminates non-retryably rather than sending. Quiet hours defer rather than fail. A recipient allowlist prevents a non-production environment from contacting a real member. Email dispatch sends a provider-side idempotency key; SMS dispatch cannot, and the replay gate exists to compensate.</p>
+
+  <h3>Integration boundaries</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>System</th><th>Authoritative for</th><th>Boundary rule</th></tr></thead>
+    <tbody>
+      <tr><td>External membership provider</td><td>Membership transaction, billing, member records</td><td>Never re-implemented. All join links derive from one constant</td></tr>
+      <tr><td>SMS provider</td><td>SMS delivery only</td><td>Dispatched through the outbox. Webhooks signature verified</td></tr>
+      <tr><td>Email provider</td><td>Transactional and marketing email</td><td>Suppression enforced at send. Unsubscribe appended to consumer marketing mail</td></tr>
+      <tr><td>Second email provider</td><td><b>Undeclared</b></td><td>Two email providers are wired with no stated precedence. Declare one authoritative and remove or document the other</td></tr>
+      <tr><td>Future CRM</td><td>Nothing yet</td><td>See section 10</td></tr>
+      <tr><td>Analytics</td><td>Behavioural measurement</td><td>Consent gated. Call-to-action clicks must never be counted as completed conversions</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s6">
+  <h2><span class="num">6</span>Local Safety Invariants</h2>
+  <p>These must hold continuously throughout development, not merely at the end. Safety is binary: a path is safe only when its external effects are demonstrably local, faked or disabled.</p>
+
+  <div class="inv">
+    <b>SI-1. No live provider write.</b> No SMS, email, webhook emission, analytics event or CRM record reaches a real destination from a development run. A test that requires a real message to pass is a failed test design.
+  </div>
+  <div class="inv">
+    <b>SI-2. Persistence is local.</b> The datastore target is a local instance with a throwaway database name. Production connection strings are never copied in for convenience.
+  </div>
+  <div class="inv">
+    <b>SI-3. Default deny.</b> Every outbound capability is governed by an explicit enable flag that defaults to disabled. Absence of a key is not a safety mechanism, because supplying a key must not be sufficient to send.
+  </div>
+  <div class="inv">
+    <b>SI-4. No unconditional startup mutation.</b> Startup must not reset credentials, overwrite existing users or launch recurring jobs without an explicit enable. Index creation is permitted.
+  </div>
+  <div class="inv">
+    <b>SI-5. Inbound is authenticated.</b> Webhook endpoints verify provider signatures and fail closed when verification is unavailable. Token-minting endpoints require authorisation.
+  </div>
+  <div class="inv">
+    <b>SI-6. The remote is protected.</b> The destination's push target is set to a non-pushable value, so an accidental push fails loudly rather than succeeding.
+  </div>
+  <div class="inv">
+    <b>SI-7. Re-verify on change.</b> A prior safety result stays valid only while the relevant configuration and code path are unchanged. Any work touching a provider path or startup re-establishes the invariant before running.
+  </div>
+
+  <p>Current state of these invariants is tracked in the accompanying local safety record, which is operational state rather than specification and is updated as work lands.</p>
+</section>
+
+<section id="s7">
+  <h2><span class="num">7</span>Visual and Media Truth</h2>
+
+  <h3>Brand identity</h3>
+  <p>Green is the primary brand colour, with a coral accent, a warm off-white page background and near-black headings. The rust accent specified by the approved mockups and their direction file appears nowhere in any codebase and is not adopted. The physical evidence settles it: a painted green stripe runs the length of the training wall in the facility photographs, and the painted wall seal is black on white above it.</p>
+
+  <h3>Media policy</h3>
+  <p>Every published image must be documentary: a real photograph of this gym, its real members, its real staff or its real events. Generated imagery may never stand in for any of those. <b>A slot with no honest photograph renders nothing.</b> Substituting a different real photograph is equally prohibited, because misrepresenting the subject is the same offence as fabricating it. Written provenance files in this workspace have already proven unreliable and do not constitute evidence; the artifact itself must be inspected.</p>
+
+  <div class="note">
+    <b>Correction to PRD v4.0, and it unblocks the homepage.</b> The PRD recorded that no photograph of the room exists and that every lifting-action frame carries a competing brand's watermark, rating both as Critical owner blockers. Both are false. The destination repository has been referencing seven real, unwatermarked camera files throughout. The wide facility shot was missed because its filename describes a screenshot rather than its contents.
+  </div>
+
+  <div class="inv">
+    <b>Already vendored. Verified by checksum.</b> The engineering donor's asset folder holds these files bit-identical to the vendor CDN originals for the logo and the wide facility floor, and resized copies of the action and entrance frames. The remaining work is not acquisition; it is <b>rewiring the media map to point at assets already present</b>. The hero slot is currently null while the real facility photograph sits unused beside it.
+  </div>
+
+  <h3>Verified real assets</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Subject</th><th>Provenance</th><th>People</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td><b>Wide empty facility floor</b>, wall seal, green stripe, racks, plates, platforms</td><td>Device screenshot, 1080 by 1440</td><td>None</td><td><b>Hero.</b> Publishable immediately</td></tr>
+      <tr><td>Rack and bench area, vertical</td><td>1080 by 1974</td><td>None</td><td>Equipment sections, 4:5 crops. Publishable immediately</td></tr>
+      <tr><td><b>Entrance and signage</b>, glass door with logo</td><td>Digital SLR, 6000 by 4000</td><td>One, identifiable</td><td>Location and visit sections. Hold for permission</td></tr>
+      <tr><td>Bench press action, spotter present, <b>no watermark</b></td><td>Phone, 4032 by 3024</td><td>Two, identifiable</td><td>Training and coaching. Hold for permission</td></tr>
+      <tr><td>Lifters with medals at the wall seal</td><td>Phone, 4032 by 3024, geotagged</td><td>Three, identifiable</td><td>Community. Hold for permission</td></tr>
+      <tr><td>Meet-day crowd inside the gym</td><td>Phone, 4032 by 3024</td><td>Many, identifiable</td><td>Community and events. Hold for permission</td></tr>
+      <tr><td>Circle logo, transparent</td><td>480 by 486</td><td>None</td><td>Navigation, footer, staff surfaces</td></tr>
+    </tbody>
+  </table></div>
+  <p>The engineering donor additionally holds ten processed event photographs from a separate shoot, already curated for absence of third-party watermarks. Those remain valid and carry the same permission requirement.</p>
+
+  <h3>Handling of what is still unavailable</h3>
+  <p>The two strongest facility frames are device screenshots at modest resolution. They are adequate for standard web presentation and thin for a full-bleed hero on a large display. Higher-resolution originals are a quality request, not an existence blocker. Any slot that still has no honest photograph after vendoring stays null and renders nothing; the gap must be visible in code rather than discovered when a page renders empty.</p>
+
+  <h3>Prohibited</h3>
+  <ul>
+    <li>Generated people presented as staff, members, coaches, reviewers or evidence of the facility.</li>
+    <li>Any frame carrying a competing brand's mark, which breaches the brand firewall.</li>
+    <li>Stock photography of any gym that is not this gym.</li>
+    <li>Publishing an identifiable person without permission on file.</li>
+  </ul>
+</section>
+
+<section id="s8">
+  <h2><span class="num">8</span>Search and Content Contract</h2>
+
+  <h3>Mechanism</h3>
+  <p>A route registry declares every route with an indexable flag and a canonical URL. A runtime component resolves the current path against that registry and sets title, description, canonical and robots directives, removing the canonical entirely on non-indexable routes. Unknown paths, staff paths and token paths fall through to no-index, no-follow. The sitemap is generated from the same registry at build time and the generator fails the build if a published article is missing from the registry, so the two cannot drift. Structured data is injected on the home route only, so exactly one business entity appears per crawl. An automated validator enforces the whole contract and fails the build, including a check that no en dash or em dash character appears in shipped copy.</p>
+
+  <h3>The blog corpus</h3>
+  <div class="note">
+    <b>Two disjoint corpora, zero overlap.</b> The engineering donor declares seven article slugs as published, places them in its route registry and its sitemap, and holds no bodies for any of them. The content donor holds ten fully written article bodies that appear in no registry, no sitemap and no route. Near-miss slug pairs show what happened: articles were renamed and the registry drifted off the content.
+  </div>
+  <p>Resolution: adopt the ten written bodies, register them, and retire the seven bodyless slugs. Until an article has a body, it must not appear in the registry as indexable, because a sitemap that advertises a soft not-found is worse than an absent page. Existing articles that target real local intent are preserved; no new content is commissioned in this release. Content atomisation and repurposing are deferred until canonical content is approved.</p>
+
+  <h3>Claim discipline</h3>
+  <p>No numeric or superlative claim appears in public copy without a source in the claims registry. The fabricated rating and ranking claims that survive in the destination's community page are removed and must not return. Public copy contains zero em dashes and zero en dashes, enforced mechanically rather than by review. Membership conversion rate and acquisition cost are unmeasurable from site data and may not be asserted.</p>
+</section>
+
+<section id="s9">
+  <h2><span class="num">9</span>Testing Decisions</h2>
+
+  <h3>Principle</h3>
+  <p>Test at behavioural seams that survive refactoring, not at implementation details. The regression evidence that currently protects the engineering donor must protect the destination after convergence; convergence is not complete while the tests remain in the donor.</p>
+
+  <h3>Seams worth protecting</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Seam</th><th>What must be observable</th><th>Existing evidence</th></tr></thead>
+    <tbody>
+      <tr><td>Outbox state machine</td><td>Lease expiry, quarantine, replay refusal and acceptance, stale-token rejection, deterministic terminalisation</td><td>Sixteen tests</td></tr>
+      <tr><td>Runtime gates</td><td>Every outbound flag defaults to denied</td><td>Twelve tests</td></tr>
+      <tr><td>Provider dispatch</td><td>Consent suppression, timeout treated as unknown rather than failed, unsupported contract rejected</td><td>Twelve tests</td></tr>
+      <tr><td>Lead contract</td><td>Every consent field the dispatcher reads is present in the payload the form sends</td><td>Frontend suite, strengthened after the acknowledgement defect</td></tr>
+      <tr><td>Security controls and server contracts</td><td>Authorisation boundaries hold</td><td>Twenty tests across three modules</td></tr>
+      <tr><td>Search contract</td><td>Registry, sitemap, robots, canonical, dash discipline</td><td>Seventeen validator checks</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Observed externally, not through internals</h3>
+  <ul>
+    <li>A submitted form produces a persisted record before any success state is shown.</li>
+    <li>A revoked lead receives nothing from a job already queued.</li>
+    <li>A duplicate submission produces no duplicate outbound message.</li>
+    <li>A forged webhook is rejected.</li>
+    <li>A development run with credentials present still sends nothing.</li>
+    <li>Public pages render correctly at desktop and mobile widths in a real browser. A passing build is evidence of compilation, not of appearance.</li>
+  </ul>
+
+  <h3>Known gap</h3>
+  <p>Test discovery requires naming modules individually because the test package lacks an initialiser. One small fix makes a single command run everything, which matters more after convergence than before.</p>
+</section>
+
+<section id="s10">
+  <h2><span class="num">10</span>GymMaster Readiness</h2>
+
+  <div class="note">
+    <b>Verified capability: none.</b> The intended CRM appears in this project as placeholder text on one preview page and one word inside a code comment listing providers the outbox is generic over. There is no client, no environment variable, no field mapping and no test. The migration has been discussed as underway. It has not started.
+  </div>
+
+  <p>That is not a criticism of sequencing. Making the outbox provider-generic first is correct, and it means adding this integration later is a matter of writing one dispatch adapter behind an existing boundary. But the plan must stop describing the migration as in progress.</p>
+
+  <h3>What this release delivers</h3>
+  <ul>
+    <li><b>A disabled adapter boundary only.</b> The outbox already treats delivery targets generically; the CRM becomes one more channel behind the same claim, lease, retry and quarantine machinery.</li>
+    <li>A fake client that records intended writes locally and performs none, so the mapping can be exercised without credentials.</li>
+    <li>Duplicate prevention expressed as an idempotency requirement on prospect creation, since a retried job must never create a second prospect.</li>
+    <li>An explicit ownership rule for the dual-running period: which system owns the member record while both are live.</li>
+  </ul>
+
+  <h3>Exact blockers, all external</h3>
+  <ul>
+    <li>API credentials and a sandbox environment.</li>
+    <li>The prospect and member field mapping, confirmed against the vendor's actual schema rather than assumed.</li>
+    <li>Whether prospect creation is idempotent on the vendor side, and on what key.</li>
+    <li>The migration direction and cutover date relative to the incumbent membership provider.</li>
+  </ul>
+  <p>No vendor behaviour is assumed in this specification. Anything stated about the CRM without a cited official source is a blocker, not a design.</p>
+</section>
+
+<section id="s11">
+  <h2><span class="num">11</span>Out of Scope</h2>
+  <ul>
+    <li>Pushing, opening a pull request, merging remotely, deploying or activating anything.</li>
+    <li>Any production mutation, including the production datastore and production analytics.</li>
+    <li>Billing, payment handling and any destructive CRM operation.</li>
+    <li>Enabling live providers. Every provider stays disabled or faked.</li>
+    <li>The CRM integration beyond a disabled boundary.</li>
+    <li>New article commissioning, content atomisation and repurposing.</li>
+    <li>Outbox retention policy. Recorded, deferred, inert at current volume.</li>
+    <li>Token-scale consolidation of the two green scales used by the public site and the staff console.</li>
+    <li>Framework and build-tooling modernisation beyond removing the vendor dependency.</li>
+    <li>The second brand. Deferred until this one passes its gates.</li>
+  </ul>
+</section>
+
+<section id="s12">
+  <h2><span class="num">12</span>Acceptance</h2>
+  <p>Observable locally. Each distinguishes done from merely implemented.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>ID</th><th>Condition</th><th>How it is observed</th></tr></thead>
+    <tbody>
+      <tr><td>A-1</td><td>A development run with provider credentials present sends nothing</td><td>Start with keys set and flags default. Assert zero provider calls and no scheduler jobs registered</td></tr>
+      <tr><td>A-2</td><td>Restarting twice does not change any user's credentials</td><td>Boot, record the owner hash, boot again, compare</td></tr>
+      <tr><td>A-3</td><td>A forged webhook is rejected</td><td>Post an unsigned payload to each webhook. Expect rejection, not acceptance</td></tr>
+      <tr><td>A-4</td><td>A lead submitted through every consumer form is acknowledged</td><td>Submit, inspect the queued job, assert it reaches a delivered state against the fake, not a suppressed one</td></tr>
+      <tr><td>A-5</td><td>A lead who revokes consent after enqueue receives nothing</td><td>Enqueue, revoke, run the worker, assert no provider call and a terminal suppressed outcome</td></tr>
+      <tr><td>A-6</td><td>A quarantined SMS cannot be replayed without confirmation</td><td>Drive a job to quarantine, attempt replay, expect refusal; retry with confirmation, expect acceptance</td></tr>
+      <tr><td>A-7</td><td>Every public route renders at desktop and mobile widths with a clean console</td><td>Browser inspection of all fourteen public surfaces</td></tr>
+      <tr><td>A-8</td><td>No public page renders an empty required image slot</td><td>Visual inspection after vendoring. Any remaining null slot is a deliberate, recorded omission</td></tr>
+      <tr><td>A-9</td><td>Every sitemap URL returns real content</td><td>Enumerate the sitemap, request each, assert a body exists</td></tr>
+      <tr><td>A-10</td><td>No fabricated claim survives anywhere in the tree</td><td>Pattern search across all source returns nothing</td></tr>
+      <tr><td>A-11</td><td>Every image is served from the repository</td><td>No remote image host appears in any source file</td></tr>
+      <tr><td>A-12</td><td>The full regression suite passes in the destination</td><td>Backend, frontend, search validator and production build in one run</td></tr>
+      <tr><td>A-13</td><td>An accidental push fails</td><td>Attempt a push. Expect refusal</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s13">
+  <h2><span class="num">13</span>Open Blockers</h2>
+  <p>External facts and human decisions only. Nothing here can be engineered around.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>ID</th><th>Blocker</th><th>Owner</th><th>Severity</th></tr></thead>
+    <tbody>
+      <tr><td>B-03</td><td>Written likeness permission for the identifiable people in five photographs</td><td>Owner</td><td><span class="pill p-major">MAJOR</span></td></tr>
+      <tr><td>B-04</td><td>CRM credentials, field mapping, idempotency behaviour, migration direction and cutover date</td><td>Owner and vendor</td><td><span class="pill p-major">MAJOR</span></td></tr>
+      <tr><td>B-05</td><td>Which of the two wired email providers is authoritative</td><td>Consultant, decidable now</td><td><span class="pill p-major">MAJOR</span></td></tr>
+      <tr><td>B-07</td><td>Dated confirmation that the published hours are current</td><td>Owner</td><td><span class="pill p-min">MINOR</span></td></tr>
+      <tr><td>B-11</td><td>Rotate the disclosed owner credential, after the seed fix lands</td><td>Consultant</td><td><span class="pill p-crit">TIME SENSITIVE</span></td></tr>
+      <tr><td>B-02b</td><td>Higher-resolution originals of the two facility frames. Quality request, not existence</td><td>Owner</td><td><span class="pill p-min">MINOR</span></td></tr>
+      <tr><td>D-8</td><td>Confirmation that people-free facility frames may publish ahead of permission on the rest</td><td>Owner or consultant</td><td><span class="pill p-min">ASSUMED YES</span></td></tr>
+      <tr><td>B-10</td><td>Explicit sign-off to exit the review loop</td><td>Owner</td><td><span class="pill p-major">MAJOR</span></td></tr>
+    </tbody>
+  </table></div>
+  <p>The credential blocker is independent of everything else here and should not wait on any other approval. The credential is in published history, so removing it from the working tree does not remove it from the record, and the seed defect means rotating before the fix is silently reverted.</p>
+</section>
+
+<section id="s14">
+  <h2><span class="num">14</span>Execution Brief</h2>
+  <p>The implementation must turn the destination repository from a repository that owns the project's identity into one that also owns its proven behaviour, without ever letting a development run touch a real customer. It begins by making the runtime safe, because eleven of twelve outbound surfaces are unsafe in application code rather than configuration and no environment arrangement can compensate: the startup credential reset is removed, the recurring jobs come under an explicit disabled-by-default gate, inbound webhooks gain signature verification that fails closed, and the remote is made non-pushable. Only then does the proven implementation move across, near-total rather than selectively, so that the reliability guarantees and the sixty-eight tests that demonstrate them arrive together rather than as fragments a hand-merge might drop. With that floor in place the product work is narrow and behavioural: vendor the seven real photographs into the repository and fill the empty slots that were wrongly believed unfillable, adopt the ten written articles and retire the seven that were never written, remove the fabricated rating and ranking claims, and bring the nine published membership tiers and their handoff under a single derived source. Each slice should carry one user-visible or system-visible behaviour from input to observable outcome, leave the tree green, and be verified in a real browser where it touches the public experience and against local fakes where it touches a provider. The work is finished not when it compiles but when a run with real credentials present still sends nothing, every sitemap URL returns real content, no image is fetched from a vendor host, and every claim on the site can be defended by the person whose name is on the door.</p>
+</section>
+
+<footer>
+  SCS-SPEC-001 &middot; 2026-08-07 &middot; Local specification for /Users/atifmac/SantaCruzrepo<br>
+  Nothing pushed, nothing deployed, no provider activated, no production data touched.
+</footer>
+</div>

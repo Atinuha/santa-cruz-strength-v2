@@ -1,20 +1,23 @@
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import StreamingResponse, Response
+from fastapi.responses import StreamingResponse, Response, JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import DuplicateKeyError
 import os
 import logging
 import csv
 import io
+import re
 import asyncio
 import resend
 import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from twilio.request_validator import RequestValidator
 from pathlib import Path
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
 from jose import JWTError, jwt
@@ -23,14 +26,106 @@ from passlib.context import CryptContext
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+try:
+    from runtime_safety import (
+        ALLOW_DATABASE_WRITES,
+        ALLOW_EMAIL_SENDS,
+        ALLOW_SCHEDULERS,
+        ALLOW_SEEDING,
+        ALLOW_SMS_SENDS,
+        ALLOW_MAILERSEND_WEBHOOKS,
+        ALLOW_RESEND_WEBHOOKS,
+        ALLOW_TWILIO_WEBHOOKS,
+        APP_ENV,
+        outbound_recipient_allowed,
+        require_frontend_origin,
+        runtime_summary,
+        validate_runtime_safety,
+    )
+except ImportError:
+    from .runtime_safety import (
+        ALLOW_DATABASE_WRITES,
+        ALLOW_EMAIL_SENDS,
+        ALLOW_SCHEDULERS,
+        ALLOW_SEEDING,
+        ALLOW_SMS_SENDS,
+        ALLOW_MAILERSEND_WEBHOOKS,
+        ALLOW_RESEND_WEBHOOKS,
+        ALLOW_TWILIO_WEBHOOKS,
+        APP_ENV,
+        outbound_recipient_allowed,
+        require_frontend_origin,
+        runtime_summary,
+        validate_runtime_safety,
+    )
+
+try:
+    from security_controls import (
+        SlidingWindowLimiter,
+        escape_html,
+        make_signed_token,
+        parse_cors_origins,
+        safe_sms_text,
+        verify_signed_token,
+    )
+except ImportError:
+    from .security_controls import (
+        SlidingWindowLimiter,
+        escape_html,
+        make_signed_token,
+        parse_cors_origins,
+        safe_sms_text,
+        verify_signed_token,
+    )
+
+try:
+    from lead_lifecycle import (
+        InvalidLifecycleTransition,
+        human_contact_event,
+        lifecycle_event,
+        new_lead_lifecycle_fields,
+    )
+except ImportError:
+    from .lead_lifecycle import (
+        InvalidLifecycleTransition,
+        human_contact_event,
+        lifecycle_event,
+        new_lead_lifecycle_fields,
+    )
+
+try:
+    from lead_outbox import (
+        QuarantinedReplayRefused,
+        enqueue_lead_received_jobs,
+        replay_terminal_failure,
+    )
+except ImportError:
+    from .lead_outbox import (
+        QuarantinedReplayRefused,
+        enqueue_lead_received_jobs,
+        replay_terminal_failure,
+    )
+try:
+    from lead_consent import reinquiry_sms_updates
+except ImportError:
+    from .lead_consent import reinquiry_sms_updates
+
+try:
+    from provider_dispatch import DispatchConfig, build_adapters, dispatch_batch
+except ImportError:
+    from .provider_dispatch import DispatchConfig, build_adapters, dispatch_batch
+
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'test_database')]
+database_name = os.environ.get('DB_NAME', 'test_database')
+db = client[database_name]
 
 app = FastAPI(title='Santa Cruz Strength API')
 api_router = APIRouter(prefix='/api')
 
-JWT_SECRET = os.environ.get('JWT_SECRET', 'fallback-secret-change-me')
+JWT_SECRET = os.environ.get('JWT_SECRET', '').strip()
+if not JWT_SECRET:
+    raise RuntimeError('JWT_SECRET must be configured; no insecure fallback is permitted')
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 JWT_EXPIRE_MINUTES = int(os.environ.get('JWT_EXPIRE_MINUTES', 10080))
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
@@ -38,6 +133,43 @@ security = HTTPBearer()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+PUBLIC_LEAD_LIMITER = SlidingWindowLimiter(
+    max_attempts=max(1, min(int(os.environ.get('PUBLIC_LEAD_RATE_LIMIT', '10')), 60)),
+    window_seconds=max(60, min(int(os.environ.get('PUBLIC_LEAD_RATE_WINDOW_SECONDS', '600')), 3600)),
+)
+PUBLIC_LEAD_MAX_BYTES = max(1024, min(int(os.environ.get('PUBLIC_LEAD_MAX_BYTES', '32768')), 131072))
+
+
+def _enforce_public_lead_request(request: Request, namespace: str = 'lead') -> None:
+    content_length = request.headers.get('content-length')
+    if content_length:
+        try:
+            if int(content_length) > PUBLIC_LEAD_MAX_BYTES:
+                raise HTTPException(status_code=413, detail='Lead form payload is too large')
+        except ValueError:
+            raise HTTPException(status_code=400, detail='Invalid Content-Length header')
+    client_ip = request.client.host if request.client else 'unknown'
+    allowed, retry_after = PUBLIC_LEAD_LIMITER.check(f'{namespace}:{client_ip}')
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail='Too many lead form submissions. Please try again later.',
+            headers={'Retry-After': str(retry_after)},
+        )
+
+
+@app.middleware('http')
+async def enforce_database_write_gate(request: Request, call_next):
+    if request.method not in {'GET', 'HEAD', 'OPTIONS'} and not ALLOW_DATABASE_WRITES:
+        return JSONResponse(
+            status_code=503,
+            content={
+                'detail': 'Database writes are disabled for this protected environment.',
+                'code': 'database_writes_disabled',
+            },
+        )
+    return await call_next(request)
 
 # --------------- Helpers ---------------
 
@@ -122,6 +254,53 @@ SECURITY_FROM     = os.environ.get('SECURITY_FROM_EMAIL', 'security@santacruzstr
 CC_EMAIL          = os.environ.get('CC_EMAIL', '')
 DAILY_EMAIL_LIMIT = int(os.environ.get('DAILY_EMAIL_LIMIT', 50000))  # Resend plan limit
 STAFF_EMAIL_RESERVE = 10  # always keep 10 sends free for 2FA / resets / invites
+EMAIL_MARKETING_FILTER = {
+    'blacklisted': {'$ne': True},
+    'email_opted_out': {'$ne': True},
+    'email_opt_out': {'$ne': True},
+    'email_marketing_opt_in': True,
+    'email_bounced': {'$ne': True},
+    'email_complained': {'$ne': True},
+}
+
+
+async def _email_delivery_allowed(to: str, message_kind: str) -> tuple[bool, Optional[dict]]:
+    if message_kind in {'internal', 'corporate_marketing'}:
+        return True, None
+    lead = await db.leads.find_one(
+        {'email': to.lower().strip()},
+        {'_id': 0, 'id': 1, 'email': 1, 'blacklisted': 1, 'email_opted_out': 1,
+         'email_opt_out': 1, 'email_marketing_opt_in': 1,
+         'email_bounced': 1, 'email_complained': 1},
+    )
+    if not lead:
+        return True, None
+    if lead.get('email_bounced') or lead.get('email_complained'):
+        return False, lead
+    if message_kind == 'marketing' and (
+        lead.get('blacklisted') or lead.get('email_opted_out') or lead.get('email_opt_out')
+    ):
+        return False, lead
+    if message_kind == 'marketing' and lead.get('email_marketing_opt_in') is not True:
+        return False, lead
+    return True, lead
+
+
+def _append_consumer_unsubscribe(html_body: str, lead: dict) -> str:
+    secret = os.environ.get('UNSUBSCRIBE_SECRET', '')
+    if len(secret) < 32:
+        raise RuntimeError('UNSUBSCRIBE_SECRET must contain at least 32 characters for marketing email')
+    token = make_signed_token({'lead_id': lead['id'], 'email': lead['email']}, secret)
+    site_url = require_frontend_origin()
+    unsubscribe_url = f'{site_url}/api/unsubscribe?token={token}'
+    if '{{unsubscribe_url}}' in html_body:
+        return html_body.replace('{{unsubscribe_url}}', escape_html(unsubscribe_url))
+    footer = (
+        '<p style="margin:16px 0;font-size:11px;color:#888;text-align:center;">'
+        f'<a href="{escape_html(unsubscribe_url)}" style="color:#666;">Unsubscribe from marketing email</a>'
+        '</p>'
+    )
+    return html_body.replace('</body>', footer + '</body>', 1) if '</body>' in html_body else html_body + footer
 
 async def _check_campaign_quota() -> bool:
     """Returns True if there is quota available for campaign sends (respects staff reserve)."""
@@ -140,12 +319,28 @@ async def _track_email_send(is_campaign: bool = False):
     await db.email_stats.update_one({'date': today}, {'$inc': {field: 1}}, upsert=True)   # e.g. teresa@santacruzstrength.com
 
 async def send_resend_email(to: str, subject: str, html: str, reply_to: str = None,
-                            from_override: str = None, cc: list = None):
-    """Non-blocking Resend send — falls back gracefully if key not set."""
+                            from_override: str = None, cc: list = None,
+                            message_kind: str = 'transactional'):
+    """Non-blocking Resend send - falls back gracefully if key not set."""
+    if not ALLOW_EMAIL_SENDS:
+        logger.info('[EMAIL] Outbound email disabled by runtime safety controls')
+        return False
+    if not outbound_recipient_allowed('email', to):
+        logger.warning('[EMAIL] Recipient blocked by non-production allowlist')
+        return False
     if not resend.api_key:
-        logger.info(f'[EMAIL] RESEND_API_KEY not set — skipping to {to}')
+        logger.info(f'[EMAIL] RESEND_API_KEY not set - skipping to {to}')
+        return False
+    allowed, lead = await _email_delivery_allowed(to, message_kind)
+    if not allowed:
+        logger.info(f'[EMAIL] Suppressed {message_kind} email to {to}')
         return False
     try:
+        if message_kind == 'marketing':
+            if not lead:
+                logger.warning(f'[EMAIL] Marketing send blocked because no lead record was found for {to}')
+                return False
+            html = _append_consumer_unsubscribe(html, lead)
         sender = from_override or FROM_EMAIL
         params = {'from': sender, 'to': [to], 'subject': subject, 'html': html}
         if reply_to:
@@ -153,13 +348,14 @@ async def send_resend_email(to: str, subject: str, html: str, reply_to: str = No
         if cc:
             params['cc'] = [c for c in cc if c and c != to]
         result = await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f'[EMAIL] Sent via Resend to {to} — id={result.get("id","?")}')
+        logger.info(f'[EMAIL] Sent via Resend to {to} - id={result.get("id","?")}')
         return True
     except Exception as e:
         logger.warning(f'[EMAIL] Resend failed to {to}: {e}')
         return False
 
 def _lead_confirmation_html(lead: dict) -> str:
+    lead = {key: escape_html(value) for key, value in lead.items()}
     name = lead.get('first_name', 'there')
     return f"""
 <!DOCTYPE html>
@@ -224,16 +420,17 @@ def _lead_confirmation_html(lead: dict) -> str:
 </html>"""
 
 def _staff_notification_html(lead: dict) -> str:
+    lead = {key: escape_html(value) for key, value in lead.items()}
     created = lead.get('created_at', '')[:16].replace('T', ' at ') if lead.get('created_at') else 'just now'
     rows = [
         ('Name', f"{lead.get('first_name','')} {lead.get('last_name','')}"),
-        ('Phone', lead.get('phone', '—')),
-        ('Email', lead.get('email', '—')),
-        ('Interest', lead.get('interest_type', '—')),
-        ('Timeline', lead.get('start_timeline', '—')),
-        ('Goals', lead.get('training_goals', '—') or '—'),
-        ('Source', lead.get('lead_source', '—')),
-        ('Preferred Contact', lead.get('preferred_contact', '—')),
+        ('Phone', lead.get('phone', ' - ')),
+        ('Email', lead.get('email', ' - ')),
+        ('Interest', lead.get('interest_type', ' - ')),
+        ('Timeline', lead.get('start_timeline', ' - ')),
+        ('Goals', lead.get('training_goals', ' - ') or ' - '),
+        ('Source', lead.get('lead_source', ' - ')),
+        ('Preferred Contact', lead.get('preferred_contact', ' - ')),
         ('Submitted', created),
     ]
     rows_html = ''.join(
@@ -289,26 +486,72 @@ def _staff_notification_html(lead: dict) -> str:
 </html>"""
 
 async def send_lead_emails(lead: dict):
-    """Fire both emails — skips blacklisted leads."""
-    if lead.get('blacklisted'):
-        return
-    name = f"{lead.get('first_name','there')}".strip()
+    """Send a transactional lead acknowledgement and an internal staff alert."""
+    name = safe_sms_text(lead.get('first_name', 'there'), 100).strip()
     lead_email = lead.get('email', '')
     tasks = []
     if lead_email:
         tasks.append(send_resend_email(
             to=lead_email,
-            subject=f"Hey {name} — you're on our radar at Santa Cruz Strength",
+            subject=f"Hey {name} - you're on our radar at Santa Cruz Strength",
             html=_lead_confirmation_html(lead),
+            message_kind='transactional',
             reply_to='management@santacruzstrength.com'
         ))
     tasks.append(send_resend_email(
         to=STAFF_EMAIL,
-        subject=f"New Lead: {lead.get('first_name','')} {lead.get('last_name','')} — {lead.get('interest_type','General Membership')}",
+        subject=safe_sms_text(f"New Lead: {lead.get('first_name','')} {lead.get('last_name','')} - {lead.get('interest_type','General Membership')}", 220),
         html=_staff_notification_html(lead),
+        message_kind='internal',
         cc=[c for c in [CC_EMAIL] if c and c != STAFF_EMAIL],
     ))
     await asyncio.gather(*tasks, return_exceptions=True)
+
+
+def _verified_consumer_unsubscribe(token: str) -> dict:
+    secret = os.environ.get('UNSUBSCRIBE_SECRET', '')
+    if len(secret) < 32:
+        raise HTTPException(status_code=503, detail='Unsubscribe service is not configured')
+    payload = verify_signed_token(token, secret)
+    if not payload or not payload.get('lead_id') or not payload.get('email'):
+        raise HTTPException(status_code=400, detail='Invalid unsubscribe token')
+    return payload
+
+
+@api_router.get('/unsubscribe')
+async def consumer_unsubscribe_confirmation(token: str = Query(..., min_length=20, max_length=2000)):
+    _verified_consumer_unsubscribe(token)
+    safe_token = escape_html(token)
+    return Response(
+        content=(
+            '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            '<title>Email preferences | Santa Cruz Strength</title></head><body>'
+            '<main><h1>Email preferences</h1><p>Confirm that you want to stop marketing email from Santa Cruz Strength.</p>'
+            f'<form method="post" action="/api/unsubscribe?token={safe_token}"><button type="submit">Unsubscribe</button></form>'
+            '</main></body></html>'
+        ),
+        media_type='text/html',
+    )
+
+
+@api_router.post('/unsubscribe')
+async def consumer_unsubscribe(token: str = Query(..., min_length=20, max_length=2000)):
+    payload = _verified_consumer_unsubscribe(token)
+    result = await db.leads.update_one(
+        {'id': payload['lead_id'], 'email': payload['email']},
+        {'$set': {
+            'email_opted_out': True,
+            'email_opt_out': True,
+            'email_opted_out_at': now_utc().isoformat(),
+            'updated_at': now_utc().isoformat(),
+        }},
+    )
+    if not result.matched_count:
+        raise HTTPException(status_code=404, detail='Subscription not found')
+    return Response(
+        content='<!doctype html><html><body><main><h1>You are unsubscribed.</h1><p>You will no longer receive marketing email from Santa Cruz Strength.</p></main></body></html>',
+        media_type='text/html',
+    )
 
 # --------------- SMS (MailerSend) ---------------
 
@@ -329,7 +572,13 @@ def _get_twilio_client():
     return _twilio_client
 
 # ── Core send (Twilio primary, MailerSend fallback) ────────────────────────────
-async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
+async def send_sms(
+    to_numbers: list,
+    text: str,
+    lead_info: dict = None,
+    *,
+    allow_mailersend_fallback: bool = True,
+) -> bool:
     """Send SMS via Twilio (primary) with MailerSend fallback.
     lead_info: optional dict with {name, email, phone, lead_id} for failure logging.
     Note: MailerSend toll-free number requires verification before messages deliver.
@@ -338,7 +587,14 @@ async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
     if not valid:
         return False
 
-    # Try Twilio first (primary — A2P 10DLC registered)
+    if not ALLOW_SMS_SENDS:
+        logger.info('[SMS] Outbound SMS disabled by runtime safety controls')
+        return False
+    if any(not outbound_recipient_allowed('sms', number) for number in valid):
+        logger.warning('[SMS] One or more recipients blocked by non-production allowlist')
+        return False
+
+    # Try Twilio first (primary - A2P 10DLC registered)
     twilio = _get_twilio_client()
     if twilio and TWILIO_PHONE_NUMBER:
         try:
@@ -347,15 +603,15 @@ async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
                     body=text,
                     from_=TWILIO_PHONE_NUMBER,
                     to=number,
-                    status_callback=os.environ.get('FRONTEND_URL', '') + '/api/webhooks/twilio-status',
+                    status_callback=require_frontend_origin() + '/api/webhooks/twilio-status',
                 )
                 logger.info(f'[SMS-TWILIO] Sent to {number} (SID: {msg.sid})')
             return True
         except Exception as e:
-            logger.warning(f'[SMS-TWILIO] Failed: {e} — falling back to MailerSend')
+            logger.warning(f'[SMS-TWILIO] Failed: {e} - falling back to MailerSend')
 
     # Fallback to MailerSend
-    if MAILERSEND_API_KEY and MAILERSEND_FROM:
+    if allow_mailersend_fallback and MAILERSEND_API_KEY and MAILERSEND_FROM:
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 resp = await client.post(
@@ -374,7 +630,7 @@ async def send_sms(to_numbers: list, text: str, lead_info: dict = None) -> bool:
         except Exception as e:
             logger.warning(f'[SMS-MAILERSEND] Error: {e}')
 
-    logger.info(f'[SMS] All providers failed — skipping to {valid}')
+    logger.info(f'[SMS] All providers failed - skipping to {valid}')
     if lead_info:
         await _log_sms_failure(valid, 'all_providers_failed', lead_info)
     return False
@@ -419,16 +675,28 @@ async def send_lead_sms(lead: dict):
     lead_phone = lead.get('phone', '').strip()
     staff_nums = await get_sms_staff_numbers()
 
+    digits = ''.join(character for character in lead_phone if character.isdigit())
+    if len(digits) == 10:
+        lead_phone_e164 = f'+1{digits}'
+    elif len(digits) == 11 and digits.startswith('1'):
+        lead_phone_e164 = f'+{digits}'
+    else:
+        lead_phone_e164 = ''
+
     tasks = []
 
     # A) Confirmation to lead
-    if lead_phone and lead_phone.startswith('+'):
+    operational_sms_allowed = bool(
+        lead.get('sms_operational_opt_in') is True
+        or lead.get('sms_consent') is True
+    )
+    if operational_sms_allowed and not lead.get('sms_opted_out') and lead_phone_e164:
         msg = (
             f"Hey {name}, Santa Cruz Strength here! "
             f"Stoked you reached out. Someone from our team will hit you up shortly "
             f"to set up a quick tour. Questions? Call (408) 337-6709. - SCS"
         )
-        tasks.append(send_sms([lead_phone], msg))
+        tasks.append(send_sms([lead_phone_e164], msg))
 
     # B) Alert to staff
     if staff_nums:
@@ -448,7 +716,15 @@ async def send_status_change_sms(lead: dict, new_status: str):
     """Fire a branded SMS when staff moves a lead to a milestone status."""
     name      = lead.get('first_name', 'there')
     lead_phone = lead.get('phone', '').strip()
-    if not lead_phone or not lead_phone.startswith('+'):
+    if (
+        not lead_phone
+        or not lead_phone.startswith('+')
+        or not (
+            lead.get('sms_operational_opt_in') is True
+            or lead.get('sms_consent') is True
+        )
+        or lead.get('sms_opted_out')
+    ):
         return
 
     msg = None
@@ -528,6 +804,8 @@ async def run_sms_followup_job():
         leads = await db.leads.find({
             'created_at': {'$gte': cutoff_start, '$lte': cutoff_end},
             'status':     {'$in': list(seq['target_statuses'])},
+            'sms_marketing_opt_in': True,
+            'sms_opted_out': {'$ne': True},
             f'sms_log.type': {'$ne': seq['key']},   # hasn't already received this step
         }, {'_id': 0, 'id': 1, 'phone': 1, 'first_name': 1, 'status': 1, 'sms_log': 1}).to_list(500)
 
@@ -552,7 +830,7 @@ async def run_review_request_job():
     """Scheduled every 30 min: send review request 3 days after member joined (up to 7 days)."""
     now = now_utc()
     now_iso     = now.isoformat()
-    cutoff_iso  = (now - timedelta(days=4)).isoformat()   # window: 3–7 days after joining
+    cutoff_iso  = (now - timedelta(days=4)).isoformat()   # window: 3-7 days after joining
 
     # Find leads where review is due (review_send_at <= now) and within 7-day window
     leads = await db.leads.find({
@@ -572,20 +850,44 @@ async def run_review_request_job():
 
 # --------------- Pydantic Models ---------------
 
+class AttributionTouch(BaseModel):
+    landing_page: Optional[str] = Field(default='', max_length=500)
+    referrer: Optional[str] = Field(default='', max_length=500)
+    captured_at: Optional[str] = Field(default='', max_length=64)
+    utm_source: Optional[str] = Field(default='', max_length=250)
+    utm_medium: Optional[str] = Field(default='', max_length=250)
+    utm_campaign: Optional[str] = Field(default='', max_length=250)
+    utm_content: Optional[str] = Field(default='', max_length=250)
+    utm_term: Optional[str] = Field(default='', max_length=250)
+    gclid: Optional[str] = Field(default='', max_length=250)
+    fbclid: Optional[str] = Field(default='', max_length=250)
+
+class LeadAttribution(BaseModel):
+    first_touch: Optional[AttributionTouch] = None
+    last_touch: Optional[AttributionTouch] = None
+
 class LeadCreate(BaseModel):
-    first_name: str
-    last_name: str
-    email: str
-    phone: str
-    location: str = 'santa_cruz'
-    interest_type: str = 'General Membership'
-    training_goals: Optional[str] = ''
-    start_timeline: Optional[str] = 'Just exploring'
-    preferred_contact: Optional[str] = 'call'
-    lead_source: Optional[str] = 'website_form'
-    notes: Optional[str] = ''
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(default='', max_length=100)
+    email: str = Field(min_length=3, max_length=254)
+    phone: str = Field(default='', max_length=40)
+    location: str = Field(default='santa_cruz', max_length=100)
+    interest_type: str = Field(default='General Membership', max_length=150)
+    training_goals: Optional[str] = Field(default='', max_length=500)
+    start_timeline: Optional[str] = Field(default='Just exploring', max_length=100)
+    preferred_contact: Optional[str] = Field(default='call', max_length=30)
+    lead_source: Optional[str] = Field(default='website_form', max_length=150)
+    notes: Optional[str] = Field(default='', max_length=1000)
     tags: Optional[List[str]] = []
     sms_consent: Optional[bool] = False
+    attribution: Optional[LeadAttribution] = None
+    schema_version: Optional[str] = None
+    request_id: Optional[str] = None
+    brand_id: Optional[str] = None
+    location_id: Optional[str] = None
+    form_id: Optional[str] = None
+    offer_id: Optional[str] = None
+    consent: Optional[Dict[str, Any]] = None
 
 class LeadUpdate(BaseModel):
     status: Optional[str] = None
@@ -597,6 +899,23 @@ class LeadUpdate(BaseModel):
     interest_type: Optional[str] = None
     training_goals: Optional[str] = None
     preferred_contact: Optional[str] = None
+
+class LeadLifecycleTransitionCreate(BaseModel):
+    event_id: str = Field(min_length=36, max_length=36)
+    state: str = Field(min_length=2, max_length=40)
+    reason: Optional[str] = Field(default='', max_length=500)
+
+class HumanContactEventCreate(BaseModel):
+    event_id: str = Field(min_length=36, max_length=36)
+    channel: str = Field(min_length=2, max_length=40)
+    outcome: str = Field(min_length=2, max_length=40)
+    note: Optional[str] = Field(default='', max_length=500)
+
+class OutboxReplayCreate(BaseModel):
+    reason: str = Field(min_length=3, max_length=500)
+    # Set only after checking the provider log for a quarantined job, where the
+    # original delivery outcome is unknown and Twilio offers no idempotency key.
+    confirmed_not_sent: bool = False
 
 class NoteCreate(BaseModel):
     note: str
@@ -639,7 +958,7 @@ def _otp_email_html(name: str, otp: str) -> str:
   <tr><td align="center">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#111f16;border-radius:12px;overflow:hidden;border:1px solid #1e3327;">
       <tr><td style="background:#0D5D3E;padding:22px 32px;">
-        <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength — Staff Portal</p>
+        <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength - Staff Portal</p>
         <p style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:800;">Your login code</p>
       </td></tr>
       <tr><td style="padding:32px;">
@@ -649,7 +968,7 @@ def _otp_email_html(name: str, otp: str) -> str:
         </div>
         <p style="margin:0;color:#8FBF9F;font-size:12px;line-height:1.6;">
           This code expires in <strong style="color:#CDE4DF;">10 minutes</strong>.<br>
-          If you didn't request this, someone may be attempting to access your account — contact your admin.
+          If you didn't request this, someone may be attempting to access your account - contact your admin.
         </p>
       </td></tr>
     </table>
@@ -664,7 +983,7 @@ def _reset_email_html(name: str, reset_url: str) -> str:
   <tr><td align="center">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#111f16;border-radius:12px;overflow:hidden;border:1px solid #1e3327;">
       <tr><td style="background:#0D5D3E;padding:22px 32px;">
-        <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength — Staff Portal</p>
+        <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength - Staff Portal</p>
         <p style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:800;">Reset your password</p>
       </td></tr>
       <tr><td style="padding:32px;">
@@ -678,7 +997,7 @@ def _reset_email_html(name: str, reset_url: str) -> str:
         </tr></table>
         <p style="margin:20px 0 0;color:#8FBF9F;font-size:11px;">
           Or copy this link: <span style="color:#CDE4DF;">{reset_url}</span><br><br>
-          If you didn't request a password reset, ignore this email — your password will not change.
+          If you didn't request a password reset, ignore this email - your password will not change.
         </p>
       </td></tr>
     </table>
@@ -707,9 +1026,9 @@ async def login(req: LoginRequest):
     if not user.get('is_active', True):
         raise HTTPException(status_code=403, detail='Account disabled')
 
-    # 2FA is disabled — issue JWT directly on valid credentials
+    # 2FA is disabled - issue JWT directly on valid credentials
     token = create_token({'sub': user['id']})
-    logger.info(f'[AUTH] Direct login for {user["email"]} — 2FA disabled')
+    logger.info(f'[AUTH] Direct login for {user["email"]} - 2FA disabled')
 
     # Always issue a long-lived device token (90 days)
     device_token = str(uuid.uuid4())
@@ -748,7 +1067,7 @@ async def verify_otp(req: dict):
         expires = expires.replace(tzinfo=timezone.utc)
     if now_utc() > expires:
         await db.auth_otps.delete_one({'_id': record['_id']})
-        raise HTTPException(status_code=401, detail='Code has expired — please log in again')
+        raise HTTPException(status_code=401, detail='Code has expired - please log in again')
     if record['otp'] != otp:
         raise HTTPException(status_code=401, detail='Incorrect code')
     await db.auth_otps.update_one({'_id': record['_id']}, {'$set': {'used': True}})
@@ -779,7 +1098,7 @@ async def verify_otp(req: dict):
         })
         response['device_token'] = device_token
         response['device_token_expires'] = device_expires.isoformat()
-        logger.info(f'[AUTH] Device token issued for {email} — expires {device_expires.date()}')
+        logger.info(f'[AUTH] Device token issued for {email} - expires {device_expires.date()}')
 
     return response
 
@@ -799,7 +1118,7 @@ async def forgot_password(req: dict):
         'expires_at': expires.isoformat(),
         'used': False,
     })
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+    frontend_url = require_frontend_origin()
     reset_url = f"{frontend_url}/staff/reset-password?token={reset_token}"
     await send_resend_email(
         to=email,
@@ -823,10 +1142,10 @@ async def reset_password(req: dict):
         expires = expires.replace(tzinfo=timezone.utc)
     if now_utc() > expires:
         await db.password_resets.delete_one({'_id': record['_id']})
-        raise HTTPException(status_code=400, detail='Reset link has expired — please request a new one')
+        raise HTTPException(status_code=400, detail='Reset link has expired - please request a new one')
     await db.users.update_one({'email': record['email']}, {'$set': {'password_hash': hash_password(password)}})
     await db.password_resets.update_one({'_id': record['_id']}, {'$set': {'used': True}})
-    return {'message': 'Password updated — you can now log in'}
+    return {'message': 'Password updated - you can now log in'}
 
 @api_router.post('/staff/users/{user_id}/send-reset')
 async def owner_send_reset(user_id: str, caller=Depends(require_owner)):
@@ -842,11 +1161,11 @@ async def owner_send_reset(user_id: str, caller=Depends(require_owner)):
         'expires_at': expires.isoformat(),
         'used': False,
     })
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+    frontend_url = require_frontend_origin()
     reset_url = f"{frontend_url}/staff/reset-password?token={reset_token}"
     await send_resend_email(
         to=target['email'],
-        subject=f'Password reset sent by {caller["name"]} — Santa Cruz Strength',
+        subject=f'Password reset sent by {caller["name"]} - Santa Cruz Strength',
         html=_reset_email_html(target.get('name', 'there'), reset_url),
         from_override=SECURITY_FROM,
     )
@@ -925,7 +1244,7 @@ async def create_invite(data: InviteCreate, user=Depends(require_admin)):
     }
     await db.invites.insert_one(invite_doc)
     # Build invite URL
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+    frontend_url = require_frontend_origin()
     invite_url = f"{frontend_url}/staff/accept-invite?token={token}"
     # Try to send email
     html = f"""
@@ -964,11 +1283,67 @@ async def revoke_invite(invite_id: str, user=Depends(require_admin)):
 
 # --------------- Public Lead Route ---------------
 
+def _public_lead_response(request: Request, lead_id: str, request_id: Optional[str], duplicate: bool):
+    if request.url.path.endswith('/v1/leads'):
+        return {
+            'status': 'accepted',
+            'lead_id': lead_id,
+            'id': lead_id,
+            'request_id': request_id,
+            'duplicate': duplicate,
+            'next_step': 'team_follow_up',
+        }
+    return {'id': lead_id, 'status': 'updated' if duplicate else 'created'}
+
+
+@api_router.post('/v1/leads')
 @api_router.post('/leads')
-async def create_lead_public(lead: LeadCreate):
+async def create_lead_public(lead: LeadCreate, request: Request):
+    _enforce_public_lead_request(request)
+    if not lead.first_name.strip():
+        raise HTTPException(status_code=422, detail='first_name cannot be blank')
+    if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', lead.email.strip()):
+        raise HTTPException(status_code=422, detail='email must be valid')
+    idempotency_key = request.headers.get('Idempotency-Key')
+    if idempotency_key and lead.request_id and idempotency_key != lead.request_id:
+        raise HTTPException(status_code=400, detail='Idempotency-Key must match request_id')
+    request_id = lead.request_id or idempotency_key
+    if not request_id:
+        raise HTTPException(status_code=422, detail='request_id or Idempotency-Key is required')
+    if request_id:
+        try:
+            uuid.UUID(request_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail='request_id must be a valid UUID')
+        existing_request = await db.leads.find_one(
+            {'$or': [{'request_id': request_id}, {'request_ids': request_id}]},
+            {
+                'id': 1,
+                'brand_id': 1,
+                'location_id': 1,
+                'sms_operational_opt_in': 1,
+                'sms_opted_out': 1,
+                '_id': 0,
+            },
+        )
+        if existing_request:
+            await enqueue_lead_received_jobs(
+                db.lead_outbox, existing_request, request_id, now_utc()
+            )
+            return _public_lead_response(request, existing_request['id'], request_id, True)
+
+    if request.url.path.endswith('/v1/leads'):
+        if lead.schema_version != '1.0.0':
+            raise HTTPException(status_code=422, detail='Unsupported form schema version')
+        if lead.brand_id != 'santa_cruz_strength' or lead.location_id != 'santa_cruz_ca':
+            raise HTTPException(status_code=422, detail='Brand or location does not match this lead endpoint')
+
     existing = await db.leads.find_one({'email': lead.email.lower().strip(), 'location': lead.location})
     lead_id = str(uuid.uuid4())
     now = now_utc()
+    attribution = lead.attribution.model_dump(exclude_none=True) if lead.attribution else {}
+    consent = lead.consent if isinstance(lead.consent, dict) else {}
+    sms_consent = bool(consent.get('sms_operational_opt_in') or lead.sms_consent)
     doc = {
         'id': lead_id,
         'first_name': lead.first_name.strip(),
@@ -983,31 +1358,126 @@ async def create_lead_public(lead: LeadCreate):
         'lead_source': lead.lead_source or 'website_form',
         'notes': lead.notes or '',
         'tags': lead.tags or [],
-        'sms_consent': lead.sms_consent or False,
-        'sms_consent_date': now.isoformat() if lead.sms_consent else None,
+        'schema_version': lead.schema_version or 'legacy',
+        'request_id': request_id,
+        'request_ids': [request_id],
+        'brand_id': lead.brand_id or 'santa_cruz_strength',
+        'location_id': lead.location_id or 'santa_cruz_ca',
+        'form_id': lead.form_id or 'legacy_website_form',
+        'offer_id': lead.offer_id or 'membership_inquiry',
+        'privacy_notice_version': consent.get('privacy_notice_version'),
+        'privacy_notice_accepted_at': now.isoformat() if consent.get('privacy_notice_version') else None,
+        'email_operational_opt_in': bool(consent.get('email_operational_opt_in', False)),
+        'email_marketing_opt_in': bool(consent.get('email_marketing_opt_in', False)),
+        'sms_consent': sms_consent,
+        'sms_operational_opt_in': sms_consent,
+        'sms_marketing_opt_in': bool(consent.get('sms_marketing_opt_in', False)),
+        'sms_consent_text_version': consent.get('sms_consent_text_version') if sms_consent else None,
+        'sms_consent_date': now.isoformat() if sms_consent else None,
+        'sms_consent_source_url': (attribution.get('last_touch') or {}).get('landing_page') if sms_consent else None,
+        'sms_opted_out': False if sms_consent else None,
+        'attribution': attribution,
         'status': 'New',
+        'primary_lead_owner': 'Teresa',
+        'lead_routing_brand': 'santa_cruz_strength',
         'next_follow_up_date': None,
         'next_follow_up_time': None,
         'last_contact_date': None,
+        **new_lead_lifecycle_fields(now),
         'activity_log': [{'action': 'Lead Created', 'note': f'Submitted via {lead.lead_source or "website_form"}', 'staff_id': None, 'staff_name': 'System', 'timestamp': now.isoformat()}],
         'created_at': now.isoformat(),
         'updated_at': now.isoformat()
     }
     if existing:
-        update_fields = {'phone': doc['phone'], 'interest_type': doc['interest_type'], 'training_goals': doc['training_goals'], 'updated_at': now.isoformat()}
-        if lead.sms_consent:
-            update_fields['sms_consent'] = True
-            update_fields['sms_consent_date'] = now.isoformat()
-        await db.leads.update_one(
-            {'email': lead.email.lower().strip(), 'location': lead.location},
-            {'$set': update_fields,
-             '$push': {'activity_log': {'action': 'Re-inquiry', 'note': f'Re-submitted via {lead.lead_source}', 'staff_id': None, 'staff_name': 'System', 'timestamp': now.isoformat()}}}
+        update_fields = {
+            'phone': doc['phone'],
+            'interest_type': doc['interest_type'],
+            'training_goals': doc['training_goals'],
+            'preferred_contact': doc['preferred_contact'],
+            'request_id': request_id,
+            'form_id': doc['form_id'],
+            'offer_id': doc['offer_id'],
+            'updated_at': now.isoformat(),
+        }
+        if attribution:
+            existing_attribution = existing.get('attribution') or {}
+            update_fields['attribution'] = {
+                'first_touch': existing_attribution.get('first_touch') or attribution.get('first_touch'),
+                'last_touch': attribution.get('last_touch') or existing_attribution.get('last_touch'),
+            }
+        update_fields.update(reinquiry_sms_updates(
+            existing,
+            requested_sms_consent=sms_consent,
+            marketing_opt_in=doc['sms_marketing_opt_in'],
+            consent_text_version=doc['sms_consent_text_version'],
+            consent_date=now.isoformat(),
+            consent_source_url=doc['sms_consent_source_url'],
+        ))
+        if consent:
+            update_fields['privacy_notice_version'] = doc['privacy_notice_version']
+            update_fields['privacy_notice_accepted_at'] = doc['privacy_notice_accepted_at']
+            update_fields['email_operational_opt_in'] = doc['email_operational_opt_in']
+            update_fields['email_marketing_opt_in'] = doc['email_marketing_opt_in']
+        try:
+            await db.leads.update_one(
+                {'email': lead.email.lower().strip(), 'location': lead.location},
+                {'$set': update_fields,
+                 '$addToSet': {'request_ids': request_id},
+                 '$push': {'activity_log': {'action': 'Re-inquiry', 'note': f'Re-submitted via {lead.lead_source}', 'staff_id': None, 'staff_name': 'System', 'timestamp': now.isoformat()}}}
+            )
+        except DuplicateKeyError:
+            prior = await db.leads.find_one(
+                {'$or': [{'request_id': request_id}, {'request_ids': request_id}]},
+                {
+                    'id': 1,
+                    'brand_id': 1,
+                    'location_id': 1,
+                    'sms_operational_opt_in': 1,
+                    'sms_opted_out': 1,
+                    '_id': 0,
+                },
+            )
+            if prior:
+                await enqueue_lead_received_jobs(db.lead_outbox, prior, request_id, now_utc())
+                return _public_lead_response(request, prior['id'], request_id, True)
+            raise
+        outbox_lead = await db.leads.find_one(
+            {'id': existing['id']},
+            {
+                'id': 1,
+                'brand_id': 1,
+                'location_id': 1,
+                'sms_operational_opt_in': 1,
+                'sms_opted_out': 1,
+                '_id': 0,
+            },
         )
-        await asyncio.gather(send_lead_emails(doc), send_lead_sms(doc), return_exceptions=True)
-        return {'id': existing['id'], 'status': 'updated'}
-    await db.leads.insert_one(doc)
-    await asyncio.gather(send_lead_emails(doc), send_lead_sms(doc), return_exceptions=True)
-    return {'id': lead_id, 'status': 'created'}
+        if not outbox_lead:
+            raise HTTPException(status_code=500, detail='Lead persistence could not be confirmed')
+        await enqueue_lead_received_jobs(db.lead_outbox, outbox_lead, request_id, now)
+        return _public_lead_response(request, existing['id'], request_id, True)
+    try:
+        await db.leads.insert_one(doc)
+    except DuplicateKeyError:
+        existing_request = await db.leads.find_one(
+            {'$or': [{'request_id': request_id}, {'request_ids': request_id}]},
+            {
+                'id': 1,
+                'brand_id': 1,
+                'location_id': 1,
+                'sms_operational_opt_in': 1,
+                'sms_opted_out': 1,
+                '_id': 0,
+            },
+        )
+        if existing_request:
+            await enqueue_lead_received_jobs(
+                db.lead_outbox, existing_request, request_id, now_utc()
+            )
+            return _public_lead_response(request, existing_request['id'], request_id, True)
+        raise
+    await enqueue_lead_received_jobs(db.lead_outbox, doc, request_id, now)
+    return _public_lead_response(request, lead_id, request_id, False)
 
 # --------------- Staff Lead Routes ---------------
 
@@ -1088,7 +1558,7 @@ async def create_lead_manual(lead: LeadCreate, user=Depends(require_staff)):
     await db.leads.insert_one(doc)
     return {'id': lead_id, 'status': 'created'}
 
-# CSV Template — includes member fields
+# CSV Template - includes member fields
 @api_router.get('/staff/leads/template/csv')
 async def download_csv_template(user=Depends(require_staff)):
     fieldnames = [
@@ -1121,7 +1591,7 @@ async def download_csv_template(user=Depends(require_staff)):
         headers={'Content-Disposition': 'attachment; filename=scs-leads-template.csv'}
     )
 
-# CSV Export — includes member fields
+# CSV Export - includes member fields
 @api_router.get('/staff/leads/export/csv')
 async def export_leads_csv(status: Optional[str] = None, location: Optional[str] = None, user=Depends(require_staff)):
     query = {}
@@ -1133,17 +1603,33 @@ async def export_leads_csv(status: Optional[str] = None, location: Optional[str]
         'address', 'city', 'state', 'zip_code',
         'status', 'interest_type', 'lead_source', 'how_did_you_hear_about_us',
         'training_goals', 'start_timeline', 'preferred_contact', 'location',
-        'notes', 'created_at', 'last_contact_date', 'next_follow_up_date', 'next_follow_up_time'
+        'notes', 'created_at', 'last_contact_date', 'next_follow_up_date', 'next_follow_up_time',
+        'first_utm_source', 'first_utm_medium', 'first_utm_campaign', 'first_landing_page',
+        'last_utm_source', 'last_utm_medium', 'last_utm_campaign', 'last_landing_page'
     ]
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
     for lead in leads:
-        writer.writerow({f: lead.get(f, '') or '' for f in fieldnames})
+        row = {f: lead.get(f, '') or '' for f in fieldnames}
+        attribution = lead.get('attribution') or {}
+        first_touch = attribution.get('first_touch') or {}
+        last_touch = attribution.get('last_touch') or {}
+        row.update({
+            'first_utm_source': first_touch.get('utm_source', ''),
+            'first_utm_medium': first_touch.get('utm_medium', ''),
+            'first_utm_campaign': first_touch.get('utm_campaign', ''),
+            'first_landing_page': first_touch.get('landing_page', ''),
+            'last_utm_source': last_touch.get('utm_source', ''),
+            'last_utm_medium': last_touch.get('utm_medium', ''),
+            'last_utm_campaign': last_touch.get('utm_campaign', ''),
+            'last_landing_page': last_touch.get('landing_page', ''),
+        })
+        writer.writerow(row)
     output.seek(0)
     return StreamingResponse(iter([output.getvalue()]), media_type='text/csv', headers={'Content-Disposition': 'attachment; filename=scs-leads.csv'})
 
-# CSV Import — handles both member format and lead format
+# CSV Import - handles both member format and lead format
 @api_router.post('/staff/leads/import/csv')
 async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_staff)):
     if not file.filename.endswith('.csv'):
@@ -1189,7 +1675,7 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
         phone = normalize_phone((row.get('phone') or row.get('phone_number') or '').strip())
         email = (row.get('email') or '').strip().lower()
         if not fn or (not email and not phone):
-            errors.append(f'Row {i}: missing name and contact info (need at least email or phone) — skipped')
+            errors.append(f'Row {i}: missing name and contact info (need at least email or phone) - skipped')
             skipped += 1
             continue
         if email and email in existing_emails:
@@ -1231,7 +1717,7 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
         if email:
             existing_emails.add(email)  # prevent dupes within the same CSV
 
-    # Bulk insert — handles 2000+ rows efficiently
+    # Bulk insert - handles 2000+ rows efficiently
     if docs_to_insert:
         try:
             result = await db.leads.insert_many(docs_to_insert, ordered=False)
@@ -1248,6 +1734,164 @@ async def get_lead(lead_id: str, user=Depends(require_staff)):
         raise HTTPException(status_code=404, detail='Lead not found')
     return lead
 
+@api_router.post('/staff/leads/{lead_id}/lifecycle')
+async def transition_lead_lifecycle(
+    lead_id: str,
+    data: LeadLifecycleTransitionCreate,
+    user=Depends(require_staff),
+):
+    try:
+        uuid.UUID(data.event_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail='event_id must be a valid UUID')
+
+    lead = await db.leads.find_one({'id': lead_id}, {'_id': 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail='Lead not found')
+
+    stored_event = await db.lead_lifecycle_events.find_one(
+        {'event_id': data.event_id}, {'_id': 0}
+    )
+    if stored_event:
+        if stored_event.get('lead_id') != lead_id or stored_event.get('to_state') != data.state:
+            raise HTTPException(status_code=409, detail='event_id is already used for another transition')
+        event = stored_event
+        duplicate = True
+    else:
+        try:
+            event = lifecycle_event(
+                event_id=data.event_id,
+                lead_id=lead_id,
+                current_state=lead.get('lifecycle_state') or 'new',
+                target_state=data.state,
+                actor_id=user['id'],
+                actor_name=user['name'],
+                reason=data.reason or '',
+            )
+        except (ValueError, InvalidLifecycleTransition) as error:
+            raise HTTPException(status_code=409, detail=str(error))
+        try:
+            await db.lead_lifecycle_events.insert_one(event)
+            duplicate = False
+        except DuplicateKeyError:
+            stored_event = await db.lead_lifecycle_events.find_one(
+                {'event_id': data.event_id}, {'_id': 0}
+            )
+            if not stored_event or stored_event.get('lead_id') != lead_id or stored_event.get('to_state') != data.state:
+                raise HTTPException(status_code=409, detail='event_id is already used for another transition')
+            event = stored_event
+            duplicate = True
+
+    if event.get('changed'):
+        result = await db.leads.update_one(
+            {'id': lead_id, 'lifecycle_event_ids': {'$ne': data.event_id}},
+            {
+                '$set': {
+                    'lifecycle_state': event['to_state'],
+                    'lifecycle_state_changed_at': event['occurred_at'],
+                    'updated_at': event['occurred_at'],
+                },
+                '$addToSet': {'lifecycle_event_ids': data.event_id},
+                '$push': {'activity_log': {
+                    'action': 'Lifecycle Transition',
+                    'note': f"{event['from_state']} to {event['to_state']}",
+                    'staff_id': user['id'],
+                    'staff_name': user['name'],
+                    'timestamp': event['occurred_at'],
+                }},
+            },
+        )
+        duplicate = duplicate or result.modified_count == 0
+
+    updated = await db.leads.find_one({'id': lead_id}, {'_id': 0})
+    return {
+        'lead_id': lead_id,
+        'lifecycle_state': updated.get('lifecycle_state') or 'new',
+        'event_id': data.event_id,
+        'duplicate': duplicate,
+    }
+
+@api_router.post('/staff/leads/{lead_id}/contact-events')
+async def record_human_contact(
+    lead_id: str,
+    data: HumanContactEventCreate,
+    user=Depends(require_staff),
+):
+    try:
+        uuid.UUID(data.event_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail='event_id must be a valid UUID')
+
+    lead = await db.leads.find_one({'id': lead_id}, {'_id': 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail='Lead not found')
+
+    stored_event = await db.lead_contact_events.find_one(
+        {'event_id': data.event_id}, {'_id': 0}
+    )
+    if stored_event:
+        if stored_event.get('lead_id') != lead_id:
+            raise HTTPException(status_code=409, detail='event_id is already used for another lead')
+        event = stored_event
+        duplicate = True
+    else:
+        try:
+            event = human_contact_event(
+                event_id=data.event_id,
+                lead_id=lead_id,
+                current_state=lead.get('human_contact_state') or 'not_attempted',
+                channel=data.channel,
+                outcome=data.outcome,
+                actor_id=user['id'],
+                actor_name=user['name'],
+                note=data.note or '',
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error))
+        try:
+            await db.lead_contact_events.insert_one(event)
+            duplicate = False
+        except DuplicateKeyError:
+            stored_event = await db.lead_contact_events.find_one(
+                {'event_id': data.event_id}, {'_id': 0}
+            )
+            if not stored_event or stored_event.get('lead_id') != lead_id:
+                raise HTTPException(status_code=409, detail='event_id is already used for another lead')
+            event = stored_event
+            duplicate = True
+
+    contact_fields = {
+        'human_contact_state': event['to_state'],
+        'last_contact_attempt_at': event['occurred_at'],
+        'updated_at': event['occurred_at'],
+    }
+    if event.get('reached'):
+        contact_fields['last_human_contact_at'] = event['occurred_at']
+        contact_fields['last_contact_date'] = event['occurred_at']
+    result = await db.leads.update_one(
+        {'id': lead_id, 'human_contact_event_ids': {'$ne': data.event_id}},
+        {
+            '$set': contact_fields,
+            '$addToSet': {'human_contact_event_ids': data.event_id},
+            '$inc': {'human_contact_event_count': 1},
+            '$push': {'activity_log': {
+                'action': 'Human Contact Recorded',
+                'note': f"{event['channel']} contact: {event['outcome']}",
+                'staff_id': user['id'],
+                'staff_name': user['name'],
+                'timestamp': event['occurred_at'],
+            }},
+        },
+    )
+    duplicate = duplicate or result.modified_count == 0
+    updated = await db.leads.find_one({'id': lead_id}, {'_id': 0})
+    return {
+        'lead_id': lead_id,
+        'human_contact_state': updated.get('human_contact_state') or 'not_attempted',
+        'event_id': data.event_id,
+        'duplicate': duplicate,
+    }
+
 @api_router.put('/staff/leads/{lead_id}')
 async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(require_staff)):
     lead = await db.leads.find_one({'id': lead_id})
@@ -1260,7 +1904,6 @@ async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(require_staff
         old_status = lead.get('status', 'Unknown')
         update['status'] = data.status
         log_entries.append({'action': 'Status Changed', 'note': f'{old_status} → {data.status}', 'staff_id': user['id'], 'staff_name': user['name'], 'timestamp': now.isoformat()})
-        update['last_contact_date'] = now.isoformat()
     if data.notes is not None: update['notes'] = data.notes
     if data.next_follow_up_date is not None:
         update['next_follow_up_date'] = data.next_follow_up_date
@@ -1299,16 +1942,71 @@ async def add_note(lead_id: str, data: NoteCreate, user=Depends(require_staff)):
         raise HTTPException(status_code=404, detail='Lead not found')
     now = now_utc()
     entry = {'action': 'Note Added', 'note': data.note, 'staff_id': user['id'], 'staff_name': user['name'], 'timestamp': now.isoformat()}
-    await db.leads.update_one({'id': lead_id}, {'$push': {'activity_log': entry}, '$set': {'updated_at': now.isoformat(), 'last_contact_date': now.isoformat()}})
+    await db.leads.update_one({'id': lead_id}, {'$push': {'activity_log': entry}, '$set': {'updated_at': now.isoformat()}})
     return {'message': 'Note added', 'entry': entry}
 
 @api_router.delete('/staff/leads/{lead_id}')
 async def delete_lead(lead_id: str, user=Depends(require_admin)):
-    """Admin/owner only — staff cannot delete"""
+    """Admin/owner only - staff cannot delete"""
     result = await db.leads.delete_one({'id': lead_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail='Lead not found')
     return {'message': 'Lead deleted'}
+
+@api_router.get('/staff/outbox/failures')
+async def list_outbox_terminal_failures(
+    limit: int = Query(default=100, ge=1, le=500),
+    user=Depends(require_staff),
+):
+    failures = await db.lead_outbox.find(
+        {'status': 'terminal_failed'},
+        {
+            '_id': 0,
+            'id': 1,
+            'lead_id': 1,
+            'event_type': 1,
+            'channel': 1,
+            'attempt_count': 1,
+            'total_attempt_count': 1,
+            'max_attempts': 1,
+            'last_error_code': 1,
+            'last_error_message': 1,
+            'last_failed_at': 1,
+            'terminal_failure_at': 1,
+            'delivery_state': 1,
+            'delivery_begun_at': 1,
+            'replay_count': 1,
+            'created_at': 1,
+            'updated_at': 1,
+        },
+    ).sort('terminal_failure_at', -1).to_list(limit)
+    return {'count': len(failures), 'failures': failures}
+
+@api_router.post('/staff/outbox/{job_id}/replay')
+async def replay_outbox_terminal_failure(
+    job_id: str,
+    data: OutboxReplayCreate,
+    user=Depends(require_admin),
+):
+    try:
+        job = await replay_terminal_failure(
+            db.lead_outbox,
+            job_id=job_id,
+            actor_id=user['id'],
+            reason=data.reason,
+            confirmed_not_sent=data.confirmed_not_sent,
+            now=now_utc(),
+        )
+    except QuarantinedReplayRefused as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if not job:
+        raise HTTPException(status_code=404, detail='Terminal outbox failure not found')
+    return {
+        'id': job['id'],
+        'status': job['status'],
+        'replay_count': job.get('replay_count', 0),
+        'available_at': job.get('available_at'),
+    }
 
 # --------------- Stats ---------------
 
@@ -1327,7 +2025,7 @@ async def get_stats(user=Depends(require_staff)):
 
 @api_router.get('/staff/mobile/dashboard')
 async def mobile_dashboard(user=Depends(require_staff)):
-    """Single endpoint for the mobile portal — stats + today's follow-ups + recent new leads."""
+    """Single endpoint for the mobile portal - stats + today's follow-ups + recent new leads."""
     import re as _re
     today = now_utc().date().isoformat()          # e.g. "2026-03-14"
     today_start = now_utc().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -1660,7 +2358,7 @@ async def generate_blog_ideas(user=Depends(require_admin), force: bool = False):
             'generated_at': cached['generated_at'],
         }
 
-    # ── No cache at all — must generate synchronously (first-ever call) ────────
+    # ── No cache at all - must generate synchronously (first-ever call) ────────
     result = await _generate_blog_ideas_core()
     if result:
         return {**result, 'cached': False, 'refreshing': False}
@@ -1677,7 +2375,7 @@ async def _refresh_blog_ideas_background():
 
 
 async def _generate_blog_ideas_core():
-    """Core generation logic — fetches trends + calls LLM, saves to cache."""
+    """Core generation logic - fetches trends + calls LLM, saves to cache."""
     import json as _json
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -1726,7 +2424,7 @@ Generate 6 blog ideas. Return ONLY a JSON array, no other text:
 
 
 def _fetch_google_trends():
-    """Synchronous Google Trends fetch — runs in thread pool."""
+    """Synchronous Google Trends fetch - runs in thread pool."""
     try:
         from pytrends.request import TrendReq
         pytrends = TrendReq(hl='en-US', tz=360, timeout=(3, 6))
@@ -1743,13 +2441,13 @@ def _fetch_google_trends():
         logger.info(f'[BLOG IDEAS] Trends: {topics}')
         return topics
     except Exception as e:
-        logger.warning(f'[BLOG IDEAS] pytrends failed: {e} — using fallback')
+        logger.warning(f'[BLOG IDEAS] pytrends failed: {e} - using fallback')
         return ['strength training beginners', 'powerlifting program',
                 'gym for surfers', 'how to deadlift', 'strength training over 40']
 
 
 async def run_blog_ideas_refresh():
-    """Scheduled job — keeps blog ideas cache warm every 6 hours."""
+    """Scheduled job - keeps blog ideas cache warm every 6 hours."""
     cached = await db.blog_ideas_cache.find_one({'_id': 'latest'})
     if cached:
         age_hours = (now_utc() - datetime.fromisoformat(
@@ -1808,13 +2506,13 @@ COLD_EMAIL_TEMPLATES = [
 
 I'm reaching out from Santa Cruz Strength here in Santa Cruz.
 
-We're opening up corporate membership options for local businesses that want to offer their employees a real wellness perk — access to a strength gym, supportive community, and a place to train without the big-box gym feel.
+We're opening up corporate membership options for local businesses that want to offer their employees a real wellness perk - access to a strength gym, supportive community, and a place to train without the big-box gym feel.
 
 You can cover all of the membership, part of it, or simply give your team access to a preferred employee rate.
 
 Would it be worth sending over the quick breakdown?
 
-— Santa Cruz Strength
+ - Santa Cruz Strength
 151 Harvey West Blvd Ste D, Santa Cruz CA 95060
 If this is not a fit, reply 'no thanks' and we won't follow up."""
     },
@@ -1835,7 +2533,7 @@ Our corporate membership setup is simple:
 
 Want me to send the options?
 
-— Santa Cruz Strength
+ - Santa Cruz Strength
 151 Harvey West Blvd Ste D, Santa Cruz CA 95060
 If this is not a fit, reply 'no thanks' and we won't follow up."""
     },
@@ -1848,7 +2546,7 @@ Last note from me.
 
 If employee wellness, team perks, or discounted gym access is something you want to explore, I'd be happy to send over the corporate membership options.
 
-If not, no worries at all — just reply 'no thanks' and I won't follow up.
+If not, no worries at all - just reply 'no thanks' and I won't follow up.
 
 Appreciate you,
 Santa Cruz Strength
@@ -1907,25 +2605,35 @@ def _calc_discount_tier(enrolled: int) -> str:
 
 
 class CorporateLeadCreate(BaseModel):
-    business_name: str
-    contact_name: str
-    contact_title: str = ''
-    email: str
-    phone: str = ''
-    business_address: str = ''
-    website_or_instagram: str = ''
-    employee_count: int = 0
-    estimated_enrolled: int = 0
-    contribution_model: str = 'not_sure'
-    desired_start_date: str = ''
-    notes: str = ''
+    business_name: str = Field(min_length=1, max_length=200)
+    contact_name: str = Field(min_length=1, max_length=200)
+    contact_title: str = Field(default='', max_length=150)
+    email: str = Field(default='', max_length=254)
+    phone: str = Field(default='', max_length=40)
+    business_address: str = Field(default='', max_length=500)
+    website_or_instagram: str = Field(default='', max_length=500)
+    employee_count: int = Field(default=0, ge=0, le=100000)
+    estimated_enrolled: int = Field(default=0, ge=0, le=100000)
+    contribution_model: str = Field(default='not_sure', max_length=100)
+    desired_start_date: str = Field(default='', max_length=64)
+    notes: str = Field(default='', max_length=2000)
     email_consent: bool = False
     sms_consent: bool = False
+    request_id: Optional[str] = Field(default=None, max_length=64)
+    attribution: Optional[LeadAttribution] = None
+    schema_version: Optional[str] = None
+    brand_id: Optional[str] = None
+    location_id: Optional[str] = None
+    form_id: Optional[str] = None
+    offer_id: Optional[str] = None
+    lead_source: Optional[str] = Field(default='corporate_landing_page', max_length=150)
+    consent: Optional[Dict[str, Any]] = None
 
 
 async def _send_corporate_lead_emails(lead: dict):
     """Send confirmation to business contact + internal staff notification."""
-    name = lead.get('contact_name', 'there').split()[0]
+    contact_parts = safe_sms_text(lead.get('contact_name', 'there'), 200).split()
+    name = escape_html(contact_parts[0] if contact_parts else 'there')
     tasks = []
     if lead.get('email'):
         html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:32px;border-radius:12px;max-width:600px;">
@@ -1945,33 +2653,56 @@ async def _send_corporate_lead_emails(lead: dict):
         ))
 
     contrib_labels = {'employer_pays_all': 'Employer Pays All', 'employer_pays_part': 'Employer Pays Part', 'employee_discount': 'Employee Discount Only', 'not_sure': 'Not Sure Yet'}
+    safe_business = escape_html(lead.get('business_name', ''))
+    safe_contact = escape_html(lead.get('contact_name', ''))
+    safe_title = escape_html(lead.get('contact_title', ''))
+    safe_email = escape_html(lead.get('email', ''))
+    safe_phone = escape_html(lead.get('phone', ''))
+    safe_model = escape_html(contrib_labels.get(lead.get('contribution_model', ''), lead.get('contribution_model', '')))
+    safe_tier = escape_html(lead.get('discount_tier', ''))
+    safe_start = escape_html(lead.get('desired_start_date', 'Not specified'))
+    safe_notes = escape_html(lead.get('notes', ' - '))
     staff_html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
 <h3 style="color:#7FCCA6;">New Corporate Lead</h3>
 <table style="color:#ccc;font-size:14px;line-height:1.8;">
-<tr><td style="color:#888;padding-right:16px;">Company</td><td><strong style="color:#fff;">{lead.get('business_name','')}</strong></td></tr>
-<tr><td style="color:#888;">Contact</td><td>{lead.get('contact_name','')} — {lead.get('contact_title','')}</td></tr>
-<tr><td style="color:#888;">Email</td><td>{lead.get('email','')}</td></tr>
-<tr><td style="color:#888;">Phone</td><td>{lead.get('phone','')}</td></tr>
+<tr><td style="color:#888;padding-right:16px;">Company</td><td><strong style="color:#fff;">{safe_business}</strong></td></tr>
+<tr><td style="color:#888;">Contact</td><td>{safe_contact} - {safe_title}</td></tr>
+<tr><td style="color:#888;">Email</td><td>{safe_email}</td></tr>
+<tr><td style="color:#888;">Phone</td><td>{safe_phone}</td></tr>
 <tr><td style="color:#888;">Employees</td><td>{lead.get('employee_count',0)} total, ~{lead.get('estimated_enrolled',0)} interested</td></tr>
-<tr><td style="color:#888;">Model</td><td>{contrib_labels.get(lead.get('contribution_model',''), lead.get('contribution_model',''))}</td></tr>
-<tr><td style="color:#888;">Discount Tier</td><td>{lead.get('discount_tier','')}</td></tr>
-<tr><td style="color:#888;">Start Date</td><td>{lead.get('desired_start_date','Not specified')}</td></tr>
-<tr><td style="color:#888;">Notes</td><td>{lead.get('notes','—')}</td></tr>
+<tr><td style="color:#888;">Model</td><td>{safe_model}</td></tr>
+<tr><td style="color:#888;">Discount Tier</td><td>{safe_tier}</td></tr>
+<tr><td style="color:#888;">Start Date</td><td>{safe_start}</td></tr>
+<tr><td style="color:#888;">Notes</td><td>{safe_notes}</td></tr>
 <tr><td style="color:#888;">SMS Consent</td><td>{'Yes' if lead.get('sms_consent') else 'No'}</td></tr>
 </table>
 <p style="color:#666;font-size:12px;margin-top:16px;">Follow up within 1 business day.</p>
 </div>"""
     tasks.append(send_resend_email(
         to=STAFF_EMAIL,
-        subject=f"New Corporate Lead: {lead.get('business_name','')} ({lead.get('estimated_enrolled',0)} employees)",
+        subject=safe_sms_text(f"New Corporate Lead: {lead.get('business_name','')} ({lead.get('estimated_enrolled',0)} employees)", 220),
         html=staff_html,
+        message_kind='internal',
     ))
     await asyncio.gather(*tasks, return_exceptions=True)
 
 
 @api_router.get('/corporate-unsubscribe/{lead_id}')
 async def corporate_unsubscribe(lead_id: str):
-    """Public: one-click email unsubscribe for corporate leads."""
+    """Public confirmation page. GET does not mutate subscription state."""
+    lead = await db.corporate_leads.find_one({'id': lead_id}, {'_id': 0, 'business_name': 1, 'email': 1})
+    if not lead:
+        return Response(content=_unsub_page('Unknown', False), media_type='text/html')
+
+    safe_name = re.sub(r'[^a-zA-Z0-9 .,&-]', '', lead.get('business_name', ''))[:120]
+    html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email preferences</title></head>
+<body><main><h1>Email preferences</h1><p>Confirm that you want to stop corporate outreach emails for {safe_name or 'this contact'}.</p><form method="post" action="/api/corporate-unsubscribe/{lead_id}"><button type="submit">Unsubscribe</button></form></main></body></html>"""
+    return Response(content=html, media_type='text/html')
+
+
+@api_router.post('/corporate-unsubscribe/{lead_id}')
+async def confirm_corporate_unsubscribe(lead_id: str):
+    """Public unsubscribe action after explicit confirmation."""
     lead = await db.corporate_leads.find_one({'id': lead_id}, {'_id': 0, 'business_name': 1, 'email': 1})
     if not lead:
         return Response(content=_unsub_page('Unknown', False), media_type='text/html')
@@ -1994,22 +2725,71 @@ async def corporate_unsubscribe(lead_id: str):
 
 def _unsub_page(name: str, success: bool) -> str:
     msg = "You've been unsubscribed from Santa Cruz Strength corporate outreach emails. We won't email you again." if success else "We couldn't find that subscription, but you won't receive further emails."
-    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribed — Santa Cruz Strength</title>
+    site_url = escape_html(require_frontend_origin())
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribed - Santa Cruz Strength</title>
 <style>body{{font-family:-apple-system,sans-serif;background:#F7F5F0;color:#222;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;}}
 .card{{background:#fff;border-radius:16px;padding:40px;max-width:420px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06);}}
 h1{{font-size:20px;margin:0 0 12px;}}p{{font-size:14px;color:#666;line-height:1.6;margin:0 0 20px;}}
 a{{color:#3A7D5C;text-decoration:none;font-weight:600;}}</style></head>
-<body><div class="card"><h1>You're unsubscribed.</h1><p>{msg}</p><a href="https://santacruzstrength.com">← Back to Santa Cruz Strength</a></div></body></html>"""
+<body><div class="card"><h1>You're unsubscribed.</h1><p>{msg}</p><a href="{site_url}">Back to Santa Cruz Strength</a></div></body></html>"""
 
 
 @api_router.post('/corporate-leads')
-async def create_corporate_lead(data: CorporateLeadCreate):
+async def create_corporate_lead(data: CorporateLeadCreate, request: Request):
     """Public endpoint: corporate membership inquiry form submission."""
+    _enforce_public_lead_request(request, 'corporate')
+    if not data.business_name.strip() or not data.contact_name.strip():
+        raise HTTPException(status_code=422, detail='Business and contact names cannot be blank')
+    if data.email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', data.email.strip()):
+        raise HTTPException(status_code=422, detail='email must be valid')
+    if not data.email.strip() and not data.phone.strip():
+        raise HTTPException(status_code=422, detail='Email or phone is required')
+    if data.schema_version != '1.0.0':
+        raise HTTPException(status_code=422, detail='Unsupported form schema version')
+    if data.brand_id != 'santa_cruz_strength' or data.location_id != 'santa_cruz_ca':
+        raise HTTPException(status_code=422, detail='Brand or location does not match this lead endpoint')
+    if data.form_id != 'local_wellness_corporate_inquiry' or data.offer_id != 'corporate_membership_pricing':
+        raise HTTPException(status_code=422, detail='Form or offer does not match this lead endpoint')
+    consent = data.consent if isinstance(data.consent, dict) else {}
+    if data.email_consent != (consent.get('email_operational_opt_in') is True):
+        raise HTTPException(status_code=422, detail='Email consent fields do not match')
+    if data.sms_consent != (consent.get('sms_operational_opt_in') is True):
+        raise HTTPException(status_code=422, detail='SMS consent fields do not match')
+    idempotency_key = request.headers.get('Idempotency-Key')
+    if idempotency_key and data.request_id and idempotency_key != data.request_id:
+        raise HTTPException(status_code=400, detail='Idempotency-Key must match request_id')
+    request_id = data.request_id or idempotency_key
+    if not request_id:
+        raise HTTPException(status_code=422, detail='request_id or Idempotency-Key is required')
+    try:
+        uuid.UUID(request_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail='request_id must be a valid UUID')
+    existing_request = await db.corporate_leads.find_one(
+        {'$or': [{'request_id': request_id}, {'request_ids': request_id}]},
+        {'id': 1, 'discount_tier': 1, '_id': 0},
+    )
+    if existing_request:
+        return {
+            'id': existing_request['id'],
+            'status': 'accepted',
+            'duplicate': True,
+            'request_id': request_id,
+            'discount_tier': existing_request.get('discount_tier'),
+        }
     now = now_utc()
     lead_id = str(uuid.uuid4())
     tier = _calc_discount_tier(data.estimated_enrolled)
+    attribution = data.attribution.model_dump(exclude_none=True) if data.attribution else {}
     doc = {
         'id': lead_id,
+        'request_id': request_id,
+        'request_ids': [request_id],
+        'schema_version': data.schema_version,
+        'brand_id': data.brand_id,
+        'location_id': data.location_id,
+        'form_id': data.form_id,
+        'offer_id': data.offer_id,
         'business_name': data.business_name.strip(),
         'contact_name': data.contact_name.strip(),
         'contact_title': data.contact_title.strip(),
@@ -2019,15 +2799,21 @@ async def create_corporate_lead(data: CorporateLeadCreate):
         'website_or_instagram': data.website_or_instagram.strip(),
         'employee_count': data.employee_count,
         'estimated_enrolled': data.estimated_enrolled,
-        'contribution_model': data.contribution_model,
+        'contribution_model': data.contribution_model.strip(),
         'discount_tier': tier,
-        'desired_start_date': data.desired_start_date,
-        'notes': data.notes,
+        'desired_start_date': data.desired_start_date.strip(),
+        'notes': data.notes.strip(),
         'email_consent': data.email_consent,
         'sms_consent': data.sms_consent,
+        'email_operational_opt_in': consent.get('email_operational_opt_in') is True,
+        'email_marketing_opt_in': consent.get('email_marketing_opt_in') is True,
+        'sms_operational_opt_in': consent.get('sms_operational_opt_in') is True,
+        'sms_marketing_opt_in': consent.get('sms_marketing_opt_in') is True,
+        'consent': consent,
         'sms_consent_date': now.isoformat() if data.sms_consent else None,
+        'attribution': attribution,
         'status': 'New Corporate Lead',
-        'lead_source': 'corporate_landing_page',
+        'lead_source': data.lead_source or 'corporate_landing_page',
         'assigned_to': None,
         'next_follow_up_date': (now + timedelta(days=1)).date().isoformat(),
         'last_contact_date': None,
@@ -2036,17 +2822,46 @@ async def create_corporate_lead(data: CorporateLeadCreate):
         'created_at': now.isoformat(),
         'updated_at': now.isoformat(),
     }
-    await db.corporate_leads.insert_one(doc)
+    try:
+        await db.corporate_leads.insert_one(doc)
+    except DuplicateKeyError:
+        prior = await db.corporate_leads.find_one(
+            {'$or': [{'request_id': request_id}, {'request_ids': request_id}]},
+            {'id': 1, 'discount_tier': 1, '_id': 0},
+        )
+        if prior:
+            return {
+                'id': prior['id'],
+                'status': 'accepted',
+                'duplicate': True,
+                'request_id': request_id,
+                'discount_tier': prior.get('discount_tier'),
+            }
+        raise
 
     # Send emails + optional SMS in background
     async def _bg():
         await _send_corporate_lead_emails(doc)
         if data.sms_consent and doc.get('phone'):
-            name = data.contact_name.split()[0]
-            await send_sms([doc['phone']], f"Hey {name}, this is Santa Cruz Strength. We got your corporate membership request and will follow up soon. Reply STOP to opt out.")
+            contact_parts = safe_sms_text(doc['contact_name'], 200).split()
+            name = contact_parts[0] if contact_parts else 'there'
+            await send_sms(
+                [doc['phone']],
+                safe_sms_text(
+                    f"Hey {name}, this is Santa Cruz Strength. We got your corporate membership request and will follow up soon. Reply STOP to opt out.",
+                    500,
+                ),
+                allow_mailersend_fallback=False,
+            )
     asyncio.create_task(_bg())
 
-    return {'id': lead_id, 'status': 'created', 'discount_tier': tier}
+    return {
+        'id': lead_id,
+        'status': 'accepted',
+        'duplicate': False,
+        'request_id': request_id,
+        'discount_tier': tier,
+    }
 
 
 @api_router.get('/staff/corporate-leads')
@@ -2266,10 +3081,10 @@ async def send_cold_email(lead_id: str, request: Request, user=Depends(require_s
 
     template = COLD_EMAIL_TEMPLATES[next_wave - 1]
     contact_name = lead.get('contact_name', 'there').split()[0]
-    body_text = template['body'].replace('{{contact_name}}', contact_name)
+    body_text = template['body'].replace('{{contact_name}}', escape_html(contact_name))
     subject = template['subject']
 
-    site_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+    site_url = require_frontend_origin()
     unsub_url = f'{site_url}/api/corporate-unsubscribe/{lead_id}'
 
     html_body = f"""<div style="font-family:sans-serif;color:#222;font-size:15px;line-height:1.7;max-width:600px;">
@@ -2285,10 +3100,11 @@ Santa Cruz Strength &middot; 151 Harvey West Blvd Ste D, Santa Cruz CA 95060<br/
         to=lead['email'],
         subject=subject,
         html=html_body,
-        reply_to='management@santacruzstrength.com'
+        reply_to='management@santacruzstrength.com',
+        message_kind='corporate_marketing',
     )
     if not ok:
-        raise HTTPException(status_code=500, detail='Email send failed — check daily quota')
+        raise HTTPException(status_code=500, detail='Email send failed - check daily quota')
 
     new_status = f'Email {next_wave} Sent'
     await db.corporate_leads.update_one(
@@ -2334,11 +3150,14 @@ async def bulk_corporate_action(request: Request, user=Depends(require_staff)):
                     results['failed'] += 1; continue
                 template = COLD_EMAIL_TEMPLATES[wave]
                 contact_name = lead.get('contact_name', 'there').split()[0]
-                body_text = template['body'].replace('{{contact_name}}', contact_name)
-                site_url = os.environ.get('FRONTEND_URL', 'https://santacruzstrength.com')
+                body_text = template['body'].replace('{{contact_name}}', escape_html(contact_name))
+                site_url = require_frontend_origin()
                 unsub_url = f'{site_url}/api/corporate-unsubscribe/{lid}'
                 html_body = f"<div style='font-family:sans-serif;color:#222;font-size:15px;line-height:1.7;max-width:600px;'>{''.join(f'<p>{l}</p>' if l.strip() else '<br/>' for l in body_text.split(chr(10)))}<hr style='border:none;border-top:1px solid #ddd;margin:24px 0 12px;'/><p style='font-size:11px;color:#999;line-height:1.5;'>Santa Cruz Strength &middot; 151 Harvey West Blvd Ste D, Santa Cruz CA 95060<br/><a href='{unsub_url}' style='color:#999;'>Unsubscribe</a> from future emails.</p></div>"
-                ok = await send_resend_email(to=lead['email'], subject=template['subject'], html=html_body, reply_to='management@santacruzstrength.com')
+                ok = await send_resend_email(
+                    to=lead['email'], subject=template['subject'], html=html_body,
+                    reply_to='management@santacruzstrength.com', message_kind='corporate_marketing',
+                )
                 if ok:
                     new_wave = wave + 1
                     await db.corporate_leads.update_one({'id': lid}, {'$set': {'cold_email_wave': new_wave, 'status': f'Email {new_wave} Sent', 'last_email_sent_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()}, '$push': {'activity_log': {'action': f'Cold Email {new_wave} Sent', 'note': f'Bulk send by {user.get("name", "Staff")}', 'staff_name': user.get('name', 'Staff'), 'timestamp': now_utc().isoformat()}}})
@@ -2527,7 +3346,7 @@ async def list_events(upcoming: bool = True):
             result.append(e)
             continue
 
-        # For recurring events — find ONLY the next upcoming occurrence (one card per event)
+        # For recurring events - find ONLY the next upcoming occurrence (one card per event)
         DELTAS = {'daily': timedelta(days=1), 'weekly': timedelta(weeks=1), 'biweekly': timedelta(weeks=2)}
         RECURRING_LABELS = {
             'daily': 'Every day', 'weekly': 'Every week',
@@ -2712,7 +3531,11 @@ async def toggle_blacklist(lead_id: str, user=Depends(require_admin)):
     return {'blacklisted': new_val, 'message': action}
 
 # Campaign email templates
-JOIN_URL = 'https://onlinejoin.abcfitness.com/signup/plan?club=31691'
+# ABC Fitness owns the membership transaction. Club id is env-overridable so a
+# club change or a CRM migration does not require a code edit.
+ABC_BASE_URL = os.environ.get('ABC_BASE_URL', 'https://onlinejoin.abcfitness.com').rstrip('/')
+ABC_CLUB_ID = os.environ.get('ABC_CLUB_ID', '31691')
+JOIN_URL = f'{ABC_BASE_URL}/signup/plan?club={ABC_CLUB_ID}'
 
 CAMPAIGN_SUBJECTS = [
     "We've been thinking about you.",
@@ -2721,6 +3544,8 @@ CAMPAIGN_SUBJECTS = [
 ]
 
 def _campaign_email_html(first_name: str, join_url: str, wave: int = 1) -> str:
+    first_name = escape_html(first_name)
+    join_url = escape_html(join_url)
     subject_line = f"Hey {first_name},"
     body = ""
     cta = "Get Started →"
@@ -2733,29 +3558,29 @@ def _campaign_email_html(first_name: str, join_url: str, wave: int = 1) -> str:
         <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We just wrapped our 11th annual <strong>Iron Roses</strong>, and moments like that remind us what this place really is.</p>
         <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">It's not just a gym.<br>It's the people. The energy. The ones who show up and put in real work.</p>
         <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;"><strong>You were part of that.</strong> And it's not the same without you here.</p>
-        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">Life gets busy, things shift — we understand that. But if there's even a part of you that's been missing training&hellip; missing that feeling of getting stronger&hellip; missing being around people who actually push you&hellip;</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">Life gets busy, things shift - we understand that. But if there's even a part of you that's been missing training&hellip; missing that feeling of getting stronger&hellip; missing being around people who actually push you&hellip;</p>
         <p style="margin:0 0 24px;font-size:16px;font-weight:700;color:#1a1a1a;">We want you back in the room.</p>
         <div style="background:#f7f5f0;border-left:4px solid #0D5D3E;padding:16px 20px;margin:0 0 24px;border-radius:0 8px 8px 0;">
           <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:#0D5D3E;">🔥 Come Back Stronger</p>
-          <p style="margin:0;font-size:14px;color:#444;line-height:1.6;">Sign up for any committed membership and we'll give you <strong>2 months free</strong>.<br>No codes. No extra steps. Just sign up, show up, and train — we'll take care of the rest.</p>
+          <p style="margin:0;font-size:14px;color:#444;line-height:1.6;">Sign up for any committed membership and we'll give you <strong>2 months free</strong>.<br>No codes. No extra steps. Just sign up, show up, and train - we'll take care of the rest.</p>
         </div>"""
         cta = "Claim Your 2 Months Free →"
         footer = "You don't need to be \"ready.\" You just need to walk back through the door."
     elif wave == 2:
-        subject_line = f"Hey {first_name} — last chance."
+        subject_line = f"Hey {first_name} - last chance."
         body = f"""
         <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We sent you a note a week ago about coming back to Santa Cruz Strength.</p>
-        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We're following up because the offer — <strong>2 months free on any committed membership</strong> — doesn't last forever.</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We're following up because the offer - <strong>2 months free on any committed membership</strong> - doesn't last forever.</p>
         <p style="margin:0 0 24px;font-size:15px;color:#333;line-height:1.7;">If you've been on the fence, this is your moment. We'd love to have you back.</p>"""
-        cta = "Get 2 Months Free — Last Chance →"
+        cta = "Get 2 Months Free - Last Chance →"
         footer = "No pressure. But the door is open."
     else:
-        subject_line = f"Hey {first_name} — we saved your spot."
+        subject_line = f"Hey {first_name} - we saved your spot."
         body = f"""
         <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">We've reached out a couple of times because we genuinely want you back.</p>
-        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">This is our final note. Your spot at Santa Cruz Strength — and the <strong>2 months free offer</strong> — is still here. But we won't keep asking.</p>
+        <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.7;">This is our final note. Your spot at Santa Cruz Strength - and the <strong>2 months free offer</strong> - is still here. But we won't keep asking.</p>
         <p style="margin:0 0 24px;font-size:15px;color:#333;line-height:1.7;">When you're ready, we'll be here. That's a promise.</p>"""
-        cta = "Come Back — Offer Ends Soon →"
+        cta = "Come Back - Offer Ends Soon →"
         footer = "151 Harvey West Blvd, Santa Cruz CA. The best place to get stronger in and around Santa Cruz."
 
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
@@ -2776,14 +3601,14 @@ def _campaign_email_html(first_name: str, join_url: str, wave: int = 1) -> str:
           </td></tr>
         </table>
         <p style="margin:0 0 28px;font-size:13px;color:#888;line-height:1.6;font-style:italic;">{footer}</p>
-        <p style="margin:0;font-size:14px;color:#555;font-weight:600;">— Santa Cruz Strength</p>
+        <p style="margin:0;font-size:14px;color:#555;font-weight:600;"> - Santa Cruz Strength</p>
       </td></tr>
       <tr><td style="border-top:1px solid #eee;padding:16px 36px;background:#fafaf9;">
         <p style="margin:0;font-size:11px;color:#aaa;line-height:1.6;">
           Santa Cruz Strength · 151 Harvey West Blvd Ste D, Santa Cruz CA 95060<br>
           <a href="tel:+14083376709" style="color:#0D5D3E;text-decoration:none;">(408) 337-6709</a> ·
           <a href="https://www.instagram.com/santacruzstrength/" style="color:#0D5D3E;text-decoration:none;">@santacruzstrength</a><br>
-          <span style="color:#ccc;">To unsubscribe, reply with STOP.</span>
+          <a href="{{unsubscribe_url}}" style="color:#999;text-decoration:underline;">Unsubscribe from marketing email</a>
         </p>
       </td></tr>
     </table>
@@ -2809,7 +3634,7 @@ async def campaign_preview_count(
     user=Depends(require_admin)
 ):
     """Returns how many leads match the given campaign filter."""
-    query = {'blacklisted': {'$ne': True}, 'email': {'$nin': ['', None]}}
+    query = {'email': {'$nin': ['', None]}, **EMAIL_MARKETING_FILTER}
     if tag:
         query['tags'] = tag
     if source:
@@ -2827,8 +3652,8 @@ async def list_campaigns(user=Depends(require_admin)):
     for c in campaigns:
         c['sent_count'] = await db.campaign_sends.count_documents({'campaign_id': c['id'], 'wave': 1})
         c['total_leads'] = await db.leads.count_documents({
-            'blacklisted': {'$ne': True},
             'email': {'$ne': ''},
+            **EMAIL_MARKETING_FILTER,
             'tags': c.get('tag_filter', 'imported'),
             **(({'lead_source': c['source_filter']} if c.get('source_filter') else {}))
         })
@@ -2871,7 +3696,7 @@ async def get_campaign(campaign_id: str, user=Depends(require_admin)):
     c['wave2_sent'] = await db.campaign_sends.count_documents({'campaign_id': campaign_id, 'wave': 2})
     c['wave3_sent'] = await db.campaign_sends.count_documents({'campaign_id': campaign_id, 'wave': 3})
     c['total_leads'] = await db.leads.count_documents({
-        'blacklisted': {'$ne': True}, 'email': {'$nin': ['', None]},
+        'email': {'$nin': ['', None]}, **EMAIL_MARKETING_FILTER,
         'tags': c.get('tag_filter', 'imported'),
     })
     return c
@@ -2886,7 +3711,7 @@ async def start_campaign(campaign_id: str, user=Depends(require_admin)):
     })
     # Trigger first batch immediately (don't wait for scheduled 10 AM run)
     asyncio.ensure_future(_run_single_campaign(campaign_id))
-    return {'message': 'Campaign started — first batch sending now', 'status': 'active'}
+    return {'message': 'Campaign started - first batch sending now', 'status': 'active'}
 
 @api_router.post('/staff/campaigns/{campaign_id}/pause')
 async def pause_campaign(campaign_id: str, user=Depends(require_admin)):
@@ -2895,7 +3720,7 @@ async def pause_campaign(campaign_id: str, user=Depends(require_admin)):
 
 @api_router.put('/staff/campaigns/{campaign_id}')
 async def update_campaign(campaign_id: str, data: dict, user=Depends(require_admin)):
-    """Update campaign — used by the email builder to save blocks + generated HTML."""
+    """Update campaign - used by the email builder to save blocks + generated HTML."""
     c = await db.campaigns.find_one({'id': campaign_id})
     if not c:
         raise HTTPException(status_code=404, detail='Campaign not found')
@@ -2940,7 +3765,7 @@ async def test_sms_campaign(campaign_id: str, user=Depends(require_admin)):
         raise HTTPException(status_code=400, detail='No staff SMS numbers configured in Settings')
     sms_tpl = c.get('sms_template', '')
     if not sms_tpl:
-        raise HTTPException(status_code=400, detail='No SMS template saved yet — build it in the SMS Builder first')
+        raise HTTPException(status_code=400, detail='No SMS template saved yet - build it in the SMS Builder first')
     test_text = sms_tpl \
         .replace('{{first_name}}', user.get('name', 'Test').split()[0]) \
         .replace('{{last_name}}', '').replace('{{gym_name}}', 'Santa Cruz Strength') \
@@ -2950,7 +3775,7 @@ async def test_sms_campaign(campaign_id: str, user=Depends(require_admin)):
         return {'message': 'Test SMS sent', 'sent_to': staff_numbers[0]}
     raise HTTPException(status_code=500, detail='Failed to send test SMS')
 
-# Campaign scheduler — runs every hour, sends daily batch
+# Campaign scheduler - runs every hour, sends daily batch
 async def _run_single_campaign(campaign_id: str):
     """Send the next batch for one campaign. Called on start AND by scheduler."""
     campaign = await db.campaigns.find_one({'id': campaign_id, 'status': 'active'})
@@ -2972,7 +3797,7 @@ async def _run_single_campaign(campaign_id: str):
         return
 
     # Build lead query from campaign filters
-    lead_query = {'blacklisted': {'$ne': True}, 'email': {'$nin': ['', None]}}
+    lead_query = {'email': {'$nin': ['', None]}, **EMAIL_MARKETING_FILTER}
     if tag_filter:
         lead_query['tags'] = tag_filter
     if status_filter:
@@ -2987,31 +3812,31 @@ async def _run_single_campaign(campaign_id: str):
         s['lead_id'] async for s in db.campaign_sends.find({'campaign_id': cid, 'wave': 1}, {'lead_id': 1, '_id': 0})
     ]
     lead_query['id'] = {'$nin': already_sent_ids}
-    leads = await db.leads.find(lead_query, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1, 'phone': 1}).limit(batch_size).to_list(batch_size)
+    leads = await db.leads.find(lead_query, {'_id': 0, 'id': 1, 'first_name': 1, 'email': 1, 'phone': 1, 'sms_marketing_opt_in': 1, 'sms_opted_out': 1}).limit(batch_size).to_list(batch_size)
 
     sent_wave1 = 0
     for idx, lead in enumerate(leads):
-        # Check quota before each send — always keep 10 slots for staff emails
+        # Check quota before each send - always keep 10 slots for staff emails
         if not await _check_campaign_quota():
-            logger.warning(f'[CAMPAIGN] Daily quota nearly full — pausing to protect staff email reserve')
+            logger.warning(f'[CAMPAIGN] Daily quota nearly full - pausing to protect staff email reserve')
             break
         subject = subjects[idx % len(subjects)]
         # Use blocks-generated HTML if available, else fallback to Iron Roses template
         custom_html = campaign.get('email_html_template', '')
         if custom_html:
             html = custom_html \
-                .replace('{{first_name}}', lead.get('first_name', 'Friend')) \
-                .replace('{{last_name}}',  lead.get('last_name', '')) \
+                .replace('{{first_name}}', escape_html(lead.get('first_name', 'Friend'))) \
+                .replace('{{last_name}}',  escape_html(lead.get('last_name', ''))) \
                 .replace('{{gym_name}}',   'Santa Cruz Strength') \
                 .replace('{{join_url}}',   join_url) \
                 .replace('{{gym_phone}}',  '(408) 337-6709')
         else:
             html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=1)
-        email_ok = await send_resend_email(to=lead['email'], subject=subject, html=html)
+        email_ok = await send_resend_email(to=lead['email'], subject=subject, html=html, message_kind='marketing')
         if email_ok:
             await _track_email_send(is_campaign=True)
         sms_ok = False
-        if campaign.get('send_sms') and lead.get('phone') and MAILERSEND_FROM:
+        if campaign.get('send_sms') and lead.get('phone') and lead.get('sms_marketing_opt_in') is True and not lead.get('sms_opted_out') and MAILERSEND_FROM:
             sms_text = _campaign_sms(lead.get('first_name', 'there'), join_url, wave=1)
             sms_ok   = await send_sms([lead['phone']], sms_text)
         if email_ok:
@@ -3023,7 +3848,7 @@ async def _run_single_campaign(campaign_id: str):
                 })
                 sent_wave1 += 1
             except Exception:
-                pass  # duplicate key — already sent
+                pass  # duplicate key - already sent
         await asyncio.sleep(0.25)  # stay under Resend 5/sec rate limit
 
     # ── Wave 2 ────────────────────────────────────────────────────────────────
@@ -3038,32 +3863,32 @@ async def _run_single_campaign(campaign_id: str):
         if send['lead_id'] in wave2_done:
             continue
         if not await _check_campaign_quota():
-            logger.warning(f'[CAMPAIGN] Daily quota nearly full — pausing wave 2')
+            logger.warning(f'[CAMPAIGN] Daily quota nearly full - pausing wave 2')
             break
-        lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'email': 1, 'phone': 1})
+        lead = await db.leads.find_one({'id': send['lead_id'], **EMAIL_MARKETING_FILTER}, {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'email': 1, 'phone': 1, 'sms_marketing_opt_in': 1, 'sms_opted_out': 1})
         if not lead or not lead.get('email'):
             continue
         custom_html = campaign.get('email_html_template', '')
         if custom_html:
             html = custom_html \
-                .replace('{{first_name}}', lead.get('first_name', 'Friend')) \
-                .replace('{{last_name}}',  lead.get('last_name', '')) \
+                .replace('{{first_name}}', escape_html(lead.get('first_name', 'Friend'))) \
+                .replace('{{last_name}}',  escape_html(lead.get('last_name', ''))) \
                 .replace('{{gym_name}}',   'Santa Cruz Strength') \
                 .replace('{{join_url}}',   join_url) \
                 .replace('{{gym_phone}}',  '(408) 337-6709')
         else:
             html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=2)
-        w2_subject = subjects[1] if len(subjects) > 1 else "Your spot's still open — 2 months free"
-        ok = await send_resend_email(to=lead['email'], subject=w2_subject, html=html)
+        w2_subject = subjects[1] if len(subjects) > 1 else "Your spot's still open - 2 months free"
+        ok = await send_resend_email(to=lead['email'], subject=w2_subject, html=html, message_kind='marketing')
         if ok:
             await _track_email_send(is_campaign=True)
         sms_ok = False
-        if campaign.get('send_sms') and lead.get('phone'):
+        if campaign.get('send_sms') and lead.get('phone') and lead.get('sms_marketing_opt_in') is True and not lead.get('sms_opted_out'):
             sms_tpl = campaign.get('sms_template', '')
             if sms_tpl:
                 sms_text = sms_tpl \
-                    .replace('{{first_name}}', lead.get('first_name', 'there')) \
-                    .replace('{{last_name}}', lead.get('last_name', '')) \
+                    .replace('{{first_name}}', safe_sms_text(lead.get('first_name', 'there'), 100)) \
+                    .replace('{{last_name}}', safe_sms_text(lead.get('last_name', ''), 100)) \
                     .replace('{{gym_name}}', 'Santa Cruz Strength') \
                     .replace('{{join_url}}', join_url) \
                     .replace('{{gym_phone}}', '(408) 337-6709')
@@ -3094,32 +3919,32 @@ async def _run_single_campaign(campaign_id: str):
         if send['lead_id'] in wave3_done:
             continue
         if not await _check_campaign_quota():
-            logger.warning(f'[CAMPAIGN] Daily quota nearly full — pausing wave 3')
+            logger.warning(f'[CAMPAIGN] Daily quota nearly full - pausing wave 3')
             break
-        lead = await db.leads.find_one({'id': send['lead_id'], 'blacklisted': {'$ne': True}}, {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'email': 1, 'phone': 1})
+        lead = await db.leads.find_one({'id': send['lead_id'], **EMAIL_MARKETING_FILTER}, {'_id': 0, 'id': 1, 'first_name': 1, 'last_name': 1, 'email': 1, 'phone': 1, 'sms_marketing_opt_in': 1, 'sms_opted_out': 1})
         if not lead or not lead.get('email'):
             continue
         custom_html = campaign.get('email_html_template', '')
         if custom_html:
             html = custom_html \
-                .replace('{{first_name}}', lead.get('first_name', 'Friend')) \
-                .replace('{{last_name}}',  lead.get('last_name', '')) \
+                .replace('{{first_name}}', escape_html(lead.get('first_name', 'Friend'))) \
+                .replace('{{last_name}}',  escape_html(lead.get('last_name', ''))) \
                 .replace('{{gym_name}}',   'Santa Cruz Strength') \
                 .replace('{{join_url}}',   join_url) \
                 .replace('{{gym_phone}}',  '(408) 337-6709')
         else:
             html = _campaign_email_html(lead.get('first_name', 'there'), join_url, wave=3)
         w3_subject = subjects[2] if len(subjects) > 2 else "We saved your spot."
-        ok = await send_resend_email(to=lead['email'], subject=w3_subject, html=html)
+        ok = await send_resend_email(to=lead['email'], subject=w3_subject, html=html, message_kind='marketing')
         if ok:
             await _track_email_send(is_campaign=True)
         sms_ok = False
-        if campaign.get('send_sms') and lead.get('phone'):
+        if campaign.get('send_sms') and lead.get('phone') and lead.get('sms_marketing_opt_in') is True and not lead.get('sms_opted_out'):
             sms_tpl = campaign.get('sms_template', '')
             if sms_tpl:
                 sms_text = sms_tpl \
-                    .replace('{{first_name}}', lead.get('first_name', 'there')) \
-                    .replace('{{last_name}}', lead.get('last_name', '')) \
+                    .replace('{{first_name}}', safe_sms_text(lead.get('first_name', 'there'), 100)) \
+                    .replace('{{last_name}}', safe_sms_text(lead.get('last_name', ''), 100)) \
                     .replace('{{gym_name}}', 'Santa Cruz Strength') \
                     .replace('{{join_url}}', join_url) \
                     .replace('{{gym_phone}}', '(408) 337-6709')
@@ -3138,7 +3963,7 @@ async def _run_single_campaign(campaign_id: str):
                 pass
         await asyncio.sleep(0.25)
 
-    # Update campaign progress — only "completed" when ALL waves are done for ALL leads
+    # Update campaign progress - only "completed" when ALL waves are done for ALL leads
     total_eligible = await db.leads.count_documents({k: v for k, v in lead_query.items() if k != 'id'})
     total_w1       = await db.campaign_sends.count_documents({'campaign_id': cid, 'wave': 1})
     total_w3       = await db.campaign_sends.count_documents({'campaign_id': cid, 'wave': 3})
@@ -3153,15 +3978,13 @@ async def _run_single_campaign(campaign_id: str):
         logger.info(f'[CAMPAIGN] {campaign["name"]}: w1={sent_wave1} w2={sent_wave2} w3={sent_wave3} ({total_w1}/{total_eligible} through pipeline)')
 
 async def run_campaign_scheduler():
-    """Runs every hour — sends daily campaign batches (waves 2+3 also checked here)."""
+    """Runs every hour - sends daily campaign batches (waves 2+3 also checked here)."""
     today    = now_utc().date().isoformat()
     campaigns = await db.campaigns.find({'status': 'active'}, {'_id': 0, 'id': 1, 'last_sent_date': 1}).to_list(20)
     for c in campaigns:
         if c.get('last_sent_date') != today:
             await _run_single_campaign(c['id'])
 GOOGLE_REVIEW_URL = 'https://g.page/r/CUj8NPJ7NHNOEAE/review'
-FRONTEND_URL_DEFAULT = 'https://santacruzstrength.com'
-
 async def _send_review_request(lead: dict):
     """Create review token + send branded email + SMS to new member."""
     name  = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or 'there'
@@ -3177,7 +4000,7 @@ async def _send_review_request(lead: dict):
         'name': name, 'email': email, 'phone': phone,
         'expires_at': expires.isoformat(), 'submitted': False, 'created_at': now_utc().isoformat(),
     })
-    frontend_url = os.environ.get('FRONTEND_URL', FRONTEND_URL_DEFAULT)
+    frontend_url = require_frontend_origin()
     review_page_url = f"{frontend_url}/review/{token}"
     if email:
         await send_resend_email(
@@ -3185,11 +4008,11 @@ async def _send_review_request(lead: dict):
             subject=f"Welcome to Santa Cruz Strength, {name}! Share your experience",
             html=_review_email_html(name, review_page_url),
         )
-    if phone and phone.startswith('+') and MAILERSEND_FROM:
+    if phone and phone.startswith('+') and lead.get('sms_marketing_opt_in') is True and not lead.get('sms_opted_out') and MAILERSEND_FROM:
         sms = (f"Hey {name.split()[0]}, welcome to Santa Cruz Strength! "
-               f"We'd love to hear about your experience — takes 10 seconds: {review_page_url} - SCS")
+               f"We'd love to hear about your experience - takes 10 seconds: {review_page_url} - SCS")
         await send_sms([phone], sms)
-    logger.info(f'[REVIEW] Request sent to {name} — token {token}')
+    logger.info(f'[REVIEW] Request sent to {name} - token {token}')
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#F7F5F0;font-family:'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
@@ -3203,7 +4026,7 @@ async def _send_review_request(lead: dict):
         <p style="margin:0 0 8px;font-size:32px;">🏋️</p>
         <p style="margin:0 0 16px;font-size:17px;font-weight:700;color:#1a1a1a;">You're officially part of the crew.</p>
         <p style="margin:0 0 28px;font-size:14px;color:#555;line-height:1.65;">
-          Stoked to have you at Santa Cruz Strength. We'd love to hear how your first experience has been — it only takes 10 seconds.
+          Stoked to have you at Santa Cruz Strength. We'd love to hear how your first experience has been - it only takes 10 seconds.
         </p>
         <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
           <tr><td style="background:#0D5D3E;border-radius:10px;">
@@ -3222,6 +4045,10 @@ async def _send_review_request(lead: dict):
 </table></body></html>"""
 
 def _feedback_email_html(name: str, rating: int, category: str, follow_up: str, extra: str) -> str:
+    name = escape_html(name)
+    category = escape_html(category)
+    follow_up = escape_html(follow_up)
+    extra = escape_html(extra)
     stars = '★' * rating + '☆' * (5 - rating)
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#0f1a14;font-family:'Helvetica Neue',Arial,sans-serif;">
@@ -3248,7 +4075,7 @@ def _feedback_email_html(name: str, rating: int, category: str, follow_up: str, 
 
 @api_router.post('/review/request/{lead_id}')
 async def create_review_request(lead_id: str):
-    """Internal — called when lead status changes to Joined."""
+    """Internal - called when lead status changes to Joined."""
     lead = await db.leads.find_one({'id': lead_id})
     if not lead:
         return {'message': 'Lead not found'}
@@ -3293,45 +4120,35 @@ async def submit_review(token: str, data: dict):
     if rating <= 3:
         await send_resend_email(
             to='management@santacruzstrength.com',
-            subject=f'⚠️ {rating}-Star Member Feedback — {req["name"]}',
+            subject=f'⚠️ {rating}-Star Member Feedback - {req["name"]}',
             html=_feedback_email_html(req['name'], rating, category, follow_up, extra),
         )
     return {'message': 'Thank you for your feedback!', 'rating': rating}
 
 # --------------- Resend Webhook (bounces + complaints) ---------------
 
-@api_router.post('/webhooks/resend')
-async def resend_webhook(request: dict):
-    """Resend bounce/complaint webhook. Register at resend.com → Webhooks → Add endpoint → https://santacruzstrength.com/api/webhooks/resend. Select events: email.bounced, email.complained."""
-    event_type = request.get('type', '')
-    data       = request.get('data', {})
-    to_addr    = (data.get('to') or [''])[0] if isinstance(data.get('to'), list) else data.get('to', '')
-    if not to_addr:
-        return {'ok': True}
+async def _apply_verified_resend_suppression(event_type: str, to_addr: str) -> None:
+    """Apply only a signature-verified Resend suppression event."""
+    if event_type not in {'email.bounced', 'email.complained'}:
+        return
+    email_lower = to_addr.lower().strip()
+    if not email_lower:
+        return
+    suppression_field = 'email_complained' if event_type == 'email.complained' else 'email_bounced'
+    await db.leads.update_many(
+        {'email': email_lower},
+        {'$set': {
+            suppression_field: True,
+            'bounce_type': event_type,
+            'bounce_at': now_utc().isoformat(),
+            'updated_at': now_utc().isoformat(),
+        }},
+    )
 
-    if event_type in ('email.bounced', 'email.complained'):
-        # Mark lead as bounced — suppress all future sends
-        email_lower = to_addr.lower().strip()
-        lead = await db.leads.find_one({'email': email_lower}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'phone': 1, 'lead_source': 1})
-        result = await db.leads.update_many(
-            {'email': email_lower},
-            {'$set': {'email_bounced': True, 'blacklisted': True, 'bounce_type': event_type,
-                      'bounce_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()}}
-        )
-        if result.modified_count:
-            logger.info(f'[BOUNCE] Blacklisted {to_addr} ({event_type})')
-            # Log to daily digest instead of sending individual email
-            await db.daily_bounce_log.insert_one({
-                'type': 'email_bounce',
-                'event': event_type,
-                'email': email_lower,
-                'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
-                'phone': (lead or {}).get('phone', ''),
-                'source': (lead or {}).get('lead_source', ''),
-                'timestamp': now_utc().isoformat(),
-                'date': now_utc().date().isoformat(),
-            })
-    return {'ok': True}
+@api_router.post('/webhooks/resend')
+async def resend_webhook():
+    """Fail closed until the installed Resend SDK verifier is validated."""
+    raise HTTPException(status_code=503, detail='Resend webhooks are disabled pending verified signature support')
 
 
 @api_router.get('/staff/bounce-log')
@@ -3347,55 +4164,83 @@ async def send_bounce_digest_now(user=Depends(require_admin)):
     await run_daily_bounce_digest()
     return {'ok': True, 'message': 'Digest sent (if entries existed)'}
 
-@api_router.post('/webhooks/mailersend-sms')
-async def mailersend_sms_webhook(request: dict):
-    """
-    MailerSend inbound SMS — forwards replies to management email.
-    Register at: app.mailersend.com → SMS → Inbound routes → Add route
-    Webhook URL: https://santacruzstrength.com/api/webhooks/mailersend-sms
-    """
-    from_number = request.get('from', '')
-    message     = request.get('message', request.get('text', ''))
-    to_number   = request.get('to', '')
-    if not from_number or not message:
-        return {'ok': True}
-    if message.strip().upper() == 'STOP':
-        # Auto-blacklist on STOP
-        lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
-        await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True, 'updated_at': now_utc().isoformat()}})
-        logger.info(f'[SMS-INBOUND] STOP received from {from_number} — blacklisted')
-        # Log to daily digest
-        await db.daily_bounce_log.insert_one({
-            'type': 'sms_optout',
-            'event': 'SMS STOP received',
-            'phone': from_number,
-            'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
-            'email': (lead or {}).get('email', ''),
-            'source': (lead or {}).get('lead_source', ''),
-            'timestamp': now_utc().isoformat(),
-            'date': now_utc().date().isoformat(),
-        })
-        return {'ok': True}
-    html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
-<h3 style="color:#7FCCA6;">📱 SMS Reply Received</h3>
-<p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong></p>
-<p style="color:#aaa;">To: {to_number}</p>
-<p style="color:#aaa;">Message:</p>
-<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
-<p style="color:#666;font-size:12px;">Reply via Google Voice: voice.google.com</p>
-</div>"""
-    await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number}', html=html)
-    logger.info(f'[SMS-INBOUND] Reply from {from_number}: {message[:50]}')
-    return {'ok': True}
-
 # --------------- Twilio Webhooks ---------------
+
+async def _validated_twilio_form(request: Request, event_kind: str):
+    if not ALLOW_TWILIO_WEBHOOKS:
+        raise HTTPException(status_code=503, detail='Twilio webhooks are disabled')
+    signature = request.headers.get('X-Twilio-Signature', '')
+    if not signature:
+        raise HTTPException(status_code=403, detail='Missing Twilio signature')
+    form = await request.form()
+    params = dict(form)
+    base_url = os.environ.get('TWILIO_WEBHOOK_BASE_URL', '').rstrip('/')
+    validation_url = f'{base_url}{request.url.path}'
+    if request.url.query:
+        validation_url = f'{validation_url}?{request.url.query}'
+    validator = RequestValidator(os.environ.get('TWILIO_AUTH_TOKEN', ''))
+    if not validator.validate(validation_url, params, signature):
+        raise HTTPException(status_code=403, detail='Invalid Twilio signature')
+    sender = str(form.get('To') if event_kind == 'status' else form.get('From') or '').strip()
+    if APP_ENV != 'production' and sender and not outbound_recipient_allowed('sms', sender):
+        raise HTTPException(status_code=403, detail='Twilio number is not in the non-production allowlist')
+    message_sid = str(form.get('MessageSid') or form.get('SmsSid') or '').strip()
+    if not message_sid:
+        raise HTTPException(status_code=400, detail='Missing Twilio MessageSid')
+    status_value = str(form.get('MessageStatus') or '').strip()
+    event_key = f'twilio:{event_kind}:{message_sid}:{status_value}'
+    # The unique MongoDB index makes replay rejection shared across API workers
+    # that use the same database. Deployments with separate databases need an
+    # edge-level or shared-store replay ledger as well.
+    try:
+        await db.webhook_receipts.insert_one({
+            'event_key': event_key,
+            'provider': 'twilio',
+            'event_kind': event_kind,
+            'received_at': now_utc().isoformat(),
+        })
+    except DuplicateKeyError:
+        return form, True
+    return form, False
+
+async def _apply_sms_keyword_state(from_number: str, msg_upper: str) -> bool:
+    """Apply a verified STOP or START keyword before acknowledging the change."""
+    timestamp = now_utc().isoformat()
+    if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
+        result = await db.leads.update_many(
+            {'phone': from_number},
+            {'$set': {
+                'sms_opted_out': True,
+                'sms_consent': False,
+                'sms_operational_opt_in': False,
+                'sms_marketing_opt_in': False,
+                'sms_opted_out_at': timestamp,
+                'sms_consent_source': 'keyword_stop',
+                'updated_at': timestamp,
+            }},
+        )
+        return result.matched_count > 0
+    if msg_upper == 'START':
+        result = await db.leads.update_many(
+            {'phone': from_number},
+            {'$set': {
+                'sms_opted_out': False,
+                'sms_consent': True,
+                'sms_operational_opt_in': True,
+                'sms_marketing_opt_in': False,
+                'sms_started_at': timestamp,
+                'sms_consent_source': 'keyword_start',
+                'updated_at': timestamp,
+            }},
+        )
+        return result.matched_count > 0
+    return False
 
 async def _twilio_inbound_background(from_number: str, message: str, msg_upper: str):
     """Background task for all DB/email work after TwiML is already returned to Twilio."""
     try:
         if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
             lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
-            await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True, 'updated_at': now_utc().isoformat()}})
             logger.info(f'[TWILIO-BG] STOP processed for {from_number}')
             await db.daily_bounce_log.insert_one({
                 'type': 'sms_optout',
@@ -3408,19 +4253,21 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
                 'date': now_utc().date().isoformat(),
             })
         elif msg_upper == 'START':
-            await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': False, 'blacklisted': False, 'updated_at': now_utc().isoformat()}})
             logger.info(f'[TWILIO-BG] START/resubscribe processed for {from_number}')
         else:
             lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
             lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
+            safe_from = escape_html(from_number)
+            safe_name = escape_html(lead_name)
+            safe_message = escape_html(message)
             html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
 <h3 style="color:#7FCCA6;">SMS Reply Received</h3>
-<p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong> ({lead_name})</p>
+<p style="color:#aaa;">From: <strong style="color:#fff;">{safe_from}</strong> ({safe_name})</p>
 <p style="color:#aaa;">Message:</p>
-<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
+<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{safe_message}"</p>
 <p style="color:#666;font-size:12px;margin-top:12px;">Auto-reply was sent. Follow up via Google Voice: voice.google.com</p>
 </div>"""
-            await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number} ({lead_name})', html=html)
+            await send_resend_email(to=STAFF_EMAIL, subject=safe_sms_text(f'SMS Reply from {from_number} ({lead_name})', 220), html=html, message_kind='internal')
             if lead:
                 await db.leads.update_one(
                     {'phone': from_number},
@@ -3430,14 +4277,14 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
                         'timestamp': now_utc().isoformat(),
                     }}}
                 )
-            logger.info(f'[TWILIO-BG] Reply from {from_number} ({lead_name}): {message[:80]} — forwarded')
+            logger.info(f'[TWILIO-BG] Reply from {from_number} ({lead_name}): {message[:80]} - forwarded')
     except Exception as e:
         logger.error(f'[TWILIO-BG] Background processing failed for {from_number}: {e}')
 
 
 @api_router.get('/webhooks/twilio-sms')
 async def twilio_sms_health():
-    """Health check — lets you verify the webhook URL is reachable from a browser."""
+    """Health check - lets you verify the webhook URL is reachable from a browser."""
     return Response(
         content='<Response><Message>Webhook is live.</Message></Response>',
         media_type='application/xml',
@@ -3451,8 +4298,10 @@ async def twilio_sms_webhook(request: Request):
     DB updates and email forwarding in a background task to avoid timeouts.
     URL: https://santacruzstrength.com/api/webhooks/twilio-sms
     """
+    form, duplicate = await _validated_twilio_form(request, 'inbound')
+    if duplicate:
+        return Response(content='<Response></Response>', media_type='application/xml')
     try:
-        form = await request.form()
         from_number = form.get('From', '')
         message     = form.get('Body', '')
 
@@ -3462,11 +4311,19 @@ async def twilio_sms_webhook(request: Request):
         msg_upper = message.strip().upper()
         logger.info(f'[TWILIO-INBOUND] From {from_number}: {message[:80]}')
 
+        # Apply consent state before sending a response that describes that state.
+        state_applied = False
+        if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT', 'START'):
+            state_applied = await _apply_sms_keyword_state(from_number, msg_upper)
+
         # Determine the TwiML reply
         if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
-            twiml = '<Response><Message>You have been unsubscribed. Reply START to resubscribe.</Message></Response>'
+            twiml = '<Response><Message>SMS messages are off. Reply START to restore requested tour and membership messages. Marketing consent will remain off.</Message></Response>'
         elif msg_upper == 'START':
-            twiml = "<Response><Message>Welcome back! You've been resubscribed to Santa Cruz Strength updates.</Message></Response>"
+            if state_applied:
+                twiml = '<Response><Message>Requested tour and membership messages are back on. Marketing messages remain off unless you give separate consent.</Message></Response>'
+            else:
+                twiml = '<Response><Message>We could not restore messaging for this number. Please contact Santa Cruz Strength at (408) 337-6709.</Message></Response>'
         else:
             auto_reply = (
                 "Hey thanks for reaching out! This number is not monitored for replies. "
@@ -3494,7 +4351,9 @@ async def twilio_status_webhook(request: Request):
     Twilio delivery status callback.
     URL: https://santacruzstrength.com/api/webhooks/twilio-status
     """
-    form = await request.form()
+    form, duplicate = await _validated_twilio_form(request, 'status')
+    if duplicate:
+        return {'ok': True, 'duplicate': True}
     msg_sid    = form.get('MessageSid', '')
     msg_status = form.get('MessageStatus', '')
     to_number  = form.get('To', '')
@@ -3527,7 +4386,7 @@ async def _mailersend_inbound_background(from_number: str, message: str, msg_upp
     try:
         if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
             lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
-            await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': True, 'blacklisted': True, 'updated_at': now_utc().isoformat()}})
+            await _apply_sms_keyword_state(from_number, msg_upper)
             logger.info(f'[MAILERSEND-BG] STOP processed for {from_number}')
             await db.daily_bounce_log.insert_one({
                 'type': 'sms_optout',
@@ -3540,19 +4399,22 @@ async def _mailersend_inbound_background(from_number: str, message: str, msg_upp
                 'date': now_utc().date().isoformat(),
             })
         elif msg_upper == 'START':
-            await db.leads.update_many({'phone': from_number}, {'$set': {'sms_opted_out': False, 'blacklisted': False, 'updated_at': now_utc().isoformat()}})
+            await _apply_sms_keyword_state(from_number, msg_upper)
             logger.info(f'[MAILERSEND-BG] START/resubscribe processed for {from_number}')
         else:
             lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
             lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
+            safe_from = escape_html(from_number)
+            safe_name = escape_html(lead_name)
+            safe_message = escape_html(message)
             html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
 <h3 style="color:#7FCCA6;">SMS Reply Received</h3>
-<p style="color:#aaa;">From: <strong style="color:#fff;">{from_number}</strong> ({lead_name})</p>
+<p style="color:#aaa;">From: <strong style="color:#fff;">{safe_from}</strong> ({safe_name})</p>
 <p style="color:#aaa;">Message:</p>
-<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{message}"</p>
+<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{safe_message}"</p>
 <p style="color:#666;font-size:12px;margin-top:12px;">Auto-reply was sent via MailerSend. Follow up via Google Voice: voice.google.com</p>
 </div>"""
-            await send_resend_email(to=STAFF_EMAIL, subject=f'SMS Reply from {from_number} ({lead_name})', html=html)
+            await send_resend_email(to=STAFF_EMAIL, subject=safe_sms_text(f'SMS Reply from {from_number} ({lead_name})', 220), html=html, message_kind='internal')
             if lead:
                 await db.leads.update_one(
                     {'phone': from_number},
@@ -3562,108 +4424,27 @@ async def _mailersend_inbound_background(from_number: str, message: str, msg_upp
                         'timestamp': now_utc().isoformat(),
                     }}}
                 )
-            logger.info(f'[MAILERSEND-BG] Reply from {from_number} ({lead_name}): {message[:80]} — forwarded')
+            logger.info(f'[MAILERSEND-BG] Reply from {from_number} ({lead_name}): {message[:80]} - forwarded')
     except Exception as e:
         logger.error(f'[MAILERSEND-BG] Background processing failed for {from_number}: {e}')
 
 
 @api_router.get('/webhooks/mailersend-sms')
 async def mailersend_sms_health():
-    """Health check for MailerSend inbound route."""
-    return {'status': 'ok', 'webhook': 'mailersend-sms'}
+    """Report that the unsigned MailerSend route is intentionally unavailable."""
+    raise HTTPException(status_code=503, detail='MailerSend webhooks are disabled pending verified signature support')
 
 
 @api_router.post('/webhooks/mailersend-sms')
-async def mailersend_sms_webhook(request: Request):
-    """
-    MailerSend inbound SMS webhook. Returns 200 immediately, processes in background.
-    Set in MailerSend → SMS → Inbound Routes → forward_url
-    URL: https://santacruzstrength.com/api/webhooks/mailersend-sms
-    """
-    try:
-        body = await request.json()
-        data = body.get('data', body)
-        sms = data.get('sms', data)
-
-        from_number = sms.get('from', '') or data.get('from', '')
-        message = sms.get('text', '') or data.get('text', '') or sms.get('body', '') or data.get('body', '')
-
-        if not from_number or not message:
-            logger.info(f'[MAILERSEND-INBOUND] Empty payload: {str(body)[:200]}')
-            return {'ok': True}
-
-        msg_upper = message.strip().upper()
-        logger.info(f'[MAILERSEND-INBOUND] From {from_number}: {message[:80]}')
-
-        # Send auto-reply via MailerSend SMS API
-        if msg_upper not in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
-            reply_text = (
-                "Hey thanks for reaching out! This number is not monitored for replies. "
-                "Our team will follow up with you shortly.\n\n"
-                "Need to reach us sooner?\n"
-                "Call/Text: (408) 337-6709\n"
-                "Email: management@santacruzstrength.com\n"
-                "Visit: santacruzstrength.com\n\n"
-                "Hours: Mon-Sun 9am-9pm (staffed) | 24/7 member access"
-            )
-            if MAILERSEND_API_KEY and MAILERSEND_FROM:
-                try:
-                    async with httpx.AsyncClient(timeout=10) as client:
-                        await client.post(
-                            'https://api.mailersend.com/v1/sms',
-                            headers={'Authorization': f'Bearer {MAILERSEND_API_KEY}', 'Content-Type': 'application/json'},
-                            json={'from': MAILERSEND_FROM, 'to': [from_number], 'text': reply_text},
-                        )
-                    logger.info(f'[MAILERSEND-INBOUND] Auto-reply sent to {from_number}')
-                except Exception as e:
-                    logger.warning(f'[MAILERSEND-INBOUND] Auto-reply failed: {e}')
-
-        asyncio.create_task(_mailersend_inbound_background(from_number, message, msg_upper))
-        return {'ok': True}
-    except Exception as e:
-        logger.error(f'[MAILERSEND-INBOUND] Webhook error: {e}')
-        return {'ok': True}
+async def mailersend_sms_webhook():
+    """Fail closed until a verified MailerSend signature validator is installed."""
+    raise HTTPException(status_code=503, detail='MailerSend webhooks are disabled pending verified signature support')
 
 
 @api_router.post('/webhooks/mailersend-sms-status')
-async def mailersend_sms_status_webhook(request: Request):
-    """
-    MailerSend SMS delivery status webhook (sent, delivered, failed).
-    URL: https://santacruzstrength.com/api/webhooks/mailersend-sms-status
-    """
-    try:
-        body = await request.json()
-        event_type = body.get('type', '')
-        data = body.get('data', {})
-        sms = data.get('sms', data)
-
-        to_number = sms.get('to', '') or data.get('to', '')
-        from_number = sms.get('from', '') or data.get('from', '')
-        sms_text = sms.get('text', '')[:80] if sms.get('text') else ''
-        error_type = sms.get('error_type', '') or data.get('error_type', '')
-        error_desc = sms.get('error_description', '') or data.get('error_description', '')
-
-        if event_type == 'sms.failed':
-            logger.warning(f'[MAILERSEND-STATUS] FAILED to {to_number} — {error_type}: {error_desc}')
-            lead = await db.leads.find_one({'phone': to_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
-            if lead:
-                await db.daily_bounce_log.insert_one({
-                    'type': 'sms_failure',
-                    'event': f'MailerSend failed ({error_type}: {error_desc})',
-                    'phone': to_number,
-                    'name': f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or 'Unknown',
-                    'email': lead.get('email', ''),
-                    'source': lead.get('lead_source', ''),
-                    'timestamp': now_utc().isoformat(),
-                    'date': now_utc().date().isoformat(),
-                })
-        else:
-            logger.info(f'[MAILERSEND-STATUS] {event_type} to {to_number}')
-
-        return {'ok': True}
-    except Exception as e:
-        logger.error(f'[MAILERSEND-STATUS] Webhook error: {e}')
-        return {'ok': True}
+async def mailersend_sms_status_webhook():
+    """Fail closed until a verified MailerSend signature validator is installed."""
+    raise HTTPException(status_code=503, detail='MailerSend webhooks are disabled pending verified signature support')
 
 
 # --------------- Media Upload ---------------
@@ -3672,12 +4453,12 @@ import base64 as _base64
 
 @api_router.post('/upload')
 async def upload_image(file: UploadFile = File(...), user=Depends(require_admin)):
-    """Upload an image file — stores in MongoDB, returns a public URL."""
+    """Upload an image file - stores in MongoDB, returns a public URL."""
     if not file.content_type or not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail='Only image files are allowed (JPEG, PNG, WebP, GIF)')
     content = await file.read()
     if len(content) > 8 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail='File too large — max 8MB')
+        raise HTTPException(status_code=400, detail='File too large - max 8MB')
     media_id = str(uuid.uuid4())
     await db.media.insert_one({
         'id': media_id,
@@ -3693,7 +4474,7 @@ async def upload_image(file: UploadFile = File(...), user=Depends(require_admin)
 
 @api_router.get('/media/{media_id}')
 async def serve_media(media_id: str):
-    """Serve an uploaded image publicly — no auth required."""
+    """Serve an uploaded image publicly - no auth required."""
     media = await db.media.find_one({'id': media_id})
     if not media:
         raise HTTPException(status_code=404, detail='Image not found')
@@ -3713,27 +4494,27 @@ async def seed_blog_posts():
             'title': 'Why Surfers in Santa Cruz Should Lift Weights',
             'slug': 'why-surfers-in-santa-cruz-should-lift-weights',
             'excerpt': 'Surfing demands explosive power, rotational strength, and injury resilience. Here\'s why every Santa Cruz surfer should be spending time in the weight room.',
-            'content': '''<p>If you surf in Santa Cruz, you already understand athletic effort. Early mornings, cold water, and a lineup that demands respect. What you might not realize is that your time in the gym — specifically lifting weights — could be the biggest performance leap available to you right now.</p>
+            'content': '''<p>If you surf in Santa Cruz, you already understand athletic effort. Early mornings, cold water, and a lineup that demands respect. What you might not realize is that your time in the gym - specifically lifting weights - could be the biggest performance leap available to you right now.</p>
 
 <h2>Strength Training and Surfing: The Connection</h2>
 
 <p>Surfing is not a low-impact sport. It demands explosive hip extension for pop-ups, rotational power for turns, shoulder stability for paddle-outs, and the core strength to hold position on unpredictable wave faces.</p>
 
-<p>Most surf-specific injuries — rotator cuff issues, lower back pain, knee problems — are rooted in muscular imbalances that strength training directly addresses. When you train compound movements like squats, deadlifts, rows, and overhead pressing, you build the structural resilience that keeps you surfing longer into life.</p>
+<p>Most surf-specific injuries - rotator cuff issues, lower back pain, knee problems - are rooted in muscular imbalances that strength training directly addresses. When you train compound movements like squats, deadlifts, rows, and overhead pressing, you build the structural resilience that keeps you surfing longer into life.</p>
 
 <h2>The Specific Lifts That Carry Over to Surfing</h2>
 
 <ul>
-<li><strong>Deadlifts</strong> — Build posterior chain strength (hamstrings, glutes, lower back) that powers your pop-up and keeps your spine stable in the barrel.</li>
-<li><strong>Romanian Deadlifts</strong> — Train the hip hinge pattern under load, improving your ability to generate force from the hips on critical turns.</li>
-<li><strong>Barbell Rows</strong> — Strengthen the back muscles that do most of the work during paddle sessions. Better paddling equals more waves.</li>
-<li><strong>Front Squats</strong> — Develop quad strength and thoracic mobility — both essential for low, powerful stance positions.</li>
-<li><strong>Turkish Get-Ups</strong> — One of the best exercises for the total-body stability and shoulder integrity surfers need.</li>
+<li><strong>Deadlifts</strong> - Build posterior chain strength (hamstrings, glutes, lower back) that powers your pop-up and keeps your spine stable in the barrel.</li>
+<li><strong>Romanian Deadlifts</strong> - Train the hip hinge pattern under load, improving your ability to generate force from the hips on critical turns.</li>
+<li><strong>Barbell Rows</strong> - Strengthen the back muscles that do most of the work during paddle sessions. Better paddling equals more waves.</li>
+<li><strong>Front Squats</strong> - Develop quad strength and thoracic mobility - both essential for low, powerful stance positions.</li>
+<li><strong>Turkish Get-Ups</strong> - One of the best exercises for the total-body stability and shoulder integrity surfers need.</li>
 </ul>
 
 <h2>How Often Should Surfers Lift?</h2>
 
-<p>Two to three sessions per week is enough to see meaningful results without interfering with your time in the water. The key is consistency and progressive overload — adding small amounts of weight over time as your strength develops.</p>
+<p>Two to three sessions per week is enough to see meaningful results without interfering with your time in the water. The key is consistency and progressive overload - adding small amounts of weight over time as your strength develops.</p>
 
 <p>At Santa Cruz Strength, we work with surfers, climbers, trail runners, and other outdoor athletes who want their gym time to directly support their performance. If you\'re curious how to structure a program around your surf schedule, come in and talk to a coach.</p>
 
@@ -3756,8 +4537,8 @@ async def seed_blog_posts():
             'id': str(uuid.uuid4()),
             'title': 'How Many Days a Week Should You Lift? (The Real Answer)',
             'slug': 'how-many-days-a-week-should-you-lift',
-            'excerpt': 'It\'s one of the most common questions we get. The answer depends on your goals, recovery capacity, and schedule — but there\'s a clear range that works for most people.',
-            'content': '''<p>This is one of the questions we hear most often from new members and people considering joining. The internet gives wildly different answers — some say 6 days a week, others say 2 is enough. The truth is somewhere in the middle, and it depends on you.</p>
+            'excerpt': 'It\'s one of the most common questions we get. The answer depends on your goals, recovery capacity, and schedule - but there\'s a clear range that works for most people.',
+            'content': '''<p>This is one of the questions we hear most often from new members and people considering joining. The internet gives wildly different answers - some say 6 days a week, others say 2 is enough. The truth is somewhere in the middle, and it depends on you.</p>
 
 <h2>The Short Answer</h2>
 
@@ -3767,18 +4548,18 @@ async def seed_blog_posts():
 
 <h2>Why 3 Days Works</h2>
 
-<p>Muscle tissue repairs and grows during rest — not during the training session itself. Three sessions spaced throughout the week gives you enough stimulus to drive adaptation while allowing adequate recovery between sessions.</p>
+<p>Muscle tissue repairs and grows during rest - not during the training session itself. Three sessions spaced throughout the week gives you enough stimulus to drive adaptation while allowing adequate recovery between sessions.</p>
 
 <p>A typical 3-day program at Santa Cruz Strength might look like:</p>
 <ul>
-<li><strong>Monday</strong> — Lower body focus (squat pattern + deadlift variation)</li>
-<li><strong>Wednesday</strong> — Upper body focus (push + pull)</li>
-<li><strong>Friday</strong> — Full body or sport-specific work</li>
+<li><strong>Monday</strong> - Lower body focus (squat pattern + deadlift variation)</li>
+<li><strong>Wednesday</strong> - Upper body focus (push + pull)</li>
+<li><strong>Friday</strong> - Full body or sport-specific work</li>
 </ul>
 
 <h2>When to Train 4-5 Days</h2>
 
-<p>More advanced lifters with specific goals — powerlifting competition prep, building a particular muscle group, sport performance peaking — can benefit from 4 to 5 sessions per week. At this level, programming becomes more specialized and recovery management matters significantly more.</p>
+<p>More advanced lifters with specific goals - powerlifting competition prep, building a particular muscle group, sport performance peaking - can benefit from 4 to 5 sessions per week. At this level, programming becomes more specialized and recovery management matters significantly more.</p>
 
 <h2>When 2 Days Is Enough</h2>
 
@@ -3803,7 +4584,7 @@ async def seed_blog_posts():
         },
         {
             'id': str(uuid.uuid4()),
-            'title': 'Is Strength Training Good for Beginners? (Yes — Here\'s Why)',
+            'title': 'Is Strength Training Good for Beginners? (Yes - Here\'s Why)',
             'slug': 'is-strength-training-good-for-beginners',
             'excerpt': 'You don\'t need to be in shape to start lifting. You start lifting to get in shape. Here\'s what beginners actually experience in their first months of strength training.',
             'content': '''<p>One of the most common concerns we hear from people who walk into Santa Cruz Strength for the first time: "I\'m not fit enough to be here yet."</p>
@@ -3812,10 +4593,10 @@ async def seed_blog_posts():
 
 <h2>What Actually Happens When Beginners Lift</h2>
 
-<p>Beginners respond to strength training faster than almost anyone else. This isn\'t motivation — it\'s physiology. When your body encounters a new stimulus (lifting weights), it adapts aggressively. In the first 3 to 6 months of consistent training, beginners often:</p>
+<p>Beginners respond to strength training faster than almost anyone else. This isn\'t motivation - it\'s physiology. When your body encounters a new stimulus (lifting weights), it adapts aggressively. In the first 3 to 6 months of consistent training, beginners often:</p>
 
 <ul>
-<li>Increase strength by 20–40% on major lifts</li>
+<li>Increase strength by 20-40% on major lifts</li>
 <li>Improve body composition even without dietary changes</li>
 <li>Build bone density that protects against injury</li>
 <li>Improve insulin sensitivity and metabolic health</li>
@@ -3824,7 +4605,7 @@ async def seed_blog_posts():
 
 <h2>You Don\'t Need Special Fitness First</h2>
 
-<p>You don\'t need to be able to run a mile. You don\'t need to lose weight before you come in. You don\'t need to have lifted before. Every coach at Santa Cruz Strength has worked with people at every starting point — from never having touched a barbell to returning after years away from training.</p>
+<p>You don\'t need to be able to run a mile. You don\'t need to lose weight before you come in. You don\'t need to have lifted before. Every coach at Santa Cruz Strength has worked with people at every starting point - from never having touched a barbell to returning after years away from training.</p>
 
 <p>Good coaching means meeting you exactly where you are.</p>
 
@@ -3833,14 +4614,14 @@ async def seed_blog_posts():
 <p>In the first 3 months, the priority is:</p>
 
 <ol>
-<li><strong>Learning movement patterns</strong> — squat, hinge, push, pull, carry</li>
-<li><strong>Building the habit</strong> — consistent attendance matters more than perfect programming</li>
-<li><strong>Staying patient</strong> — the results are real but they compound over months, not weeks</li>
+<li><strong>Learning movement patterns</strong> - squat, hinge, push, pull, carry</li>
+<li><strong>Building the habit</strong> - consistent attendance matters more than perfect programming</li>
+<li><strong>Staying patient</strong> - the results are real but they compound over months, not weeks</li>
 </ol>
 
 <h2>The Santa Cruz Strength Environment</h2>
 
-<p>We built this gym for serious training — but serious doesn\'t mean exclusive. It means focused, respectful, and honest. Beginners are welcome here because everyone who trains seriously was once a beginner.</p>
+<p>We built this gym for serious training - but serious doesn\'t mean exclusive. It means focused, respectful, and honest. Beginners are welcome here because everyone who trains seriously was once a beginner.</p>
 
 <p>If you\'re curious about starting, come in and talk to us. No pressure, no sales tactics. Just a conversation about where you are and where you want to go.</p>''',
             'category': 'Getting Started',
@@ -3857,20 +4638,20 @@ async def seed_blog_posts():
             'id': str(uuid.uuid4()),
             'title': 'Why Climbers, Trail Runners, and Cyclists Should Lift Heavy',
             'slug': 'strength-training-for-outdoor-athletes-santa-cruz',
-            'excerpt': 'Santa Cruz is full of world-class outdoor athletes who train hard in their sport — and often neglect the weight room. Here\'s why that\'s a missed opportunity.',
+            'excerpt': 'Santa Cruz is full of world-class outdoor athletes who train hard in their sport - and often neglect the weight room. Here\'s why that\'s a missed opportunity.',
             'content': '''<p>Santa Cruz has one of the most diverse outdoor athletic communities in California. On any given day, you\'ll find people climbing at Castle Rock, running the fire roads above Wilder Ranch, or grinding up Empire Grade on a road bike. What these athletes often have in common: they\'re incredibly fit in their sport and significantly undertrained everywhere else.</p>
 
 <h2>Why Sport-Specific Fitness Isn\'t Enough</h2>
 
-<p>Running makes you a better runner — but only to a point. Past a certain threshold, additional running volume produces diminishing returns and increasing injury risk. The athletes who break through plateaus and stay healthy long-term are the ones who address their structural weaknesses in the weight room.</p>
+<p>Running makes you a better runner - but only to a point. Past a certain threshold, additional running volume produces diminishing returns and increasing injury risk. The athletes who break through plateaus and stay healthy long-term are the ones who address their structural weaknesses in the weight room.</p>
 
 <h2>For Climbers</h2>
 
-<p>Climbing develops pulling strength impressively but creates significant imbalances — overdeveloped pulling muscles, underdeveloped pushing muscles, and often tight hip flexors. Dedicated pressing work, hip mobility training, and posterior chain strengthening directly address the injury patterns that take climbers out of commission. Finger injuries, shoulder impingements, and elbow tendinitis are frequently rooted in these imbalances.</p>
+<p>Climbing develops pulling strength impressively but creates significant imbalances - overdeveloped pulling muscles, underdeveloped pushing muscles, and often tight hip flexors. Dedicated pressing work, hip mobility training, and posterior chain strengthening directly address the injury patterns that take climbers out of commission. Finger injuries, shoulder impingements, and elbow tendinitis are frequently rooted in these imbalances.</p>
 
 <h2>For Trail Runners</h2>
 
-<p>Running doesn\'t build the single-leg strength needed to run efficiently. Unilateral exercises — Bulgarian split squats, single-leg Romanian deadlifts, step-ups — build the specific strength that improves running economy and protects knees and hips on technical descents. Two sessions per week of strength work has been shown repeatedly to improve running performance without adding significant training load.</p>
+<p>Running doesn\'t build the single-leg strength needed to run efficiently. Unilateral exercises - Bulgarian split squats, single-leg Romanian deadlifts, step-ups - build the specific strength that improves running economy and protects knees and hips on technical descents. Two sessions per week of strength work has been shown repeatedly to improve running performance without adding significant training load.</p>
 
 <h2>For Cyclists</h2>
 
@@ -3886,7 +4667,7 @@ async def seed_blog_posts():
             'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/jba9w56u_images.jpeg',
             'published': True,
             'seo_title': 'Strength Training for Santa Cruz Outdoor Athletes | Santa Cruz Strength',
-            'seo_description': 'Why climbers, trail runners, and cyclists in Santa Cruz should add strength training to their routine — and how to do it without sacrificing sport performance.',
+            'seo_description': 'Why climbers, trail runners, and cyclists in Santa Cruz should add strength training to their routine - and how to do it without sacrificing sport performance.',
             'author': 'Santa Cruz Strength',
             'created_at': now.isoformat(),
             'updated_at': now.isoformat(),
@@ -3895,33 +4676,33 @@ async def seed_blog_posts():
             'id': str(uuid.uuid4()),
             'title': 'Can You Lose Weight by Lifting Weights?',
             'slug': 'can-you-lose-weight-by-lifting-weights',
-            'excerpt': 'The short answer is yes — but the mechanism is different from what most people expect. Here\'s what actually happens to your body when you start a consistent strength training program.',
-            'content': '''<p>This question comes up constantly, and the honest answer surprises a lot of people: yes, lifting weights is one of the most effective things you can do for long-term body composition — but not necessarily for the reasons you think.</p>
+            'excerpt': 'The short answer is yes - but the mechanism is different from what most people expect. Here\'s what actually happens to your body when you start a consistent strength training program.',
+            'content': '''<p>This question comes up constantly, and the honest answer surprises a lot of people: yes, lifting weights is one of the most effective things you can do for long-term body composition - but not necessarily for the reasons you think.</p>
 
 <h2>Why Cardio Alone Often Disappoints</h2>
 
-<p>Many people approach fat loss by adding cardio: longer runs, more classes, more time on the bike. This works to a degree, but it has a ceiling. The body adapts to cardio volume efficiently, caloric burn per session decreases over time, and muscle mass — which drives metabolic rate — is often lost in the process.</p>
+<p>Many people approach fat loss by adding cardio: longer runs, more classes, more time on the bike. This works to a degree, but it has a ceiling. The body adapts to cardio volume efficiently, caloric burn per session decreases over time, and muscle mass - which drives metabolic rate - is often lost in the process.</p>
 
 <h2>How Lifting Changes the Equation</h2>
 
-<p>Muscle tissue is metabolically expensive. The more of it you have, the more calories your body burns at rest. When you add muscle through consistent strength training, you raise your resting metabolic rate — meaning you burn more calories even when you\'re not exercising.</p>
+<p>Muscle tissue is metabolically expensive. The more of it you have, the more calories your body burns at rest. When you add muscle through consistent strength training, you raise your resting metabolic rate - meaning you burn more calories even when you\'re not exercising.</p>
 
-<p>This is why many people who start lifting report that their body composition changes noticeably even without changing what they eat. They gain muscle, lose fat, and their clothes fit differently — even if the number on the scale doesn\'t move dramatically.</p>
+<p>This is why many people who start lifting report that their body composition changes noticeably even without changing what they eat. They gain muscle, lose fat, and their clothes fit differently - even if the number on the scale doesn\'t move dramatically.</p>
 
 <h2>Strength Training + Diet: The Real Formula</h2>
 
 <p>If weight loss is a goal, the most effective approach combines:</p>
 <ol>
-<li>Consistent strength training (2–4 sessions per week)</li>
+<li>Consistent strength training (2-4 sessions per week)</li>
 <li>Adequate protein intake (enough to support muscle retention and growth)</li>
 <li>A modest caloric deficit (not aggressive restriction)</li>
 </ol>
 
-<p>This combination preserves muscle while losing fat — which produces dramatically better long-term results than calorie restriction alone.</p>
+<p>This combination preserves muscle while losing fat - which produces dramatically better long-term results than calorie restriction alone.</p>
 
 <h2>What Santa Cruz Strength Members Experience</h2>
 
-<p>We have members who came in specifically for weight loss and discovered that the scale became far less important once they started getting stronger. Performance goals — lifting more, moving better, having more energy — replaced the single focus on body weight. And ironically, their bodies changed more significantly than they expected.</p>
+<p>We have members who came in specifically for weight loss and discovered that the scale became far less important once they started getting stronger. Performance goals - lifting more, moving better, having more energy - replaced the single focus on body weight. And ironically, their bodies changed more significantly than they expected.</p>
 
 <p>Strength training doesn\'t just change how you look. It changes how you live.</p>''',
             'category': 'Strength Science',
@@ -3929,7 +4710,7 @@ async def seed_blog_posts():
             'cover_image': 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/gum0tx3j_l.jpg',
             'published': True,
             'seo_title': 'Can You Lose Weight by Lifting Weights? | Santa Cruz Strength',
-            'seo_description': 'Yes — and here\'s why strength training is one of the most effective tools for long-term body composition change.',
+            'seo_description': 'Yes - and here\'s why strength training is one of the most effective tools for long-term body composition change.',
             'author': 'Santa Cruz Strength',
             'created_at': now.isoformat(),
             'updated_at': now.isoformat(),
@@ -3939,11 +4720,11 @@ async def seed_blog_posts():
             'title': 'The Best Gym in Santa Cruz for Serious Athletes',
             'slug': 'best-gym-santa-cruz-serious-athletes',
             'excerpt': 'What makes a gym right for athletes who train with intention? After years of building Santa Cruz Strength, here\'s what we believe separates a serious training environment from everything else.',
-            'content': '''<p>Santa Cruz has no shortage of fitness options. Big-box gyms, boutique studios, CrossFit affiliates, yoga centers, and everything in between. We built Santa Cruz Strength because we believed something was missing — a dedicated strength training environment for people who take their training seriously without taking themselves too seriously.</p>
+            'content': '''<p>Santa Cruz has no shortage of fitness options. Big-box gyms, boutique studios, CrossFit affiliates, yoga centers, and everything in between. We built Santa Cruz Strength because we believed something was missing - a dedicated strength training environment for people who take their training seriously without taking themselves too seriously.</p>
 
 <h2>What "Serious" Actually Means</h2>
 
-<p>Serious doesn\'t mean competitive. It doesn\'t mean you have to be a powerlifter or an athlete chasing a PR. Serious means you show up consistently, you put in the work, and you\'re there to improve — not to be seen, not to socialize, not to go through the motions.</p>
+<p>Serious doesn\'t mean competitive. It doesn\'t mean you have to be a powerlifter or an athlete chasing a PR. Serious means you show up consistently, you put in the work, and you\'re there to improve - not to be seen, not to socialize, not to go through the motions.</p>
 
 <p>Our members include competitive powerlifters, professional surfers, UCSC researchers who train before work, parents who get their session in during school hours, and people in their 60s who came to us wanting to build strength for the next chapter of their lives. What they have in common is intentionality.</p>
 
@@ -3967,7 +4748,7 @@ async def seed_blog_posts():
 
 <h2>Location</h2>
 
-<p>We\'re in Harvey West Business Park — a working part of Santa Cruz that feels right for a gym like this. Not downtown, not a strip mall. A real space in a real neighborhood, easy to get to, with parking.</p>
+<p>We\'re in Harvey West Business Park - a working part of Santa Cruz that feels right for a gym like this. Not downtown, not a strip mall. A real space in a real neighborhood, easy to get to, with parking.</p>
 
 <p>If this sounds like what you\'ve been looking for, come in and see it. We offer free tours for anyone considering membership. No pressure, just an honest look at the space and a conversation about whether it\'s the right fit.</p>''',
             'category': 'Gym Culture',
@@ -3984,8 +4765,8 @@ async def seed_blog_posts():
             'id': str(uuid.uuid4()),
             'title': 'How Long Should a Workout Be? What Actually Matters',
             'slug': 'how-long-should-a-workout-be',
-            'excerpt': 'More time in the gym doesn\'t automatically mean more progress. Here\'s what the research says — and what we see with members at Santa Cruz Strength.',
-            'content': '''<p>There\'s a persistent belief that longer workouts produce better results. People who spend 90 minutes in the gym feel they worked harder than people who were in and out in 45. This isn\'t necessarily true — and in many cases it\'s backwards.</p>
+            'excerpt': 'More time in the gym doesn\'t automatically mean more progress. Here\'s what the research says - and what we see with members at Santa Cruz Strength.',
+            'content': '''<p>There\'s a persistent belief that longer workouts produce better results. People who spend 90 minutes in the gym feel they worked harder than people who were in and out in 45. This isn\'t necessarily true - and in many cases it\'s backwards.</p>
 
 <h2>The Research on Workout Duration</h2>
 
@@ -3995,21 +4776,21 @@ async def seed_blog_posts():
 
 <p>For most strength training goals, a well-designed session fits in 45 to 75 minutes:</p>
 <ul>
-<li><strong>5–10 minutes:</strong> Warm-up and movement prep</li>
-<li><strong>25–40 minutes:</strong> Primary strength work (2–4 main lifts)</li>
-<li><strong>10–20 minutes:</strong> Accessory work or conditioning</li>
+<li><strong>5-10 minutes:</strong> Warm-up and movement prep</li>
+<li><strong>25-40 minutes:</strong> Primary strength work (2-4 main lifts)</li>
+<li><strong>10-20 minutes:</strong> Accessory work or conditioning</li>
 <li><strong>5 minutes:</strong> Cool-down</li>
 </ul>
 
 <h2>When Sessions Creep Too Long</h2>
 
-<p>Sessions that stretch past 75–90 minutes often indicate one of several things: too much volume (more sets and exercises than necessary), insufficient rest management, or time being lost to non-training activities. None of these improve outcomes.</p>
+<p>Sessions that stretch past 75-90 minutes often indicate one of several things: too much volume (more sets and exercises than necessary), insufficient rest management, or time being lost to non-training activities. None of these improve outcomes.</p>
 
-<p>Cortisol — the stress hormone — rises meaningfully after about 60 minutes of intense training. Extended sessions can actually compromise the hormonal environment for recovery and muscle growth.</p>
+<p>Cortisol - the stress hormone - rises meaningfully after about 60 minutes of intense training. Extended sessions can actually compromise the hormonal environment for recovery and muscle growth.</p>
 
 <h2>The Practical Reality</h2>
 
-<p>For most people — especially those with jobs, families, and other commitments — the ideal workout is the one that gets done consistently. A 45-minute session three times per week that you actually complete will produce far better results over a year than an aspirational 2-hour program that you abandon after three weeks.</p>
+<p>For most people - especially those with jobs, families, and other commitments - the ideal workout is the one that gets done consistently. A 45-minute session three times per week that you actually complete will produce far better results over a year than an aspirational 2-hour program that you abandon after three weeks.</p>
 
 <p>Build the habit. Keep sessions focused. Progress will follow.</p>
 
@@ -4038,7 +4819,7 @@ async def run_daily_bounce_digest():
     today = now_utc().date().isoformat()
     entries = await db.daily_bounce_log.find({'date': today}).to_list(500)
     if not entries:
-        logger.info('[DIGEST] No bounces/failures today — skipping digest')
+        logger.info('[DIGEST] No bounces/failures today - skipping digest')
         return
 
     email_bounces = [e for e in entries if e.get('type') == 'email_bounce']
@@ -4053,10 +4834,10 @@ async def run_daily_bounce_digest():
         rows_html += '<tr><td colspan="5" style="padding:16px 0 8px;color:#FA5A5C;font-weight:700;font-size:15px;border-bottom:1px solid #333;">Email Bounces / Complaints</td></tr>'
         for e in email_bounces:
             rows_html += f'''<tr style="border-bottom:1px solid #222;">
-<td style="padding:8px 12px;color:#fff;">{e.get('name','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('email','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('phone','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('source','—')}</td>
+<td style="padding:8px 12px;color:#fff;">{e.get('name',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('email',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('phone',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('source',' - ')}</td>
 <td style="padding:8px 12px;color:#FA5A5C;">{e.get('event','').replace('email.','')}</td>
 </tr>'''
 
@@ -4064,10 +4845,10 @@ async def run_daily_bounce_digest():
         rows_html += '<tr><td colspan="5" style="padding:16px 0 8px;color:#F59E0B;font-weight:700;font-size:15px;border-bottom:1px solid #333;">SMS Send Failures</td></tr>'
         for e in sms_failures:
             rows_html += f'''<tr style="border-bottom:1px solid #222;">
-<td style="padding:8px 12px;color:#fff;">{e.get('name','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('email','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('phone','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('source','—')}</td>
+<td style="padding:8px 12px;color:#fff;">{e.get('name',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('email',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('phone',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('source',' - ')}</td>
 <td style="padding:8px 12px;color:#F59E0B;">{e.get('event','')}</td>
 </tr>'''
 
@@ -4075,10 +4856,10 @@ async def run_daily_bounce_digest():
         rows_html += '<tr><td colspan="5" style="padding:16px 0 8px;color:#8B5CF6;font-weight:700;font-size:15px;border-bottom:1px solid #333;">SMS Opt-Outs (STOP)</td></tr>'
         for e in sms_optouts:
             rows_html += f'''<tr style="border-bottom:1px solid #222;">
-<td style="padding:8px 12px;color:#fff;">{e.get('name','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('email','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('phone','—')}</td>
-<td style="padding:8px 12px;color:#aaa;">{e.get('source','—')}</td>
+<td style="padding:8px 12px;color:#fff;">{e.get('name',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('email',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('phone',' - ')}</td>
+<td style="padding:8px 12px;color:#aaa;">{e.get('source',' - ')}</td>
 <td style="padding:8px 12px;color:#8B5CF6;">STOP received</td>
 </tr>'''
 
@@ -4093,9 +4874,9 @@ async def run_daily_bounce_digest():
 
     html = f"""<div style="font-family:sans-serif;padding:28px;background:#0D0D0D;color:#fff;border-radius:12px;">
 <h2 style="color:#fff;margin:0 0 4px;">Daily Delivery Report</h2>
-<p style="color:#666;margin:0 0 20px;font-size:14px;">Santa Cruz Strength CRM — {today}</p>
+<p style="color:#666;margin:0 0 20px;font-size:14px;">Santa Cruz Strength CRM - {today}</p>
 <div style="background:#1A1A1A;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
-<p style="color:#aaa;margin:0;font-size:14px;">Today's removals: <strong style="color:#fff;">{total} contacts</strong> — {summary_text}</p>
+<p style="color:#aaa;margin:0;font-size:14px;">Today's removals: <strong style="color:#fff;">{total} contacts</strong> - {summary_text}</p>
 <p style="color:#666;margin:4px 0 0;font-size:12px;">All contacts below have been automatically blacklisted and removed from future sends.</p>
 </div>
 <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -4110,23 +4891,54 @@ async def run_daily_bounce_digest():
 </table>
 </div>"""
 
-    subject = f'Daily Report: {total} contact{"s" if total != 1 else ""} removed — {today}'
+    subject = f'Daily Report: {total} contact{"s" if total != 1 else ""} removed - {today}'
     ok = await send_resend_email(to=STAFF_EMAIL, subject=subject, html=html)
     if ok:
         logger.info(f'[DIGEST] Sent daily bounce digest: {total} entries')
         # Clear today's log after successful send
         await db.daily_bounce_log.delete_many({'date': today})
     else:
-        logger.warning('[DIGEST] Failed to send daily bounce digest — will retry next run')
+        logger.warning('[DIGEST] Failed to send daily bounce digest - will retry next run')
+
+async def run_lead_outbox_dispatcher():
+    """Dispatch a bounded batch outside the public request path."""
+    runtime = getattr(app.state, 'lead_dispatch_runtime', None)
+    if not runtime:
+        return
+    await dispatch_batch(
+        db.lead_outbox,
+        db.leads,
+        config=runtime['config'],
+        adapters=runtime['adapters'],
+        worker_id=runtime['worker_id'],
+    )
+
 
 @app.on_event('startup')
 async def startup():
+    validate_runtime_safety(database_name, mongo_url)
+    require_frontend_origin()
+    lead_dispatch_config = DispatchConfig.from_env()
+    logger.info('[SAFETY] Runtime controls: %s', runtime_summary())
+    if not ALLOW_DATABASE_WRITES:
+        logger.warning('[SAFETY] Protected read-only mode active; startup writes and schedulers skipped')
+        return
     await db.leads.create_index('id', unique=True)
     await db.leads.create_index('email')
     await db.leads.create_index('status')
     await db.leads.create_index('lead_source')
     await db.leads.create_index('created_at')
     await db.leads.create_index('location')
+    await db.leads.create_index(
+        'request_id', unique=True,
+        partialFilterExpression={'request_id': {'$type': 'string'}},
+        name='unique_lead_request_id',
+    )
+    await db.leads.create_index(
+        'request_ids', unique=True,
+        partialFilterExpression={'request_ids': {'$type': 'array'}},
+        name='unique_lead_request_id_history',
+    )
     await db.users.create_index('id', unique=True)
     await db.users.create_index('email', unique=True)
     await db.invites.create_index('token', unique=True)
@@ -4162,20 +4974,32 @@ async def startup():
     await db.team_members.create_index('category')
     await db.site_content.create_index('key', unique=True)
     await db.corporate_leads.create_index('id', unique=True)
+    await db.corporate_leads.create_index('request_id', unique=True, sparse=True)
+    await db.corporate_leads.create_index('request_ids', unique=True, sparse=True)
     await db.corporate_leads.create_index('status')
     await db.corporate_leads.create_index('created_at')
-    # Seed site content — upsert missing keys (preserves existing edits)
+    await db.webhook_receipts.create_index('event_key', unique=True)
+    await db.webhook_receipts.create_index('received_at')
+    await db.lead_lifecycle_events.create_index('event_id', unique=True)
+    await db.lead_lifecycle_events.create_index([('lead_id', 1), ('occurred_at', 1)])
+    await db.lead_contact_events.create_index('event_id', unique=True)
+    await db.lead_contact_events.create_index([('lead_id', 1), ('occurred_at', 1)])
+    await db.lead_outbox.create_index('id', unique=True)
+    await db.lead_outbox.create_index('idempotency_key', unique=True)
+    await db.lead_outbox.create_index([('status', 1), ('available_at', 1), ('created_at', 1)])
+    await db.lead_outbox.create_index('terminal_failure_at')
+    # Seed site content - upsert missing keys (preserves existing edits)
     seed_content = [
         # About Page
         {'key': 'about_mission', 'value': 'Come as you are, leave how you want!'},
         {'key': 'about_headline', 'value': 'THIS IS SANTA CRUZ STRENGTH'},
-        {'key': 'about_story', 'value': "Santa Cruz Strength isn't your average gym. We built this place for lifters, athletes, and anyone who's serious about getting stronger — on their own terms.\n\nWhether you're a first-time lifter or a seasoned competitor, you'll find the equipment, coaching, and community here to match your ambition. No ego. No gimmicks. Just iron, chalk, and people who give a damn.\n\nWe're locally owned, coach-led, and built around one idea: everyone deserves a gym that respects their goals."},
+        {'key': 'about_story', 'value': "Santa Cruz Strength isn't your average gym. We built this place for lifters, athletes, and anyone who's serious about getting stronger - on their own terms.\n\nWhether you're a first-time lifter or a seasoned competitor, you'll find the equipment, coaching, and community here to match your ambition. No ego. No gimmicks. Just iron, chalk, and people who give a damn.\n\nWe're locally owned, coach-led, and built around one idea: everyone deserves a gym that respects their goals."},
         {'key': 'about_team_headline', 'value': 'MEET THE TEAM'},
         {'key': 'about_team_subtitle', 'value': 'The people behind the iron'},
         {'key': 'about_trainers_headline', 'value': 'MEET OUR TRAINERS'},
         {'key': 'about_trainers_subtitle', 'value': 'Expert coaching for every level'},
         {'key': 'about_cta_headline', 'value': 'COME SEE FOR YOURSELF'},
-        {'key': 'about_cta_text', 'value': "Drop in, take a look around, and meet the crew. No pressure — just good people and heavy weights."},
+        {'key': 'about_cta_text', 'value': "Drop in, take a look around, and meet the crew. No pressure - just good people and heavy weights."},
         # Home Page
         {'key': 'home_hero_headline', 'value': 'SERIOUS\nSTRENGTH\nTRAINING.'},
         {'key': 'home_hero_subtitle', 'value': 'A focused gym for athletes, lifters, and people who believe strength matters.'},
@@ -4187,7 +5011,7 @@ async def startup():
         {'key': 'home_environment_subtext', 'value': 'No music drowning out your thoughts. No influencer corner. Just chalk, iron, and people who came to work.'},
         {'key': 'home_who_headline', 'value': 'IF YOU TRAIN,\nYOU BELONG HERE.'},
         {'key': 'home_who_text', 'value': "Santa Cruz Strength serves the full athletic community of this city. The common thread isn't your sport or your level."},
-        {'key': 'home_who_subtext', 'value': "It's the belief that being strong makes everything else better — your surfing, your climbing, your work, your decades ahead."},
+        {'key': 'home_who_subtext', 'value': "It's the belief that being strong makes everything else better - your surfing, your climbing, your work, your decades ahead."},
         # Training Page
         {'key': 'training_headline', 'value': 'PERSONAL TRAINING\nTHAT RESPECTS YOUR TIME.'},
         {'key': 'training_subtitle', 'value': 'Work directly with a Santa Cruz Strength coach to build real strength, master technique, and train with purpose.'},
@@ -4199,7 +5023,7 @@ async def startup():
         {'key': 'contact_form_subtitle', 'value': 'Fill out the form and we will get back to you within 24 hours.'},
     ]
     seeded = 0
-    for item in seed_content:
+    for item in seed_content if ALLOW_SEEDING else []:
         result = await db.site_content.update_one(
             {'key': item['key']},
             {'$setOnInsert': {'value': item['value'], 'updated_at': now_utc().isoformat()}},
@@ -4211,7 +5035,7 @@ async def startup():
         logger.info(f'[SEED] Seeded {seeded} new site content keys')
     # Seed team members if none exist
     team_count = await db.team_members.count_documents({})
-    if team_count == 0:
+    if ALLOW_SEEDING and team_count == 0:
         seed_team = [
             {'id': str(uuid.uuid4()), 'name': 'Mike', 'role': 'Owner', 'bio': '', 'photo_url': 'https://customer-assets.emergentagent.com/job_da9a4a5d-572a-4858-ad1e-163b4849fc8c/artifacts/g5zrk54i_Mike.jpg', 'category': 'team', 'sort_order': 0, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
             {'id': str(uuid.uuid4()), 'name': 'Teresa', 'role': 'Community Manager', 'bio': '', 'photo_url': 'https://customer-assets.emergentagent.com/job_da9a4a5d-572a-4858-ad1e-163b4849fc8c/artifacts/muymaslx_Teresa.jpg', 'category': 'team', 'sort_order': 1, 'is_visible': True, 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()},
@@ -4225,37 +5049,77 @@ async def startup():
         logger.info(f'[SEED] Created {len(seed_team)} team members')
     # Seed blog posts if none exist
     blog_count = await db.blog.count_documents({})
-    if blog_count == 0:
+    if ALLOW_SEEDING and blog_count == 0:
         await seed_blog_posts()
-    # Seed default owner if none exists
+    # Bootstrap the first owner only when explicit, one-time environment values are supplied.
+    # Existing owner credentials are never reset during application startup.
     owner_exists = await db.users.find_one({'role': 'owner'})
-    if not owner_exists:
-        # Upgrade existing admin to owner if present
-        existing_admin = await db.users.find_one({'email': 'management@santacruzstrength.com'})
-        if existing_admin:
-            await db.users.update_one({'email': 'management@santacruzstrength.com'}, {'$set': {'role': 'owner'}})
-            logger.info('[SEED] Upgraded management@ to owner role')
+    if ALLOW_SEEDING and not owner_exists:
+        bootstrap_email = os.environ.get('BOOTSTRAP_OWNER_EMAIL', '').strip().lower()
+        bootstrap_password = os.environ.get('BOOTSTRAP_OWNER_PASSWORD', '')
+        bootstrap_name = os.environ.get('BOOTSTRAP_OWNER_NAME', 'Management').strip() or 'Management'
+
+        if bootstrap_email and len(bootstrap_password) >= 12:
+            existing_user = await db.users.find_one({'email': bootstrap_email})
+            if existing_user:
+                await db.users.update_one(
+                    {'email': bootstrap_email},
+                    {'$set': {'role': 'owner', 'is_active': True}},
+                )
+                logger.info('[BOOTSTRAP] Promoted configured account to owner role')
+            else:
+                owner_id = str(uuid.uuid4())
+                await db.users.insert_one({
+                    'id': owner_id,
+                    'email': bootstrap_email,
+                    'password_hash': hash_password(bootstrap_password),
+                    'name': bootstrap_name,
+                    'role': 'owner',
+                    'location': 'santa_cruz',
+                    'is_active': True,
+                    'created_at': now_utc().isoformat(),
+                })
+                logger.info('[BOOTSTRAP] Created configured owner account')
         else:
-            admin_id = str(uuid.uuid4())
-            await db.users.insert_one({'id': admin_id, 'email': 'management@santacruzstrength.com', 'password_hash': hash_password('REDACTED-ROTATED-CREDENTIAL'), 'name': 'Management', 'role': 'owner', 'location': 'santa_cruz', 'is_active': True, 'created_at': now_utc().isoformat()})
-            logger.info('[SEED] Created owner: management@santacruzstrength.com')
-    else:
-        # Ensure owner can always log in — reset password if it doesn't match
-        owner = await db.users.find_one({'email': 'management@santacruzstrength.com'})
-        if owner and not verify_password('REDACTED-ROTATED-CREDENTIAL', owner.get('password_hash', '')):
-            await db.users.update_one({'email': 'management@santacruzstrength.com'}, {'$set': {'password_hash': hash_password('REDACTED-ROTATED-CREDENTIAL')}})
-            logger.info('[SEED] Reset owner password for management@santacruzstrength.com')
+            logger.warning(
+                '[BOOTSTRAP] No owner exists. Set BOOTSTRAP_OWNER_EMAIL and a '
+                'BOOTSTRAP_OWNER_PASSWORD of at least 12 characters for one-time setup.'
+            )
     logger.info('[STARTUP] Santa Cruz Strength API ready')
+    if lead_dispatch_config.enabled:
+        app.state.lead_dispatch_runtime = {
+            'config': lead_dispatch_config,
+            'adapters': build_adapters(lead_dispatch_config),
+            'worker_id': f'scs-lead-dispatch-{uuid.uuid4()}',
+        }
+        logger.info(
+            '[LEAD DISPATCH] Enabled for owner=%s test_recipient_mode=%s',
+            lead_dispatch_config.primary_owner,
+            lead_dispatch_config.test_recipient_mode,
+        )
     # Start SMS follow-up scheduler
-    scheduler = AsyncIOScheduler(timezone='America/Los_Angeles')
-    scheduler.add_job(run_sms_followup_job,    'interval', minutes=30,  id='sms_followup',    replace_existing=True)
-    scheduler.add_job(run_review_request_job,  'interval', minutes=30,  id='review_requests', replace_existing=True)
-    scheduler.add_job(run_campaign_scheduler,  'interval', minutes=60,  id='campaigns',       replace_existing=True)
-    scheduler.add_job(run_daily_bounce_digest, 'cron',     hour=18, minute=0, id='bounce_digest', replace_existing=True)
-    scheduler.add_job(run_blog_ideas_refresh,  'interval', hours=6,   id='blog_ideas',      replace_existing=True)
-    scheduler.start()
-    app.state.scheduler = scheduler
-    logger.info('[STARTUP] SMS follow-up + review + campaign + daily bounce digest schedulers started')
+    if ALLOW_SCHEDULERS:
+        scheduler = AsyncIOScheduler(timezone='America/Los_Angeles')
+        scheduler.add_job(run_sms_followup_job,    'interval', minutes=30,  id='sms_followup',    replace_existing=True)
+        scheduler.add_job(run_review_request_job,  'interval', minutes=30,  id='review_requests', replace_existing=True)
+        scheduler.add_job(run_campaign_scheduler,  'interval', minutes=60,  id='campaigns',       replace_existing=True)
+        scheduler.add_job(run_daily_bounce_digest, 'cron',     hour=18, minute=0, id='bounce_digest', replace_existing=True)
+        scheduler.add_job(run_blog_ideas_refresh,  'interval', hours=6,   id='blog_ideas',      replace_existing=True)
+        if lead_dispatch_config.enabled:
+            scheduler.add_job(
+                run_lead_outbox_dispatcher,
+                'interval',
+                seconds=15,
+                id='lead_outbox_dispatch',
+                max_instances=1,
+                coalesce=True,
+                replace_existing=True,
+            )
+        scheduler.start()
+        app.state.scheduler = scheduler
+        logger.info('[STARTUP] Approved schedulers started')
+    else:
+        logger.info('[SCHEDULER] Disabled by runtime safety controls')
 
 @app.on_event('shutdown')
 async def shutdown_db_client():
@@ -4264,4 +5128,13 @@ async def shutdown_db_client():
     client.close()
 
 app.include_router(api_router)
-app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','), allow_methods=['*'], allow_headers=['*'])
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=parse_cors_origins(os.environ.get('CORS_ORIGINS'), APP_ENV),
+    allow_methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allow_headers=[
+        'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Form-Schema-Version',
+        'X-Twilio-Signature', 'svix-id', 'svix-signature', 'svix-timestamp',
+    ],
+)
