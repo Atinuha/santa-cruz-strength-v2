@@ -106,6 +106,10 @@ except ImportError:
         replay_terminal_failure,
     )
 try:
+    from blog_articles import PUBLISHED_ARTICLES as LONGFORM_ARTICLES
+except ImportError:
+    from .blog_articles import PUBLISHED_ARTICLES as LONGFORM_ARTICLES
+try:
     from lead_consent import reinquiry_sms_updates
 except ImportError:
     from .lead_consent import reinquiry_sms_updates
@@ -4806,6 +4810,28 @@ async def seed_blog_posts():
             'updated_at': now.isoformat(),
         },
     ]
+    # Long form articles, authored separately and imported wholesale. They carry
+    # no cover_image on purpose: no real photograph has been chosen for them yet,
+    # and inventing one would break the media policy. The blog renders without.
+    for article in LONGFORM_ARTICLES:
+        body = article['content']
+        posts.append({
+            'id': str(uuid.uuid4()),
+            'title': article['title'],
+            'slug': article['slug'],
+            'excerpt': article['excerpt'],
+            'content': body(article['slug']) if callable(body) else body,
+            'category': article.get('category', 'Training'),
+            'tags': article.get('tags', []),
+            'cover_image': None,
+            'published': True,
+            'seo_title': article.get('seo_title'),
+            'seo_description': article.get('seo_description'),
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        })
+
     for post in posts:
         await db.blog.insert_one(post)
     logger.info(f'[SEED] Seeded {len(posts)} blog posts')

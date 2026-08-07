@@ -159,6 +159,86 @@
       "h1": "Thank You",
       "canonical": "https://santacruzstrength.com/thank-you",
       "robots": "noindex,nofollow"
+    },
+    {
+      "path": "/blog/beginner-strength-training-santa-cruz",
+      "title": "Beginner Strength Training in Santa Cruz | Santa Cruz Strength",
+      "description": "A practical guide to starting strength training in Santa Cruz. What beginners actually experience, what equipment to expect, and how to build a foundation.",
+      "canonical": "https://santacruzstrength.com/blog/beginner-strength-training-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/first-visit-powerlifting-gym",
+      "title": "First Visit to a Powerlifting Gym | Santa Cruz Strength",
+      "description": "What to expect on your first visit to a powerlifting or strength-focused gym. What to bring, what to look for, and how to evaluate if the environment fits your goals.",
+      "canonical": "https://santacruzstrength.com/blog/first-visit-powerlifting-gym",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/how-24-7-gym-access-works-santa-cruz",
+      "title": "How 24/7 Gym Access Works in Santa Cruz | Santa Cruz Strength",
+      "description": "How 24/7 gym access works: keycard entry, staffed vs unstaffed hours, safety considerations, and what to evaluate when choosing a gym with around-the-clock access.",
+      "canonical": "https://santacruzstrength.com/blog/how-24-7-gym-access-works-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/how-many-days-a-week-should-a-beginner-lift",
+      "title": "How Many Days a Week Should a Beginner Lift? | Santa Cruz Strength",
+      "description": "How many days per week should a beginner lift weights? The evidence-based answer, programming considerations, and how to build consistency.",
+      "canonical": "https://santacruzstrength.com/blog/how-many-days-a-week-should-a-beginner-lift",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/how-to-choose-a-strength-gym-santa-cruz",
+      "title": "How to Choose a Strength Gym in Santa Cruz | Santa Cruz Strength",
+      "description": "A practical guide to choosing a strength gym in Santa Cruz. What to look for in equipment, culture, coaching, and membership before committing.",
+      "canonical": "https://santacruzstrength.com/blog/how-to-choose-a-strength-gym-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/personal-trainer-vs-open-gym-santa-cruz",
+      "title": "Personal Trainer vs Open Gym in Santa Cruz | Santa Cruz Strength",
+      "description": "Should you hire a personal trainer or train independently? A comparison of cost, structure, accountability, and results for different experience levels.",
+      "canonical": "https://santacruzstrength.com/blog/personal-trainer-vs-open-gym-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/powerlifting-vs-olympic-weightlifting-vs-strongman",
+      "title": "Powerlifting vs Olympic Weightlifting vs Strongman | Santa Cruz Strength",
+      "description": "A practical comparison of powerlifting, Olympic weightlifting, and strongman. Movements, training demands, equipment, and how to choose.",
+      "canonical": "https://santacruzstrength.com/blog/powerlifting-vs-olympic-weightlifting-vs-strongman",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/strength-training-after-40-santa-cruz",
+      "title": "Strength Training After 40 in Santa Cruz | Santa Cruz Strength",
+      "description": "How strength training changes after 40: what to adjust, what stays the same, and why the benefits become more important as you age.",
+      "canonical": "https://santacruzstrength.com/blog/strength-training-after-40-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/strength-training-for-surfers-santa-cruz",
+      "title": "Strength Training for Surfers in Santa Cruz | Santa Cruz Strength",
+      "description": "How strength training improves surfing performance. The specific lifts that carry over, programming for surfers, and building injury resilience.",
+      "canonical": "https://santacruzstrength.com/blog/strength-training-for-surfers-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow"
+    },
+    {
+      "path": "/blog/ucsc-off-campus-gym-guide",
+      "title": "Gym Near UCSC: Off-Campus Decision Guide | Santa Cruz Strength",
+      "description": "A practical guide for UCSC students looking for an off-campus gym in Santa Cruz. What to consider, how to evaluate options, and what to prioritize on a student budget.",
+      "canonical": "https://santacruzstrength.com/blog/ucsc-off-campus-gym-guide",
+      "indexable": true,
+      "robots": "index,follow"
     }
   ],
   "dynamicRoutes": [
