@@ -14,7 +14,7 @@ Donors are read-only: `../SantaCruzrepo-new` (content), `../scs-build` (engineer
 | T-3 | Hero filled with the real gym, alt text corrected | DONE | 652cb9a |
 | T-4 | Ten long form articles imported, corpus 7 to 17 | DONE | 4e22717 |
 | T-5 | Twilio declared the sole SMS provider, fallback removed | DONE | fa6c49b |
-| T-6 | Vendor residue removed, zero remote hosts in source | DONE | pending |
+| T-6 | Vendor residue removed, zero remote hosts in source | DONE | 6f71ffb |
 | T-7 | CRM disabled adapter boundary with a fake client | **NEXT** | |
 | T-8 | Rotate the disclosed owner credential (human action) | pending | |
 | T-9 | Final integrated review | blocked by the above | |
