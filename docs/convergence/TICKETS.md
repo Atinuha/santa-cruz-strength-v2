@@ -13,7 +13,7 @@ Donors are read-only: `../SantaCruzrepo-new` (content), `../scs-build` (engineer
 | T-2 | Frontend converged, lead capture restored | DONE | 7f8923c |
 | T-3 | Hero filled with the real gym, alt text corrected | DONE | 652cb9a |
 | T-4 | Ten long form articles imported, corpus 7 to 17 | DONE | 4e22717 |
-| T-5 | Declare which email provider is authoritative | **NEXT** | |
+| T-5 | Twilio declared the sole SMS provider, fallback removed | DONE | pending |
 | T-6 | Remove vendor residue: platform config, model key, tarball dependency, thumbnail cover images | **NEXT** | |
 | T-7 | CRM disabled adapter boundary with a fake client | pending | |
 | T-8 | Rotate the disclosed owner credential (human action) | pending | |
@@ -55,7 +55,7 @@ Current state of these lives in `LOCAL-SAFETY.md`.
 | B-CSV | `leads_export.csv` is committed: 1,386 real customer records, 1,323 emails, 1,282 phones. Private remote, already pushed, permanent in history. Needs a history-rewrite or accept decision | User and owner |
 | B-03 | Written likeness permission for the four frames in `SCS_MEDIA_AWAITING_PERMISSION` | Owner |
 | B-04 | CRM credentials, field mapping, idempotency key, cutover date | Owner and vendor |
-| B-05 | Which email provider is authoritative (decidable without the owner) | User |
+| ~~B-05~~ | ~~Email provider precedence~~ CLOSED. It was never two email providers; MailerSend was an SMS fallback and is removed | closed |
 | B-11 | Rotate the disclosed owner credential. Now actually sticks, since the startup force-reset is gone | User |
 | B-02b | Higher resolution, better framed facility photographs. Quality request, not a blocker | Owner |
 
@@ -67,6 +67,7 @@ Findings I recorded and later disproved. Kept so they are not re-derived.
 - **Blog**: "the seven published slugs have no bodies" was wrong. All seven are in `seed_blog_posts`. The sitemap was always honest.
 - **SEO**: canonicals, sitemap, schema and the 404 view were already built and gated.
 - **Tests**: the backend suite was never blocked on pytest; it is `unittest`.
+- **Providers**: "two email providers wired" was wrong. MailerSend was a Twilio SMS fallback, not an email provider. Removed in T-5 for duplicate delivery and unprocessable STOP.
 - **T-1 green claim**: replacing the backend broke every lead form until T-2, because the endpoint diff compared route presence rather than request contracts.
 
 Common thread: each came from concluding absence after a partial search. **Grep the destination itself before declaring anything missing.**

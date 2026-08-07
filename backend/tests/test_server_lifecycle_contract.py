@@ -30,10 +30,17 @@ class ServerLifecycleContractTests(unittest.TestCase):
         self.assertIn('class ResendAdapter', dispatcher)
 
     def test_public_corporate_lead_sms_cannot_fall_through_to_mailersend(self):
+        # This used to assert the route passed allow_mailersend_fallback=False,
+        # opting one caller out of a fallback every other caller still had. The
+        # fallback is gone entirely, so the guarantee is now global rather than
+        # per caller and the old assertion checked a switch that no longer
+        # exists. Assert the invariant instead of the mechanism.
         corporate_route = SERVER_SOURCE.split("async def create_corporate_lead", 1)[1].split(
             "@api_router.get('/staff/corporate-leads')", 1
         )[0]
-        self.assertIn('allow_mailersend_fallback=False', corporate_route)
+        self.assertIn('await send_sms(', corporate_route)
+        self.assertNotIn('mailersend', corporate_route.lower())
+        self.assertNotIn('api.mailersend.com', SERVER_SOURCE)
 
     def test_ordinary_status_and_note_changes_do_not_claim_human_contact(self):
         update_route = SERVER_SOURCE.split("async def update_lead", 1)[1].split(

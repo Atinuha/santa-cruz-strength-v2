@@ -580,13 +580,18 @@ async def send_sms(
     to_numbers: list,
     text: str,
     lead_info: dict = None,
-    *,
-    allow_mailersend_fallback: bool = True,
 ) -> bool:
-    """Send SMS via Twilio (primary) with MailerSend fallback.
+    """Send SMS via Twilio. Twilio is the only authoritative SMS provider.
+
+    A MailerSend fallback used to sit behind this and was removed. It resent to
+    the whole recipient list after a mid batch Twilio failure, so anyone already
+    delivered to got the message twice from a second number. Worse, inbound
+    MailerSend webhooks fail closed, so a STOP reply to that number was never
+    recorded: we would have been sending from a number whose opt outs we could
+    not process.
+
     lead_info: optional dict with {name, email, phone, lead_id} for failure logging.
-    Note: MailerSend toll-free number requires verification before messages deliver.
-    Once verified, swap priority back to MailerSend."""
+    """
     valid = [n.strip().replace(' ', '') for n in to_numbers if n and n.strip().startswith('+')]
     if not valid:
         return False
@@ -614,27 +619,7 @@ async def send_sms(
         except Exception as e:
             logger.warning(f'[SMS-TWILIO] Failed: {e} - falling back to MailerSend')
 
-    # Fallback to MailerSend
-    if allow_mailersend_fallback and MAILERSEND_API_KEY and MAILERSEND_FROM:
-        try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.post(
-                    'https://api.mailersend.com/v1/sms',
-                    headers={
-                        'Authorization': f'Bearer {MAILERSEND_API_KEY}',
-                        'Content-Type': 'application/json',
-                    },
-                    json={'from': MAILERSEND_FROM, 'to': valid, 'text': text},
-                )
-            if resp.status_code == 202:
-                logger.info(f'[SMS-MAILERSEND] Sent to {valid}')
-                return True
-            else:
-                logger.warning(f'[SMS-MAILERSEND] Failed {resp.status_code}: {resp.text[:200]}')
-        except Exception as e:
-            logger.warning(f'[SMS-MAILERSEND] Error: {e}')
-
-    logger.info(f'[SMS] All providers failed - skipping to {valid}')
+    logger.info(f'[SMS] Twilio unavailable or failed - skipping to {valid}')
     if lead_info:
         await _log_sms_failure(valid, 'all_providers_failed', lead_info)
     return False
@@ -799,7 +784,7 @@ SMS_SEQUENCE = [
 
 async def run_sms_followup_job():
     """Scheduled every 30 min: send follow-up SMS based on lead age + status."""
-    if not MAILERSEND_API_KEY or not MAILERSEND_FROM:
+    if not TWILIO_PHONE_NUMBER:
         return
     now = now_utc()
     for seq in SMS_SEQUENCE:
@@ -2855,7 +2840,6 @@ async def create_corporate_lead(data: CorporateLeadCreate, request: Request):
                     f"Hey {name}, this is Santa Cruz Strength. We got your corporate membership request and will follow up soon. Reply STOP to opt out.",
                     500,
                 ),
-                allow_mailersend_fallback=False,
             )
     asyncio.create_task(_bg())
 
@@ -3762,8 +3746,8 @@ async def test_sms_campaign(campaign_id: str, user=Depends(require_admin)):
     c = await db.campaigns.find_one({'id': campaign_id})
     if not c:
         raise HTTPException(status_code=404, detail='Campaign not found')
-    if not MAILERSEND_FROM:
-        raise HTTPException(status_code=400, detail='MailerSend FROM number not configured yet')
+    if not TWILIO_PHONE_NUMBER:
+        raise HTTPException(status_code=400, detail='Twilio phone number is not configured')
     staff_numbers = await get_sms_staff_numbers()
     if not staff_numbers:
         raise HTTPException(status_code=400, detail='No staff SMS numbers configured in Settings')
@@ -3840,7 +3824,7 @@ async def _run_single_campaign(campaign_id: str):
         if email_ok:
             await _track_email_send(is_campaign=True)
         sms_ok = False
-        if campaign.get('send_sms') and lead.get('phone') and lead.get('sms_marketing_opt_in') is True and not lead.get('sms_opted_out') and MAILERSEND_FROM:
+        if campaign.get('send_sms') and lead.get('phone') and lead.get('sms_marketing_opt_in') is True and not lead.get('sms_opted_out') and TWILIO_PHONE_NUMBER:
             sms_text = _campaign_sms(lead.get('first_name', 'there'), join_url, wave=1)
             sms_ok   = await send_sms([lead['phone']], sms_text)
         if email_ok:
@@ -4012,7 +3996,7 @@ async def _send_review_request(lead: dict):
             subject=f"Welcome to Santa Cruz Strength, {name}! Share your experience",
             html=_review_email_html(name, review_page_url),
         )
-    if phone and phone.startswith('+') and lead.get('sms_marketing_opt_in') is True and not lead.get('sms_opted_out') and MAILERSEND_FROM:
+    if phone and phone.startswith('+') and lead.get('sms_marketing_opt_in') is True and not lead.get('sms_opted_out') and TWILIO_PHONE_NUMBER:
         sms = (f"Hey {name.split()[0]}, welcome to Santa Cruz Strength! "
                f"We'd love to hear about your experience - takes 10 seconds: {review_page_url} - SCS")
         await send_sms([phone], sms)
