@@ -35,6 +35,29 @@ not sufficient to send, which is invariant SI-3.
 this machine, so startup behaviour is verified at the import and test seam
 rather than by running the server. Recorded as a known limit of this evidence.
 
+## Known transient state after T-1, resolved by T-2
+
+**Do not stop here. Lead capture is broken between these two tickets.**
+
+The ported backend was authored against the engineering donor's frontend, which
+generates a canonical lead contract. The frontend still in this repository is the
+old one and does not. Confirmed by adversarial review and verified directly:
+
+| Endpoint | Now returns | Cause |
+|---|---|---|
+| `POST /api/leads` | 422 | Requires `request_id` or an `Idempotency-Key` header. Nothing in `frontend/src` sends either |
+| `POST /api/corporate-leads` | 422 | Additionally requires a schema version and exact brand, location, form and offer identifiers |
+
+Unaffected and fully compatible: event RSVP, review submission, login, and the
+public blog and content reads.
+
+The endpoint diff that justified wholesale replacement compared route presence,
+not request contracts. Presence was a strict superset; the contract was not.
+T-1 and T-2 are therefore an atomic pair in practice, even though the graph
+sequenced them. Nothing is deployed and the work is on a local branch, so the
+consequence is a warning against leaving the convergence half finished rather
+than a live outage.
+
 ## Verification commands
 
 Record the exact command and result when flipping a row to PASS.
