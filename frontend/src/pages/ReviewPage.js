@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { GYM_CONFIG } from '../config';
+import PreviewNotice from '../components/PreviewNotice';
+import { PREVIEW_MODE, buildApiUrl } from '../utils/previewSafety';
 import { Loader2, Star, ChevronRight, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 
-const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
-
-const LOGO = 'https://customer-assets.emergentagent.com/job_f0e6860d-0e81-45b1-9e0b-f7bb6a04df72/artifacts/uf08gcdo_20260313_151045_0000.png';
+const LOGO = '/assets/scs/logo.png';
 
 const CATEGORIES = [
   { id: 'equipment',  label: 'Equipment & Facility' },
@@ -24,7 +24,7 @@ const FOLLOWUP_QUESTIONS = {
   pricing:     'What would make the membership feel like better value to you?',
   hours:       'Which hours or access options would better fit your schedule?',
   cleanliness: 'What areas specifically need more attention?',
-  other:       'Tell us more — what can we do better?',
+  other:       'Tell us more - what can we do better?',
 };
 
 function StarRating({ value, onChange, size = 40 }) {
@@ -33,6 +33,7 @@ function StarRating({ value, onChange, size = 40 }) {
     <div className="flex gap-2 justify-center">
       {[1, 2, 3, 4, 5].map(n => (
         <button key={n} type="button"
+          aria-label={`Rate ${n} out of 5 stars`}
           onMouseEnter={() => setHovered(n)}
           onMouseLeave={() => setHovered(0)}
           onClick={() => onChange(n)}
@@ -63,7 +64,12 @@ export default function ReviewPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch(`${BACKEND}/api/review/${token}`)
+    if (PREVIEW_MODE) {
+      setName('Preview member');
+      setLoading(false);
+      return;
+    }
+    fetch(buildApiUrl(`/api/review/${token}`))
       .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(d.detail)))
       .then(d => { setName(d.name); setLoading(false); })
       .catch(err => { setInvalid(err || 'This review link is invalid or has expired.'); setLoading(false); });
@@ -72,9 +78,14 @@ export default function ReviewPage() {
   const handleRatingSelect = async (stars) => {
     setRating(stars);
     if (stars >= 4) {
-      // Positive — submit and redirect to Google
+      // Positive - submit and redirect to Google
       setSubmitting(true);
       await submit(stars, '', '', '');
+      if (PREVIEW_MODE) {
+        setSubmitting(false);
+        setStep('done');
+        return;
+      }
       window.location.href = GYM_CONFIG.googleReviewUrl;
     } else {
       setStep('questionnaire');
@@ -82,8 +93,9 @@ export default function ReviewPage() {
   };
 
   const submit = async (r, cat, fu, ex) => {
+    if (PREVIEW_MODE) return { preview: true };
     try {
-      await fetch(`${BACKEND}/api/review/${token}/submit`, {
+      await fetch(buildApiUrl(`/api/review/${token}/submit`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating: r, category: cat, follow_up: fu, extra: ex }),
@@ -95,6 +107,11 @@ export default function ReviewPage() {
     e.preventDefault();
     setSubmitting(true);
     await submit(rating, category, followUp, extra);
+    if (PREVIEW_MODE) {
+      setCategory('');
+      setFollowUp('');
+      setExtra('');
+    }
     setStep('done');
     setSubmitting(false);
   };
@@ -119,19 +136,23 @@ export default function ReviewPage() {
   const firstName = name.split(' ')[0] || 'there';
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--clr-bg)' }}>
+    <div className="scs-site scs-readable-page min-h-screen flex flex-col" style={{ background: 'var(--clr-bg)' }}>
       {/* Header */}
-      <div className="py-6 flex justify-center">
-        <div className="flex items-center gap-3">
+      <header className="py-6 flex justify-center">
+        <nav aria-label="Review page navigation">
+          <Link to="/" className="flex items-center gap-3" aria-label="Santa Cruz Strength home">
           <div className="w-10 h-10 rounded-full bg-[var(--clr-green)] flex items-center justify-center" style={{ padding: '3px' }}>
-            <img src={LOGO} alt="SCS" className="w-full h-full object-contain" style={{ filter: 'invert(1) brightness(2)' }} />
+            <img src={LOGO} alt="" className="w-full h-full object-contain" style={{ filter: 'invert(1) brightness(2)' }} />
           </div>
           <span className="font-display text-xl tracking-wider" style={{ color: 'var(--clr-charcoal)' }}>SANTA CRUZ STRENGTH</span>
-        </div>
-      </div>
+          </Link>
+        </nav>
+      </header>
 
-      <div className="flex-1 flex items-center justify-center px-4 pb-12">
+      <main className="flex-1 flex items-center justify-center px-4 pb-12">
         <div className="w-full max-w-md">
+          <h1 className="sr-only">Share feedback with Santa Cruz Strength</h1>
+          <PreviewNotice testId="preview-review-notice">The token is not validated in this approval build. Ratings and written feedback are simulated locally and are not sent or stored. Google Reviews will not open.</PreviewNotice>
 
           {/* ── RATING STEP ── */}
           {step === 'rate' && (
@@ -191,10 +212,11 @@ export default function ReviewPage() {
                 {/* Dynamic follow-up */}
                 {category && (
                   <div className="animate-fade-in">
-                    <label className="block text-xs font-bold text-[var(--clr-charcoal)] mb-1.5 uppercase tracking-wider">
+                    <label htmlFor="review-follow-up" className="block text-xs font-bold text-[var(--clr-charcoal)] mb-1.5 uppercase tracking-wider">
                       {FOLLOWUP_QUESTIONS[CATEGORIES.find(c => c.label === category)?.id || 'other']}
                     </label>
                     <textarea
+                      id="review-follow-up"
                       value={followUp}
                       onChange={e => setFollowUp(e.target.value)}
                       rows={3}
@@ -207,12 +229,13 @@ export default function ReviewPage() {
 
                 {/* Extra */}
                 <div>
-                  <label className="block text-xs font-bold text-[var(--clr-charcoal)] mb-1.5 uppercase tracking-wider">Anything else you'd like us to know?</label>
+                  <label htmlFor="review-extra" className="block text-xs font-bold text-[var(--clr-charcoal)] mb-1.5 uppercase tracking-wider">Anything else you'd like us to know?</label>
                   <textarea
+                    id="review-extra"
                     value={extra}
                     onChange={e => setExtra(e.target.value)}
                     rows={2}
-                    placeholder="Optional — any other thoughts..."
+                    placeholder="Optional - any other thoughts..."
                     data-testid="extra-input"
                     className="w-full border border-[var(--clr-border)] rounded-xl px-4 py-3 text-sm text-[var(--clr-text)] focus:outline-none focus:ring-2 focus:ring-[var(--clr-green)]/30 focus:border-[var(--clr-green)] resize-none"
                   />
@@ -235,14 +258,14 @@ export default function ReviewPage() {
               </div>
               <h2 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>THANK YOU</h2>
               <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-6">
-                We really appreciate you taking the time. Your feedback goes directly to our team and helps us get better every day.
+                {PREVIEW_MODE ? 'Preview test complete. No rating or feedback was sent or stored.' : 'We really appreciate you taking the time. Your feedback goes directly to our team and helps us get better every day.'}
               </p>
               <Link to="/" className="btn-outline-green px-6 py-2.5 text-sm">Back to Santa Cruz Strength</Link>
             </div>
           )}
 
         </div>
-      </div>
+      </main>
     </div>
   );
 }

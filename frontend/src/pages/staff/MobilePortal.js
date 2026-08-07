@@ -13,7 +13,7 @@ import {
 import { toast } from 'sonner';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
-const LOGO = 'https://customer-assets.emergentagent.com/job_f0e6860d-0e81-45b1-9e0b-f7bb6a04df72/artifacts/uf08gcdo_20260313_151045_0000.png';
+const LOGO = '/assets/scs/logo.png';
 
 const QUICK_STATUSES = [
   { value: 'Contacted',     label: 'Contacted',    color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
@@ -135,7 +135,7 @@ function ActionSheet({ lead, onClose, onUpdated }) {
       setNote(t);
     };
     r.onend = () => setListening(false);
-    r.onerror = () => { setListening(false); toast.error('Voice error — try again'); };
+    r.onerror = () => { setListening(false); toast.error('Voice error - try again'); };
     recognitionRef.current = r;
     r.start();
     setListening(true);

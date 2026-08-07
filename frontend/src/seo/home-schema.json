@@ -1,0 +1,48 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://santacruzstrength.com/#website",
+      "url": "https://santacruzstrength.com/",
+      "name": "Santa Cruz Strength",
+      "inLanguage": "en-US",
+      "publisher": {
+        "@id": "https://santacruzstrength.com/#gym"
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://santacruzstrength.com/#webpage",
+      "url": "https://santacruzstrength.com/",
+      "name": "Santa Cruz Strength | Strength Gym in Santa Cruz, CA",
+      "description": "Santa Cruz Strength is a local strength gym with 24/7 member access, strength equipment, personal training and free facility tours.",
+      "inLanguage": "en-US",
+      "isPartOf": {
+        "@id": "https://santacruzstrength.com/#website"
+      },
+      "mainEntity": {
+        "@id": "https://santacruzstrength.com/#gym"
+      }
+    },
+    {
+      "@type": "ExerciseGym",
+      "@id": "https://santacruzstrength.com/#gym",
+      "name": "Santa Cruz Strength",
+      "url": "https://santacruzstrength.com/",
+      "telephone": "+14083376709",
+      "description": "A strength training gym serving Santa Cruz, California with 24/7 member access, personal training and free facility tours.",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "151 Harvey West Blvd Ste D",
+        "addressLocality": "Santa Cruz",
+        "addressRegion": "CA",
+        "postalCode": "95060",
+        "addressCountry": "US"
+      },
+      "mainEntityOfPage": {
+        "@id": "https://santacruzstrength.com/#webpage"
+      }
+    }
+  ]
+}

@@ -31,7 +31,7 @@ export default function ResetPassword() {
       setSuccess(true);
       setTimeout(() => navigate('/staff/login'), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Reset failed — link may have expired');
+      setError(err.response?.data?.detail || 'Reset failed - link may have expired');
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export default function ResetPassword() {
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <h1 className="font-display text-2xl text-white tracking-wide">SET NEW PASSWORD</h1>
-            <p className="text-white/52 text-sm mt-1">{GYM_CONFIG.name} — Staff Portal</p>
+            <p className="text-white/52 text-sm mt-1">{GYM_CONFIG.name} - Staff Portal</p>
           </div>
 
           <div className="card-marketing p-6">

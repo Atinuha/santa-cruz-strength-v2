@@ -1,88 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { ArrowRight, Clock3, Mail, MapPin, Phone } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
+import PublicImage from '../components/PublicImage';
 import { GYM_CONFIG } from '../config';
-import { getSiteContent } from '../lib/api';
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { SCS_MEDIA } from '../config/media';
 
 export default function Contact() {
-  const [c, setC] = useState({});
-  useEffect(() => { getSiteContent().then(({ data }) => setC(data)).catch(() => {}); }, []);
-  const g = (key, fallback) => c[key] || fallback;
-
   return (
-    <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
+    <div className="scs-site scs-subpage min-h-screen">
       <Navbar />
-      <section className="pt-28 pb-10 bg-white border-b" style={{ borderColor: 'var(--clr-border)' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <span className="green-accent-line" />
-          <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Get In Touch</p>
-          <h1 className="font-display text-5xl sm:text-6xl tracking-wide mb-3" style={{ color: 'var(--clr-charcoal)' }}>{g('contact_headline', 'CONTACT US')}</h1>
-          <p className="text-[var(--clr-text-muted)] text-base max-w-lg font-semibold">{g('contact_subtitle', 'Questions, tour requests, or just want to know more.')}</p>
-        </div>
-      </section>
-
-      <section className="py-16 sm:py-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <main>
+        <section className="scs-subhero scs-contact-hero">
+          <div className="scs-shell scs-subhero-layout">
             <div>
-              <div className="card-light p-6 mb-5" data-testid="contact-address-block">
-                <h3 className="font-display text-xl tracking-wide mb-5" style={{ color: 'var(--clr-green)' }}>VISIT US</h3>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3">
-                    <MapPin size={17} style={{ color: 'var(--clr-green)', marginTop: 2 }} className="shrink-0" />
-                    <div>
-                      <p className="text-[var(--clr-charcoal)] text-sm font-bold">{GYM_CONFIG.address.full}</p>
-                      <p className="text-[var(--clr-text-light)] text-xs mt-0.5">Harvey West Business Park</p>
-                    </div>
-                  </li>
-                  <li>
-                    <a href={GYM_CONFIG.phoneHref} data-testid="contact-click-to-call-button" className="flex items-center gap-3 group">
-                      <Phone size={17} style={{ color: 'var(--clr-green)' }} />
-                      <span className="font-bold text-[var(--clr-charcoal)] text-sm group-hover:text-[var(--clr-green)] transition-colors">{GYM_CONFIG.phone}</span>
-                    </a>
-                  </li>
-                  <li>
-                    <a href={`mailto:${GYM_CONFIG.email}`} className="flex items-center gap-3 group">
-                      <Mail size={17} style={{ color: 'var(--clr-green)' }} />
-                      <span className="text-[var(--clr-text-muted)] text-sm group-hover:text-[var(--clr-green)] transition-colors">{GYM_CONFIG.email}</span>
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <div className="card-light p-6" data-testid="contact-hours-block">
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock size={15} style={{ color: 'var(--clr-green)' }} />
-                  <h3 className="text-[var(--clr-charcoal)] font-bold text-xs uppercase tracking-wider">Access & Hours</h3>
-                </div>
-                <ul className="space-y-3">
-                  {GYM_CONFIG.hours.map((h, i) => (
-                    <li key={i} className="py-2 border-b last:border-0" style={{ borderColor: 'var(--clr-border)' }}>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[var(--clr-text-muted)] font-semibold">{h.days}</span>
-                        <span className="text-[var(--clr-charcoal)] font-bold">{h.hours}</span>
-                      </div>
-                      {h.note && <p className="text-[var(--clr-text-light)] text-xs mt-0.5 text-right">{h.note}</p>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-5 rounded-[var(--radius-lg)] overflow-hidden h-56" style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--clr-border)' }} data-testid="contact-map-embed">
-                <iframe title="Santa Cruz Strength Location Map"
-                  src="https://maps.google.com/maps?q=151+Harvey+West+Blvd+Ste+D+Santa+Cruz+CA+95060&output=embed"
-                  width="100%" height="100%" style={{ border: 0 }}
-                  allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+              <p className="scs-location-line"><MapPin size={17} aria-hidden="true" /> Harvey West, Santa Cruz</p>
+              <h1>Come see the room before you decide</h1>
+              <p>Request a facility tour, ask about current membership access, or contact the team directly.</p>
+              <a href="#contact-form" className="scs-button scs-button-primary">Request a free tour <ArrowRight size={17} aria-hidden="true" /></a>
+            </div>
+            <figure>
+              <PublicImage src={SCS_MEDIA.heroFacility} alt="The Santa Cruz Strength training floor in Harvey West" width="1672" height="941" />
+              <figcaption>{GYM_CONFIG.address.full}</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section className="scs-section scs-contact-section" aria-labelledby="visit-contact-title">
+          <div className="scs-shell scs-contact-layout">
+            <div className="scs-contact-details" data-testid="contact-address-block">
+              <div className="scs-section-heading"><h2 id="visit-contact-title">Visit or contact the gym</h2><p>Tour times and day-pass access are arranged with the team.</p></div>
+              <address>
+                <span><MapPin aria-hidden="true" /><strong>{GYM_CONFIG.address.full}</strong></span>
+                <a href={GYM_CONFIG.phoneHref} data-testid="contact-click-to-call-button"><Phone aria-hidden="true" /><strong>{GYM_CONFIG.phone}</strong></a>
+                <a href={`mailto:${GYM_CONFIG.email}`}><Mail aria-hidden="true" /><strong>{GYM_CONFIG.email}</strong></a>
+              </address>
+              <div className="scs-hours" data-testid="contact-hours-block">
+                <h3><Clock3 aria-hidden="true" /> Access details</h3>
+                {GYM_CONFIG.hours.map((period) => (
+                  <div key={period.days}><strong>{period.days}</strong><span>{period.hours}</span><small>{period.note}</small></div>
+                ))}
               </div>
             </div>
-            <div className="card-light p-6">
-              <h2 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-green)' }}>{g('contact_form_headline', 'REACH OUT')}</h2>
-              <p className="text-[var(--clr-text-muted)] text-sm mb-5">{g('contact_form_subtitle', 'Fill out the form and we will get back to you within 24 hours.')}</p>
-              <QuizForm source="contact_page" />
+            <div className="scs-map" data-testid="contact-map-embed">
+              <iframe
+                title="Santa Cruz Strength location"
+                src={GYM_CONFIG.mapEmbedUrl}
+                width="100%"
+                height="100%"
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section className="scs-section scs-membership-help" id="contact-form" aria-labelledby="contact-form-title">
+          <div className="scs-shell scs-tour-layout">
+            <div className="scs-tour-intro">
+              <p className="scs-location-line"><Phone size={17} aria-hidden="true" /> A direct next step</p>
+              <h2 id="contact-form-title">Tell us what you want to see</h2>
+              <p>The team will review your request and contact you to arrange a suitable visit or answer your question.</p>
+              <PublicImage src={SCS_MEDIA.communityHandshake} alt="A group of strength athletes greeting one another on the training floor" width="1448" height="1086" />
+            </div>
+            <div className="scs-tour-form-panel"><QuizForm source="contact_page" noAutoFocus /></div>
+          </div>
+        </section>
+      </main>
       <Footer />
     </div>
   );

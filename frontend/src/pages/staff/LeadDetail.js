@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api, { getLead, updateLead, addNote } from '../../lib/api';
 import { LEAD_STATUSES, LEAD_SOURCES, GYM_CONFIG, PREFERRED_CONTACTS } from '../../config';
@@ -60,7 +60,7 @@ export default function LeadDetail() {
   const [editNotes, setEditNotes] = useState('');
   const [statusValue, setStatusValue] = useState('');
 
-  const fetchLead = async () => {
+  const fetchLead = useCallback(async () => {
     try {
       const res = await getLead(id);
       setLead(res.data);
@@ -74,11 +74,11 @@ export default function LeadDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
 
   useEffect(() => {
     fetchLead();
-  }, [id]);
+  }, [fetchLead]);
 
   const handleStatusChange = async (newStatus) => {
     setStatusValue(newStatus);
@@ -204,11 +204,11 @@ export default function LeadDetail() {
         </div>
 
         <div className="hidden lg:grid grid-cols-12 gap-6">
-          {/* Left — Profile + Status */}
+          {/* Left - Profile + Status */}
           <div className="col-span-4 space-y-5">
             <ProfileCard lead={lead} statusValue={statusValue} onStatusChange={handleStatusChange} followUpDate={followUpDate} setFollowUpDate={setFollowUpDate} followUpTime={followUpTime} setFollowUpTime={setFollowUpTime} onSaveFollowUp={handleSaveFollowUp} onToggleBlacklist={handleToggleBlacklist} />
           </div>
-          {/* Right — Notes + Activity */}
+          {/* Right - Notes + Activity */}
           <div className="col-span-8 space-y-5">
             <NotesSection editNotes={editNotes} setEditNotes={setEditNotes} onSave={handleSaveNotes} noteText={noteText} setNoteText={setNoteText} onAddNote={handleAddNote} addingNote={addingNote} inputClass={inputClass} />
             <ActivityTimeline log={activityLog} />
@@ -242,7 +242,7 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
         </div>
         {lead.blacklisted && (
           <p className="text-red-400/70 text-xs mt-1 flex items-center gap-1">
-            <ShieldOff size={10} /> This contact is blacklisted — no emails or SMS will be sent.
+            <ShieldOff size={10} /> This contact is blacklisted - no emails or SMS will be sent.
           </p>
         )}
         <StatusBadge status={lead.status} />
@@ -288,11 +288,11 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
           { label: 'Contact Pref.', value: lead.preferred_contact },
           { label: 'Source', value: SOURCE_LABELS[lead.lead_source] || lead.lead_source },
           { label: 'Location', value: lead.location },
-          { label: 'Created', value: lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—' },
+          { label: 'Created', value: lead.created_at ? new Date(lead.created_at).toLocaleDateString() : ' - ' },
         ].map((row) => (
           <div key={row.label} className="flex justify-between text-xs">
             <dt className="text-white/58">{row.label}</dt>
-            <dd className="text-white/80 text-right">{row.value || '—'}</dd>
+            <dd className="text-white/80 text-right">{row.value || ' - '}</dd>
           </div>
         ))}
         {lead.training_goals && (
@@ -322,7 +322,7 @@ function ProfileCard({ lead, statusValue, onStatusChange, followUpDate, setFollo
 
       {/* Follow-up date + time */}
       <div>
-        <label className="block text-xs text-white/65 mb-1.5">Follow-up / Tour — Date & Time</label>
+        <label className="block text-xs text-white/65 mb-1.5">Follow-up / Tour - Date & Time</label>
         <input
           type="date"
           value={followUpDate}

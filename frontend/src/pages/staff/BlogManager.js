@@ -367,7 +367,7 @@ export default function BlogManager() {
                     </div>
                   </div>
 
-                  {/* SEO Audit + Article Ideas — live panel */}
+                  {/* SEO Audit + Article Ideas - live panel */}
                   <BlogSEOPanel form={form} />
                 </div>
               </div>

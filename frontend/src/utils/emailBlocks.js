@@ -1,5 +1,6 @@
+import { abcJoinUrl } from '../config';
 /**
- * Email Block System — block definitions, defaults, and HTML generator
+ * Email Block System - block definitions, defaults, and HTML generator
  * Blocks are stored as JSON and rendered to email-safe HTML at send time.
  */
 
@@ -20,7 +21,7 @@ export const DEFAULT_BLOCK = {
              align: 'left', size: '15', color: '#333333', bold: false, bgColor: '#ffffff' },
   image:   { type: 'image',   url: '', alt: '', width: '100', caption: '', rounded: true, bgColor: '#ffffff' },
   gif:     { type: 'gif',     url: '', alt: '', width: '100', bgColor: '#ffffff' },
-  button:  { type: 'button',  text: 'Join Now', url: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691',
+  button:  { type: 'button',  text: 'Join Now', url: abcJoinUrl(),
              bgColor: '#FA5A5C', textColor: '#ffffff', align: 'center' },
   divider: { type: 'divider', color: '#eeeeee', bgColor: '#ffffff' },
   spacer:  { type: 'spacer',  height: 24, bgColor: '#ffffff' },
@@ -35,11 +36,12 @@ export const MERGE_FIELDS = [
   { label: 'Gym Name',    tag: '{{gym_name}}' },
   { label: 'Join URL',    tag: '{{join_url}}' },
   { label: 'Phone',       tag: '{{gym_phone}}' },
+  { label: 'Unsubscribe URL', tag: '{{unsubscribe_url}}' },
 ];
 
 export const DEFAULT_GYM_DATA = {
   gym_name:  'Santa Cruz Strength',
-  join_url:  'https://onlinejoin.abcfitness.com/signup/plan?club=31691',
+  join_url:  abcJoinUrl(),
   gym_phone: '(408) 337-6709',
 };
 
@@ -50,7 +52,8 @@ export function replaceMergeTags(text = '', data = {}) {
     .replace(/\{\{last_name\}\}/g,  data.last_name  || '')
     .replace(/\{\{gym_name\}\}/g,   data.gym_name   || 'Santa Cruz Strength')
     .replace(/\{\{join_url\}\}/g,   data.join_url   || '#')
-    .replace(/\{\{gym_phone\}\}/g,  data.gym_phone  || '(408) 337-6709');
+    .replace(/\{\{gym_phone\}\}/g,  data.gym_phone  || '(408) 337-6709')
+    .replace(/\{\{unsubscribe_url\}\}/g, data.unsubscribe_url || '{{unsubscribe_url}}');
 }
 
 /** Render a single block to email-safe HTML */
@@ -107,7 +110,7 @@ function renderBlock(block, data = {}) {
       return `<tr><td style="padding:20px 36px;background:${block.bgColor || '#f9f9f9'};border-top:1px solid #eeeeee;text-align:center;">
   <p style="margin:0 0 4px;font-size:11px;color:${block.textColor || '#aaaaaa'};font-family:'Helvetica Neue',Arial,sans-serif;">${r(block.address || '')}</p>
   <p style="margin:0 0 4px;font-size:11px;color:${block.textColor || '#aaaaaa'};font-family:'Helvetica Neue',Arial,sans-serif;">${block.phone || ''} · ${block.website || ''}</p>
-  ${block.unsubscribe ? `<p style="margin:8px 0 0;font-size:10px;color:#cccccc;font-family:'Helvetica Neue',Arial,sans-serif;">To unsubscribe, reply with STOP.</p>` : ''}
+  ${block.unsubscribe ? `<p style="margin:8px 0 0;font-size:10px;color:#cccccc;font-family:'Helvetica Neue',Arial,sans-serif;"><a href="${r('{{unsubscribe_url}}')}" style="color:#888888;text-decoration:underline;">Unsubscribe from marketing emails</a></p>` : ''}
 </td></tr>`;
 
     default:
@@ -139,5 +142,5 @@ export function blocksToHTML(blocks = [], data = {}) {
 
 /** Generate a preview-safe version (for iframe rendering) */
 export function blocksToPreviewHTML(blocks = []) {
-  return blocksToHTML(blocks, { first_name: 'Alex', last_name: 'Johnson', ...DEFAULT_GYM_DATA });
+  return blocksToHTML(blocks, { first_name: 'Alex', last_name: 'Johnson', unsubscribe_url: '#unsubscribe-preview', ...DEFAULT_GYM_DATA });
 }

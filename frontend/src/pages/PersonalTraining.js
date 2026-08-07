@@ -1,147 +1,118 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, Check, ClipboardList, Dumbbell, Eye, Users } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
-import Carousel from '../components/Carousel';
-import { GYM_CONFIG } from '../config';
-import { getTeamMembers, getSiteContent } from '../lib/api';
-import { CheckCircle2, Target, Zap, Heart, User, ArrowRight } from 'lucide-react';
+import PublicImage from '../components/PublicImage';
+import { getTeamMembers } from '../lib/api';
+import { SCS_MEDIA } from '../config/media';
 
-const PT_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/hvzhmt0n_Chris_5.JPEG';
+const PREVIEW_MODE = process.env.REACT_APP_PREVIEW_MODE === 'true';
 
-const PT_BENEFITS = [
-  { icon: <Target size={19} style={{ color: 'var(--clr-green)' }} />, title: 'Goal-Specific Programming', desc: 'Every session is structured around your goals: strength, injury recovery, performance, or competition prep.' },
-  { icon: <Zap size={19} style={{ color: 'var(--clr-green)' }} />, title: 'Technical Foundation', desc: 'Build the movement mechanics that last a lifetime. Proper patterns, coached from day one.' },
-  { icon: <Heart size={19} style={{ color: 'var(--clr-green)' }} />, title: 'Long-Term Capability', desc: 'We train for decades, not just months. Programming that keeps you strong and healthy for life.' },
+const COACHING_STEPS = [
+  { icon: Eye, title: 'Start with observation', text: 'Talk through your goals, training history and the movements you want help with.' },
+  { icon: ClipboardList, title: 'Build a practical plan', text: 'Use coaching to organize sessions, exercise choices and progression around your current ability.' },
+  { icon: Dumbbell, title: 'Practice with feedback', text: 'Refine technique and make adjustments while you train on the equipment you will actually use.' },
 ];
 
-const PT_WHO = [
-  'First-time lifters building a strong foundation',
-  'Athletes recovering from or preventing injury',
-  'Competitive lifters wanting expert program design',
-  'Outdoor athletes training for performance',
-  'People who want structure, not just access',
-  'Anyone ready to invest seriously in their training',
+const GOOD_FITS = [
+  'Newer lifters who want a clear starting point',
+  'Members who want more structure than open-gym access alone',
+  'Lifters preparing for a strength goal or competition',
+  'People who want direct feedback on technique and programming',
 ];
 
 export default function PersonalTraining() {
   const [trainers, setTrainers] = useState([]);
-  const [c, setC] = useState({});
 
   useEffect(() => {
-    getTeamMembers().then(({ data }) => {
-      setTrainers(data.filter(m => m.category === 'trainer'));
-    }).catch(() => {});
-    getSiteContent().then(({ data }) => setC(data)).catch(() => {});
+    if (!PREVIEW_MODE) getTeamMembers().then(({ data }) => setTrainers(data.filter((member) => member.category === 'trainer'))).catch(() => {});
   }, []);
 
-  const g = (key, fallback) => c[key] || fallback;
-
   return (
-    <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
+    <div className="scs-site scs-subpage min-h-screen">
       <Navbar />
-      <section className="relative pt-32 pb-16"
-        style={{ backgroundImage: `url(${PT_IMG})`, backgroundSize: 'cover', backgroundPosition: 'center 30%' }}>
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(247,245,240,0.90), rgba(247,245,240,1))' }} />
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
-          <span className="green-accent-line" />
-          <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">1-on-1 Coaching</p>
-          <h1 className="font-display text-5xl sm:text-6xl tracking-wide mb-4" style={{ color: 'var(--clr-charcoal)' }}>
-            {(g('training_headline', 'PERSONAL TRAINING\nTHAT RESPECTS YOUR TIME.')).split('\n').map((line, i, arr) => (
-              <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
-            ))}
-          </h1>
-          <p className="text-[var(--clr-text)] text-base max-w-xl font-semibold">{g('training_subtitle', 'Work directly with a Santa Cruz Strength coach to build real strength, master technique, and train with purpose.')}</p>
-        </div>
-      </section>
-
-      <section className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <Carousel itemWidth="w-72 sm:w-80" className="px-6 mb-16">
-            {PT_BENEFITS.map((b, i) => (
-              <div key={i} className="card-light p-6 h-full">
-                <div className="w-10 h-10 bg-[var(--clr-bg-green)] rounded-xl flex items-center justify-center mb-3">{b.icon}</div>
-                <h3 className="text-[var(--clr-charcoal)] font-bold text-sm mb-2">{b.title}</h3>
-                <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed">{b.desc}</p>
-              </div>
-            ))}
-          </Carousel>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+      <main>
+        <section className="scs-subhero scs-coaching-hero">
+          <div className="scs-shell scs-subhero-layout">
             <div>
-              <span className="green-accent-line" />
-              <h2 className="font-display text-4xl tracking-wide mb-5" style={{ color: 'var(--clr-charcoal)' }}>WHO IS THIS FOR?</h2>
-              <p className="text-[var(--clr-text)] text-sm leading-relaxed mb-6 font-semibold">Structured coaching for people who want results faster, safer, and with lasting technique.</p>
-              <ul className="space-y-3">
-                {PT_WHO.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm font-semibold text-[var(--clr-text)]">
-                    <CheckCircle2 size={15} style={{ color: 'var(--clr-green)', marginTop: 2 }} className="shrink-0" />{item}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 p-5 rounded-[var(--radius-lg)]" style={{ background: 'var(--clr-bg-green)', border: '1px solid var(--clr-border-green)' }}>
-                <p className="text-[var(--clr-charcoal)] text-sm font-bold mb-1">How to get started</p>
-                <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed">Fill out the form. A coach will contact you, learn about your goals, and schedule a first consultation.</p>
-              </div>
+              <p className="scs-location-line"><Users size={17} aria-hidden="true" /> Personal training in Santa Cruz</p>
+              <h1>Get a plan, a coach and useful feedback</h1>
+              <p>Personal training at Santa Cruz Strength gives you a structured path through the room, with coaching tied to your goals and current experience.</p>
+              <a href="#coach-form" className="scs-button scs-button-primary">Talk to a coach <ArrowRight size={17} aria-hidden="true" /></a>
             </div>
-            <div className="card-light p-6">
-              <h2 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-green)' }}>TALK TO A COACH</h2>
-              <p className="text-[var(--clr-text-muted)] text-sm mb-5">Tell us about your goals and we will schedule a consultation.</p>
-              <QuizForm source="personal_training_inquiry" />
-            </div>
+            <figure>
+              <PublicImage src={SCS_MEDIA.coachingCloseup} alt="A coach giving an athlete focused feedback beside a loaded barbell" width="1122" height="1402" />
+              <figcaption>Start with a conversation about what you want from training.</figcaption>
+            </figure>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Meet Our Trainers */}
-      {trainers.length > 0 && (
-        <section className="py-16 border-t" style={{ background: 'var(--clr-bg)', borderColor: 'var(--clr-border)' }} data-testid="meet-trainers-section">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="text-center mb-12">
-              <span className="green-accent-line mx-auto" />
-              <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Expert Coaching</p>
-              <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>MEET OUR TRAINERS</h2>
+        <section className="scs-section scs-coaching-process" aria-labelledby="coaching-process-title">
+          <div className="scs-shell">
+            <div className="scs-section-heading scs-section-heading-wide">
+              <h2 id="coaching-process-title">What coaching should make clearer</h2>
+              <p>A useful coaching relationship turns uncertainty into a repeatable training process.</p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-              {trainers.map(t => (
-                <div key={t.id} data-testid={`trainer-card-${t.id}`}
-                  className="group text-center">
-                  <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-4 border-2 border-transparent group-hover:border-[var(--clr-green)] transition-all duration-300"
-                    style={{ boxShadow: 'var(--shadow-md)' }}>
-                    {t.photo_url ? (
-                      <img src={t.photo_url} alt={t.name}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--clr-bg-green)' }}>
-                        <User size={48} style={{ color: 'var(--clr-green)', opacity: 0.4 }} />
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="font-bold text-base" style={{ color: 'var(--clr-charcoal)' }}>{t.name}</h3>
-                  <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--clr-green)' }}>{t.role}</p>
-                  {t.bio && <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--clr-text-muted)' }}>{t.bio}</p>}
-                </div>
+            <div className="scs-process-grid">
+              {COACHING_STEPS.map(({ icon: Icon, title, text }, index) => (
+                <article key={title}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <Icon aria-hidden="true" />
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </article>
               ))}
-            </div>
-            <div className="text-center mt-10">
-              <Link to="/about"
-                className="inline-flex items-center gap-2 text-sm font-bold hover:gap-3 transition-all duration-200"
-                style={{ color: 'var(--clr-green)' }}>
-                Meet the full team <ArrowRight size={14} />
-              </Link>
             </div>
           </div>
         </section>
-      )}
 
-      <section className="py-14 border-t" style={{ background: 'var(--clr-bg)', borderColor: 'var(--clr-border)' }}>
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="font-display text-3xl sm:text-4xl tracking-wide mb-4" style={{ color: 'var(--clr-charcoal)' }}>{g('training_cta_headline', 'READY TO TRAIN WITH PURPOSE?')}</h2>
-          <a href={GYM_CONFIG.phoneHref} className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm">
-            Call Us: {GYM_CONFIG.phone}
-          </a>
-        </div>
-      </section>
+        <section className="scs-section scs-coaching-fit" aria-labelledby="coaching-fit-title">
+          <div className="scs-shell scs-room-layout">
+            <div className="scs-room-image"><PublicImage src={SCS_MEDIA.coachingFloor} alt="A coach cueing an athlete during a deadlift session" width="1672" height="941" /></div>
+            <div className="scs-room-copy">
+              <h2 id="coaching-fit-title">Who personal training can help</h2>
+              <ul className="scs-check-list">
+                {GOOD_FITS.map((item) => <li key={item}><Check aria-hidden="true" />{item}</li>)}
+              </ul>
+              <p>Coaching availability, trainer fit and scheduling are confirmed directly with the team.</p>
+            </div>
+          </div>
+        </section>
+
+        {trainers.length > 0 && (
+          <section className="scs-section" aria-labelledby="trainers-title" data-testid="meet-trainers-section">
+            <div className="scs-shell">
+              <div className="scs-section-heading"><h2 id="trainers-title">Current trainers</h2><p>Profiles currently published by the Santa Cruz Strength team.</p></div>
+              <div className="scs-trainer-grid">
+                {trainers.map((trainer) => (
+                  <article key={trainer.id} data-testid={`trainer-card-${trainer.id}`}>
+                    {trainer.photo_url && <img src={trainer.photo_url} alt={trainer.name} loading="lazy" />}
+                    <h3>{trainer.name}</h3>
+                    {trainer.specialty && <p>{trainer.specialty}</p>}
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="scs-section scs-membership-help" id="coach-form" aria-labelledby="coach-form-title">
+          <div className="scs-shell scs-tour-layout">
+            <div className="scs-tour-intro">
+              <p className="scs-location-line"><Dumbbell size={17} aria-hidden="true" /> Start the conversation</p>
+              <h2 id="coach-form-title">Tell the team what you want to work on</h2>
+              <p>Share your current experience and goal. The team will review the inquiry and coordinate the next step.</p>
+              <ol className="scs-tour-steps">
+                <li><span>1</span><div><strong>Describe the goal</strong><small>Give the coach useful context.</small></div></li>
+                <li><span>2</span><div><strong>Discuss fit</strong><small>Confirm coaching and scheduling options.</small></div></li>
+                <li><span>3</span><div><strong>Choose the next step</strong><small>Arrange a consultation or facility visit.</small></div></li>
+              </ol>
+            </div>
+            <div className="scs-tour-form-panel"><QuizForm source="personal_training_inquiry" noAutoFocus /></div>
+          </div>
+        </section>
+      </main>
       <Footer />
     </div>
   );

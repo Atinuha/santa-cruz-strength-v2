@@ -4,7 +4,10 @@ import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import CRMLayout from './components/CRMLayout';
-import { trackPageView } from './utils/analytics';
+import RouteSeo from './components/RouteSeo';
+import AnalyticsConsent from './components/AnalyticsConsent';
+import { trackPageView, trackPhoneClick } from './utils/analytics';
+import { captureAttribution } from './utils/attribution';
 
 // Public Pages
 import Home from './pages/Home';
@@ -21,6 +24,8 @@ import ReviewPage from './pages/ReviewPage';
 import About from './pages/About';
 import LocalWellness from './pages/LocalWellness';
 import Pride from './pages/Pride';
+import NotFound from './pages/NotFound';
+import ImplementationPreview from './pages/ImplementationPreview';
 
 // Staff CRM Pages
 import StaffLogin from './pages/staff/Login';
@@ -41,16 +46,36 @@ import ContentManager from './pages/staff/ContentManager';
 import CorporateLeads from './pages/staff/CorporateLeads';
 
 import './App.css';
+import './scs-release.css';
 
-/** Fires a GA4 + Meta Pixel page_view on every client-side route change */
+/** Updates attribution and fires one route-level page view outside staff utilities. */
 function RouteTracker() {
   const location = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (!location.pathname.startsWith('/staff')) {
+      if (!location.pathname.startsWith('/review/') && location.pathname !== '/thank-you') {
+        captureAttribution(location);
+      }
       trackPageView(location.pathname + location.search);
     }
   }, [location]);
+
+  useEffect(() => {
+    const trackCurrentRouteAfterConsent = () => trackPageView(location.pathname + location.search);
+    window.addEventListener('scs:analytics-consent-granted', trackCurrentRouteAfterConsent);
+    return () => window.removeEventListener('scs:analytics-consent-granted', trackCurrentRouteAfterConsent);
+  }, [location]);
+
+  useEffect(() => {
+    const handleTrackedClick = (event) => {
+      const phoneLink = event.target.closest?.('a[href^="tel:"]');
+      if (phoneLink) trackPhoneClick(phoneLink.getAttribute('href'));
+    };
+    document.addEventListener('click', handleTrackedClick);
+    return () => document.removeEventListener('click', handleTrackedClick);
+  }, []);
+
   return null;
 }
 
@@ -58,7 +83,9 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <RouteSeo />
         <RouteTracker />
+        <div id="main-content">
         <Routes>
           {/* Public */}
           <Route path="/" element={<Home />} />
@@ -75,6 +102,9 @@ export default function App() {
           <Route path="/local-wellness" element={<LocalWellness />} />
           <Route path="/pride" element={<Pride />} />
           <Route path="/review/:token" element={<ReviewPage />} />
+          {process.env.REACT_APP_PREVIEW_MODE === 'true' && (
+            <Route path="/implementation-preview" element={<ImplementationPreview />} />
+          )}
 
           {/* Staff Auth */}
           <Route path="/staff/login" element={<CRMLayout><StaffLogin /></CRMLayout>} />
@@ -121,8 +151,9 @@ export default function App() {
           } />
 
           {/* Fallback */}
-          <Route path="*" element={<Home />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
+        </div>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -134,6 +165,7 @@ export default function App() {
             },
           }}
         />
+        <AnalyticsConsent />
       </BrowserRouter>
     </AuthProvider>
   );

@@ -4,6 +4,7 @@ import {
   Lightbulb, Search, BookOpen, ArrowRight, ChevronDown, ChevronUp,
   RefreshCw, Loader2, Zap
 } from 'lucide-react';
+import { generateBlogIdeas } from '../../lib/api';
 
 // ─── SEO SCORING ────────────────────────────────────────────────────────────
 
@@ -40,12 +41,12 @@ function scorePost(form, focusKeyword) {
   const checks = [
     {
       id: 'title_length',
-      label: 'Title length (50–60 chars)',
+      label: 'Title length (50-60 chars)',
       score: title.length >= 50 && title.length <= 65 ? 10 : title.length >= 35 ? 5 : 0,
       max: 10,
       pass: title.length >= 50 && title.length <= 65,
       warn: title.length > 0 && (title.length < 50 || title.length > 65),
-      detail: title.length ? `${title.length} chars ${title.length < 50 ? '— too short' : title.length > 65 ? '— too long' : '✓'}` : 'No title yet',
+      detail: title.length ? `${title.length} chars ${title.length < 50 ? ' - too short' : title.length > 65 ? ' - too long' : '✓'}` : 'No title yet',
     },
     {
       id: 'title_kw',
@@ -58,12 +59,12 @@ function scorePost(form, focusKeyword) {
     },
     {
       id: 'desc_length',
-      label: 'Meta description (150–160 chars)',
+      label: 'Meta description (150-160 chars)',
       score: desc.length >= 140 && desc.length <= 165 ? 10 : desc.length >= 100 ? 5 : 0,
       max: 10,
       pass: desc.length >= 140 && desc.length <= 165,
       warn: desc.length > 0 && (desc.length < 140 || desc.length > 165),
-      detail: desc.length ? `${desc.length} chars ${desc.length < 140 ? '— too short' : desc.length > 165 ? '— too long' : '✓'}` : 'No description yet',
+      detail: desc.length ? `${desc.length} chars ${desc.length < 140 ? ' - too short' : desc.length > 165 ? ' - too long' : '✓'}` : 'No description yet',
     },
     {
       id: 'desc_kw',
@@ -81,7 +82,7 @@ function scorePost(form, focusKeyword) {
       max: 20,
       pass: wc >= 800,
       warn: wc > 0 && wc < 800,
-      detail: wc > 0 ? `${wc} words ${wc < 400 ? '— needs more content' : wc < 800 ? '— good, aim for 800+' : '✓'}` : 'No content yet',
+      detail: wc > 0 ? `${wc} words ${wc < 400 ? ' - needs more content' : wc < 800 ? ' - good, aim for 800+' : '✓'}` : 'No content yet',
     },
     {
       id: 'headings',
@@ -90,16 +91,16 @@ function scorePost(form, focusKeyword) {
       max: 10,
       pass: h2Count >= 2,
       warn: h2Count === 1,
-      detail: `${h2Count} H2 heading${h2Count !== 1 ? 's' : ''} found ${h2Count < 2 ? '— add <h2> section headers' : '✓'}`,
+      detail: `${h2Count} H2 heading${h2Count !== 1 ? 's' : ''} found ${h2Count < 2 ? ' - add <h2> section headers' : '✓'}`,
     },
     {
       id: 'kw_density',
-      label: 'Keyword density (1–3%)',
+      label: 'Keyword density (1-3%)',
       score: kw && kwDensity >= 0.8 && kwDensity <= 3.5 ? 10 : kw && kwDensity > 0 ? 5 : 0,
       max: 10,
       pass: kw && kwDensity >= 0.8 && kwDensity <= 3.5,
       warn: kw && (kwDensity < 0.8 || kwDensity > 3.5),
-      detail: kw ? `${kwDensity.toFixed(1)}% density ${kwDensity < 0.8 ? '— use keyword more' : kwDensity > 3.5 ? '— keyword stuffing risk' : '✓'}` : 'Set a focus keyword',
+      detail: kw ? `${kwDensity.toFixed(1)}% density ${kwDensity < 0.8 ? ' - use keyword more' : kwDensity > 3.5 ? ' - keyword stuffing risk' : '✓'}` : 'Set a focus keyword',
     },
     {
       id: 'slug_kw',
@@ -117,7 +118,7 @@ function scorePost(form, focusKeyword) {
       max: 10,
       pass: !!form.cover_image,
       warn: false,
-      detail: form.cover_image ? 'Cover image set ✓' : 'No cover image — images improve click-through rate',
+      detail: form.cover_image ? 'Cover image set ✓' : 'No cover image - images improve click-through rate',
     },
   ];
 
@@ -182,27 +183,14 @@ export default function BlogSEOPanel({ form }) {
     setIdeasLoading(true);
     setIdeasError('');
     try {
-      const token = localStorage.getItem('scs_token');
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const url = force
-        ? `${backendUrl}/api/staff/blog/ideas?force=true`
-        : `${backendUrl}/api/staff/blog/ideas`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Failed to generate ideas');
-      }
-      const data = await res.json();
+      const { data } = await generateBlogIdeas(force);
       setDynamicIdeas(data.ideas || []);
       setTrendsUsed(data.trends_used || []);
       setFromCache(data.cached || false);
       setGeneratedAt(data.generated_at || '');
       if (data.ideas?.length) setExpandedCat(data.ideas[0].category);
     } catch (e) {
-      setIdeasError(e.message || 'Something went wrong');
+      setIdeasError(e.response?.data?.detail || e.message || 'Something went wrong');
     } finally {
       setIdeasLoading(false);
     }
@@ -326,7 +314,7 @@ export default function BlogSEOPanel({ form }) {
                 </div>
                 <p className="text-white/38 text-[10px] leading-relaxed">
                   {fromCache
-                    ? 'Showing recent ideas — hit Refresh to pull fresh trends.'
+                    ? 'Showing recent ideas - hit Refresh to pull fresh trends.'
                     : 'Pulls live Google Trends + AI generates ideas tailored to SCS.'}
                 </p>
               </div>

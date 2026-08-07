@@ -1,562 +1,346 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ArrowRight,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Clock3,
+  Dumbbell,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Star,
+  Users,
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
-import Carousel from '../components/Carousel';
-import InstagramFeed from '../components/InstagramFeed';
+import PublicImage from '../components/PublicImage';
 import { GYM_CONFIG } from '../config';
+import { SCS_MEDIA } from '../config/media';
 import { getSiteContent } from '../lib/api';
-import { trackJoinNowClick, trackBookTourClick, trackPhoneClick } from '../utils/analytics';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
-import { Dumbbell, Users, Target, Shield, ChevronRight, Star, MapPin, Phone, Clock, Mountain, Waves, Bike, ArrowRight, Zap, Calendar, Ticket, Check } from 'lucide-react';
+import { trackBookTourClick, trackJoinNowClick } from '../utils/analytics';
+import '../scs-ledger.css';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+const PREVIEW_MODE = process.env.REACT_APP_PREVIEW_MODE === 'true';
 
-const HERO_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/t5t2w92k_Screenshot_20260308_205652_Google.jpg';
-const GYM_IMG     = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/zexxrigp_IMG_1134.jpeg';
-const DUMBBELL_IMG= 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/idkicvp5_6502579888812714199.jpg';
-const COASTAL_IMG = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/4ll7bzdl_IMG_4615.jpeg';
-const SURFER_IMG  = 'https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/xco5o291_IMG_3041.jpeg';
-
-const BENEFITS = [
-  { icon: <Dumbbell size={22} />, title: 'Serious Equipment', desc: 'Competition-grade racks, specialty bars, and platforms. Built for people who actually train.', color: 'bg-[var(--clr-bg-green)]' },
-  { icon: <Users size={22} />, title: 'Real Community', desc: 'Surfers, climbers, cyclists, and coaches. People who respect the space and each other.', color: 'bg-[var(--clr-seafoam)]/60' },
-  { icon: <Target size={22} />, title: 'Expert Coaching', desc: 'Coaches who know the difference between a cue and a lecture. Fundamentals first, always.', color: 'bg-[var(--clr-coral)]/10' },
-  { icon: <Zap size={22} />, title: '24/7 Access via App', desc: "Train on your schedule. Early mornings before the surf, late nights after work. Always open.", color: 'bg-amber-50' },
-];
-
-const WHO_FOR = [
-  { label: 'Surfers', icon: <Waves size={14} /> },
-  { label: 'Climbers', icon: <Mountain size={14} /> },
-  { label: 'Trail Runners', icon: '\uD83C\uDFC3' },
-  { label: 'Cyclists', icon: <Bike size={14} /> },
-  { label: 'Powerlifters', icon: '\uD83C\uDFCB\uFE0F' },
-  { label: 'Tech Workers', icon: '\uD83D\uDCBB' },
-  { label: 'Beginners', icon: '\uD83C\uDF31' },
-  { label: 'The "I hate gyms" crowd', icon: '\uD83D\uDE4C' },
-];
+const MEDIA = {
+  facility: SCS_MEDIA.heroFacility,
+  lift: SCS_MEDIA.deadliftEffort,
+  podium: SCS_MEDIA.openGym,
+  community: SCS_MEDIA.communityFloor,
+  coach: SCS_MEDIA.coachingFloor,
+};
 
 const TESTIMONIALS = [
   {
     name: 'Jeremy Ball',
-    detail: 'Member · Powerlifter',
-    text: 'Hands down best gym in Santa Cruz if you\'re serious about powerlifting or bodybuilding. The gym gives old school vibes and is definitely barebones which is pretty sick. Open 24/7 — everything you need to get stronger.',
+    detail: 'Member review',
+    text: 'Hands down best gym in Santa Cruz if you are serious about powerlifting or bodybuilding. Open 24/7, with everything you need to get stronger.',
   },
   {
     name: 'Ella Desmond',
-    detail: 'Member · 2 years',
-    text: 'I have been going to this gym for about 2 years now and was greeted with the most amazing community ever. The people here are kind and supportive and are always happy to spot you and give tips. This gym has been foundational in my life.',
+    detail: 'Member review',
+    text: 'I was greeted with the most amazing community. The people here are kind, supportive, and always happy to spot you and give tips.',
   },
   {
     name: 'Brooke Rodriguez',
-    detail: 'Member · Santa Cruz',
-    text: 'Amazing gym! Has everything you need with a super open and accepting environment. Owner is great, accommodating and knows his stuff! Gym is roomy and in a perfect location!',
-  },
-  {
-    name: 'Taryn',
-    detail: 'Member · Strength Athlete',
-    text: 'Strength gyms should serve all types of athletes, and that\'s what Santa Cruz Strength does. From weightlifting to powerlifting to strongman to conditioning, whether you prefer solo or group training — this is a great place to be.',
-  },
-  {
-    name: 'Ember Lichtenberg',
-    detail: 'Member · Personal Training',
-    text: 'I highly recommend Santa Cruz Strength and Lexi Medeiros as a personal trainer. She makes strength training feel welcoming, safe, and empowering. I\'ve built strength, stayed injury-free, and feel fully supported in my goals.',
-  },
-  {
-    name: 'Sierra Flow Fitness',
-    detail: 'Event · Forge Your Story Powerlifting Meet',
-    text: 'This gym had an incredible atmosphere and the staff was so welcoming! Thank you Michael and team for putting on an incredible and well organized event for our first time powerlifter. We hope to be back someday!',
+    detail: 'Member review',
+    text: 'Amazing gym. It has everything you need with a super open and accepting environment. The gym is roomy and in a perfect location.',
   },
 ];
 
 const FAQ_ITEMS = [
-  { q: 'Do I need experience to join?', a: 'Not even a little. We work with first-time lifters and competitive athletes. Our coaches will meet you wherever you are and help you build from there.' },
-  { q: 'Are there long-term contracts?', a: 'We offer both month-to-month and commitment options. Ask us about pricing and flexibility when you visit — we\'ll find something that works.' },
-  { q: 'Can I tour the gym before joining?', a: 'Yes, and we love it when people do. Book a tour through the form on this page and a coach will show you around, answer questions, and zero pressure.' },
-  { q: 'What are day pass and member hours?', a: 'Members get 24/7 access via our app. Day passes are available 9 AM – 6 PM, 7 days a week. Staffed hours vary by day.' },
-  { q: 'Do you offer personal training?', a: 'Absolutely. Our coaches offer 1-on-1 sessions tailored to your goals — strength foundation, injury recovery, sport performance, or competition prep.' },
-  { q: 'What equipment do you have?', a: 'Power racks, barbells, bumper and iron plates, specialty bars (safety squat, hex, cambered), dumbbells to 150lbs, kettlebells, and conditioning equipment.' },
+  {
+    question: 'Can I visit before I join?',
+    answer: 'Yes. Request a free facility tour and the team will follow up to arrange a suitable time. There is no membership commitment for the tour.',
+  },
+  {
+    question: 'Do members have 24/7 access?',
+    answer: 'Current full memberships include 24/7 facility access through the member app. Day-pass and staffed access are different, so review the current details before visiting.',
+  },
+  {
+    question: 'Is personal training available?',
+    answer: 'Yes. Use the personal training page to review the coaching path and send an inquiry about your goals.',
+  },
+  {
+    question: 'What kind of equipment is on the floor?',
+    answer: 'The current facility includes racks, platforms, barbells, plates, specialty bars, dumbbells and conditioning equipment. A tour is the best way to confirm the exact setup you need.',
+  },
 ];
 
-function WaveDivider({ flip = false, from = '#F7F5F0', to = '#FFFFFF' }) {
+function TourLink({ className = '', children = 'Book a free tour', location = 'homepage' }) {
   return (
-    <div className="relative h-16 overflow-hidden" style={{ background: to }}>
-      <svg viewBox="0 0 1200 64" preserveAspectRatio="none"
-        className={`absolute w-full h-full ${flip ? 'scale-y-[-1]' : ''}`}
-        style={{ fill: from }}>
-        <path d="M0,0 C300,64 900,64 1200,0 L1200,0 L0,0 Z" />
-      </svg>
-    </div>
+    <a
+      href="#tour-form"
+      className={className}
+      onClick={(event) => {
+        event.preventDefault();
+        trackBookTourClick(location);
+        document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }}
+    >
+      {children}
+    </a>
   );
 }
 
 export default function Home() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [c, setC] = useState({});
+  const [content, setContent] = useState({});
 
   useEffect(() => {
-    fetch(`${BACKEND}/api/events?upcoming=true`)
-      .then(r => r.json()).then(d => setUpcomingEvents((d || []).slice(0, 3))).catch(() => {});
-    getSiteContent().then(({ data }) => setC(data)).catch(() => {});
+    if (BACKEND) {
+      fetch(`${BACKEND}/api/events?upcoming=true`)
+        .then((response) => response.json())
+        .then((data) => setUpcomingEvents((data || []).slice(0, 2)))
+        .catch(() => {});
+    }
+    if (!PREVIEW_MODE) getSiteContent().then(({ data }) => setContent(data)).catch(() => {});
   }, []);
 
-  const g = (key, fallback) => c[key] || fallback;
+  const getCopy = (key, fallback) => content[key] || fallback;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
+    <div className="scs-site scs-ledger min-h-screen" data-design-seed="scs-open-training-ledger-v2">
       <Navbar />
-
-      {/* =========== HERO =========== */}
-      <section className="relative min-h-screen flex items-start pt-16"
-        style={{
-          backgroundImage: `url(${HERO_IMG})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'left center',
-          backgroundAttachment: 'local',
-        }}>
-
-        {/* Very subtle base darkening so the gym interior reads clearly */}
-        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.18)' }} />
-
-        {/* Right-to-left gradient: solid on right for text legibility, transparent on left to show SCS logo mural */}
-        <div className="absolute inset-0" style={{
-          background: 'linear-gradient(to left, rgba(247,245,240,0.97) 0%, rgba(247,245,240,0.88) 35%, rgba(247,245,240,0.35) 60%, transparent 80%)'
-        }} />
-
-        {/* Subtle green tint on the right text area */}
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(700px circle at 90% 50%, rgba(205,234,224,0.30), transparent 65%)'
-        }} />
-
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 w-full pt-8">
-
-          {/* Grid: left = gym mural (transparent), right = solid white panel with all content */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-start min-h-[calc(100vh-4rem)]">
-
-            {/* LEFT — transparent, shows gym photo + SCS logo mural */}
-            <div className="hidden lg:flex flex-col justify-end h-full pb-8 pr-6">
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/90 w-fit"
-                style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}>
-                <p className="font-display text-sm tracking-widest text-[var(--clr-green)]">SANTA CRUZ STRENGTH</p>
-                <p className="text-[var(--clr-text-muted)] text-xs font-semibold">151 Harvey West Blvd · Santa Cruz, CA</p>
-              </div>
-            </div>
-
-            {/* RIGHT — solid white panel, text is 100% legible regardless of photo */}
-            <div className="animate-fade-in-up flex flex-col"
-              style={{
-                backgroundColor: 'var(--clr-bg)',
-                minHeight: 'calc(100vh - 4rem)',
-                borderRadius: 'var(--radius-xl) 0 0 0',
-                padding: '2rem 2rem 2.5rem 2.5rem',
-                boxShadow: '-12px 0 40px rgba(247,245,240,0.6)',
-              }}>
-
-              <div className="inline-flex items-center gap-2 bg-[var(--clr-seafoam)] text-[var(--clr-green)] text-xs font-bold px-4 py-1.5 rounded-full mb-5 uppercase tracking-widest w-fit">
-                <MapPin size={12} /> Santa Cruz, California
-              </div>
-              <h1 className="font-display text-5xl sm:text-6xl lg:text-[5rem] leading-[0.92] tracking-wide mb-3"
-                style={{ color: 'var(--clr-charcoal)' }}>
-                {(g('home_hero_headline', 'SERIOUS\nSTRENGTH\nTRAINING.')).split('\n').map((line, i) => (
-                  <span key={i}>{i === 1 ? <span style={{ color: 'var(--clr-green)' }}>{line}</span> : line}{i < 2 && <br />}</span>
-                ))}
+      <main id="scs-home-main">
+        <section className="scs-hero" aria-labelledby="scs-home-title">
+          <div className="scs-shell scs-hero-layout">
+            <div className="scs-hero-copy">
+              <p className="scs-location-line"><MapPin size={17} aria-hidden="true" /> Harvey West, Santa Cruz</p>
+              <h1 id="scs-home-title">
+                {getCopy('home_hero_headline_v2', 'A stronger place to train. A better place to belong.')}
               </h1>
-              <p className="text-[var(--clr-text)] text-base leading-relaxed mb-1 font-bold max-w-md">
-                {g('home_hero_subtitle', 'A focused gym for athletes, lifters, and people who believe strength matters.')}
+              <p className="scs-hero-lead">
+                {getCopy('home_hero_subtitle_v2', 'Serious strength equipment, personal coaching and a community that notices when you show up.')}
               </p>
-              <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-5 max-w-sm">
-                {g('home_hero_subtext', 'Real training environment. Real community. Santa Cruz.')}
-              </p>
-              <div className="flex flex-wrap gap-2 mb-5">
-                {['24/7 via App', 'Flexible Membership', 'All Levels'].map(chip => (
-                  <span key={chip} className="bg-white text-[var(--clr-green)] text-xs font-bold px-3 py-1.5 rounded-full border border-[var(--clr-border-green)]">
-                    {chip}
-                  </span>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-3 mb-7">
-                <Link to="/join"
-                  data-testid="home-hero-join-now-button" className="btn-coral px-6 py-3 text-sm"
-                  onClick={() => trackJoinNowClick('hero')}>
-                  Join Now <ArrowRight size={14} />
-                </Link>
-                <a href="#tour-form" data-testid="home-hero-book-visit-button"
-                  className="btn-outline-green px-6 py-3 text-sm"
-                  onClick={(e) => { e.preventDefault(); trackBookTourClick('hero'); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
-                  Book a Tour
-                </a>
-                <a href={GYM_CONFIG.phoneHref}
-                  onClick={() => trackPhoneClick()}
-                  className="flex items-center gap-1.5 px-3 py-3 text-sm font-bold text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200">
-                  <Phone size={13} style={{ color: 'var(--clr-green)' }} />{GYM_CONFIG.phone}
-                </a>
-              </div>
-
-              {/* Form card */}
-              <div id="tour-form">
-                <div className="bg-white rounded-[var(--radius-xl)] p-6"
-                  style={{ boxShadow: 'var(--shadow-lg)', border: '1.5px solid var(--clr-border-green)' }}>
-                  <div className="mb-3">
-                    <h2 className="font-display text-xl tracking-wide" style={{ color: 'var(--clr-green)' }}>BOOK A FREE TOUR</h2>
-                    <p className="text-[var(--clr-text-muted)] text-xs mt-0.5">30 seconds. No commitment. We love showing the gym off.</p>
-                  </div>
-                  <QuizForm source="book_a_tour" />
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-      </section>
-
-      {/* Wave */}
-      <WaveDivider from="var(--clr-bg)" to="white" />
-
-      {/* =========== BENEFITS =========== */}
-      <section className="py-16 sm:py-20 bg-white" data-testid="home-benefits-section">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <span className="green-accent-line mx-auto" />
-            <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Why Train Here</p>
-            <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>
-              {g('home_benefits_headline', 'STRENGTH WITHOUT THE NOISE.')}
-            </h2>
-            <p className="text-[var(--clr-text-muted)] max-w-xl mx-auto mt-3 text-sm leading-relaxed">
-              {g('home_benefits_subtitle', 'No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.')}
-            </p>
-          </div>
-          <Carousel itemWidth="w-64 sm:w-72" className="px-6">
-            {BENEFITS.map((b) => (
-              <div key={b.title} className={`${b.color} rounded-[var(--radius-lg)] p-6 h-full transition-transform duration-200 hover:-translate-y-1`}
-                style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--clr-border)', minHeight: '180px' }}>
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-4 text-[var(--clr-green)]"
-                  style={{ boxShadow: 'var(--shadow-sm)' }}>
-                  {b.icon}
-                </div>
-                <h3 className="font-bold text-[var(--clr-charcoal)] text-base mb-2">{b.title}</h3>
-                <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed">{b.desc}</p>
-              </div>
-            ))}
-          </Carousel>
-        </div>
-      </section>
-
-      {/* Wave */}
-      <WaveDivider from="white" to="var(--clr-bg)" flip />
-
-      {/* =========== TRAINING EXPERIENCE =========== */}
-      <section className="py-16 sm:py-20" style={{ background: 'var(--clr-bg)' }} data-testid="home-training-experience-section">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="relative rounded-[var(--radius-xl)] overflow-hidden order-2 lg:order-1" style={{ boxShadow: 'var(--shadow-lg)' }}>
-              <img src={GYM_IMG} alt="Santa Cruz Strength member competing in a deadlift"
-                className="w-full h-72 sm:h-96 object-cover" style={{ objectPosition: 'center top' }} loading="lazy" />
-              <div className="absolute bottom-5 left-5">
-                <span className="bg-white text-[var(--clr-green)] text-xs font-bold px-4 py-2 rounded-full" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                  151 Harvey West Blvd · Santa Cruz
-                </span>
-              </div>
-            </div>
-            <div className="order-1 lg:order-2">
-              <span className="green-accent-line" />
-              <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">The Environment</p>
-              <h2 className="font-display text-4xl sm:text-5xl tracking-wide mb-5" style={{ color: 'var(--clr-charcoal)' }}>
-                {(g('home_environment_headline', 'WHAT TRAINING\nHERE FEELS LIKE')).split('\n').map((line, i, arr) => (
-                  <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
-                ))}
-              </h2>
-              <p className="text-[var(--clr-text)] leading-relaxed mb-3 font-semibold">
-                {g('home_environment_text', "Walk in and you'll notice it immediately. The space is clean. The equipment is serious. People are focused, not performing.")}
-              </p>
-              <p className="text-[var(--clr-text-muted)] leading-relaxed mb-6 text-sm">
-                {g('home_environment_subtext', 'No music drowning out your thoughts. No influencer corner. Just chalk, iron, and people who came to work.')}
-              </p>
-              <ul className="space-y-3">
-                {['Competition-grade racks, barbells, and platforms', 'Coaches who know real strength programming', 'An environment that respects effort over ego', '24/7 access for full members via our app'].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm font-semibold text-[var(--clr-text)]">
-                    <div className="w-5 h-5 bg-[var(--clr-bg-green)] rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                      <ChevronRight size={12} style={{ color: 'var(--clr-green)' }} />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 flex gap-3">
-                <Link to="/join" className="btn-primary px-5 py-2.5 text-sm">View Membership</Link>
-                <Link to="/personal-training" className="btn-outline-green px-5 py-2.5 text-sm">Personal Training</Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Wave */}
-      <WaveDivider from="var(--clr-bg)" to="var(--clr-seafoam)" />
-
-      {/* =========== WHO IT'S FOR =========== */}
-      <section className="py-16 sm:py-20" style={{ background: 'var(--clr-seafoam)' }} data-testid="home-who-its-for-section">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="green-accent-line" />
-              <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Who Trains Here</p>
-              <h2 className="font-display text-4xl sm:text-5xl tracking-wide mb-5" style={{ color: 'var(--clr-charcoal)' }}>
-                {(g('home_who_headline', 'IF YOU TRAIN,\nYOU BELONG HERE.')).split('\n').map((line, i, arr) => (
-                  <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
-                ))}
-              </h2>
-              <p className="text-[var(--clr-text)] leading-relaxed text-sm mb-3 font-semibold">
-                {g('home_who_text', "Santa Cruz Strength serves the full athletic community of this city. The common thread isn't your sport or your level.")}
-              </p>
-              <p className="text-[var(--clr-text-muted)] text-sm leading-relaxed mb-8">
-                {g('home_who_subtext', "It's the belief that being strong makes everything else better — your surfing, your climbing, your work, your decades ahead.")}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {WHO_FOR.map((item, i) => (
-                  <span key={i} className="flex items-center gap-1.5 bg-white text-[var(--clr-green)] text-sm font-bold px-3.5 py-2 rounded-full"
-                    style={{ border: '1.5px solid var(--clr-border-green)', boxShadow: 'var(--shadow-sm)' }}>
-                    <span className="text-xs">{typeof item.icon === 'string' ? item.icon : item.icon}</span>
-                    {item.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="relative rounded-[var(--radius-xl)] overflow-hidden" style={{ boxShadow: 'var(--shadow-lg)' }}>
-              <img src={SURFER_IMG} alt="Santa Cruz Strength competition podium — members with medals"
-                className="w-full h-72 sm:h-96 object-cover" style={{ objectPosition: 'center top' }} loading="lazy" />
-              <div className="absolute bottom-5 left-5 right-5">
-                <div className="bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3">
-                  <p className="font-display text-lg tracking-wide" style={{ color: 'var(--clr-green)' }}>REAL COMPETITION.</p>
-                  <p className="text-[var(--clr-coral)] font-display text-lg tracking-wide">REAL COMMUNITY.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Instagram feed — sits below the two-column block, still inside seafoam section */}
-          <InstagramFeed
-            feedId={GYM_CONFIG.beholdFeedId}
-            handle={GYM_CONFIG.instagramHandle}
-            profileUrl={GYM_CONFIG.social.instagram}
-          />
-        </div>
-      </section>
-
-      {/* Wave */}
-      <WaveDivider from="var(--clr-seafoam)" to="white" flip />
-
-      {/* =========== TESTIMONIALS =========== */}
-      <section className="py-16 sm:py-20 bg-white" data-testid="home-testimonials-section">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <span className="green-accent-line mx-auto" />
-            <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Member Stories</p>
-            <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>HEAR IT FROM THE MEMBERS</h2>
-          </div>
-          <Carousel itemWidth="w-72 sm:w-80 md:w-[360px]" className="px-6">
-            {TESTIMONIALS.map((t) => (
-              <div key={t.name} className="card-light p-6 hover:-translate-y-1 transition-transform duration-200 h-full flex flex-col">
-                <div className="flex gap-0.5 mb-4">
-                  {[...Array(5)].map((_, j) => <Star key={j} size={14} fill="var(--clr-coral)" className="text-[var(--clr-coral)]" />)}
-                </div>
-                <p className="text-[var(--clr-text)] text-sm leading-relaxed mb-5 flex-1">&ldquo;{t.text}&rdquo;</p>
-                <div className="border-t pt-4" style={{ borderColor: 'var(--clr-border)' }}>
-                  <p className="text-[var(--clr-charcoal)] font-bold text-sm">{t.name}</p>
-                  <p className="text-[var(--clr-text-light)] text-xs mt-0.5">{t.detail}</p>
-                </div>
-              </div>
-            ))}
-          </Carousel>
-        </div>
-      </section>
-
-      {/* =========== UPCOMING EVENTS =========== */}
-      {upcomingEvents.length > 0 && (
-        <>
-          <div className="py-14 bg-white" data-testid="home-events-section">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6">
-              <div className="flex items-end justify-between mb-8">
-                <div>
-                  <span className="green-accent-line" />
-                  <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-2">Community</p>
-                  <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>WHAT&apos;S HAPPENING</h2>
-                </div>
-                <Link to="/events" className="btn-outline-green px-4 py-2 text-sm shrink-0 hidden sm:flex items-center gap-1.5">
-                  All Events <ChevronRight size={14} />
+              <div className="scs-hero-actions">
+                <TourLink className="scs-button scs-button-primary" location="hero">
+                  Book a free tour <ArrowRight size={18} aria-hidden="true" />
+                </TourLink>
+                <Link
+                  to="/join"
+                  className="scs-button scs-button-secondary"
+                  onClick={() => trackJoinNowClick('hero')}
+                >
+                  See memberships
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {upcomingEvents.map(event => (
-                  <div key={event.id} className="card-light overflow-hidden flex flex-col">
-                    {event.image_url
-                      ? <img src={event.image_url} alt={event.title} className="w-full h-36 object-cover" loading="lazy" />
-                      : <div className="h-36 flex items-center justify-center" style={{ background: 'var(--clr-bg-green)' }}><Calendar size={28} style={{ color: 'var(--clr-green)', opacity: 0.4 }} /></div>
-                    }
-                    <div className="p-4 flex flex-col flex-1">
-                      <span className="text-[10px] font-bold text-[var(--clr-green)] uppercase tracking-wider mb-1">{event.category}</span>
-                      <h3 className="font-bold text-[var(--clr-charcoal)] text-sm mb-1 leading-snug">{event.title}</h3>
-                      <p className="text-[var(--clr-text-muted)] text-xs mb-3 flex items-center gap-1.5">
-                        <Calendar size={10} style={{ color: 'var(--clr-green)' }} />
-                        {new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{event.time ? ` · ${event.time}` : ''}
-                      </p>
-                      <div className="mt-auto">
-                        {event.ticket_type === 'external' && event.ticket_url
-                          ? <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" className="btn-coral w-full py-2 text-xs flex items-center justify-center gap-1.5"><Ticket size={11} /> Get Tickets</a>
-                          : event.ticket_type === 'rsvp'
-                            ? <Link to="/events" className="btn-primary w-full py-2 text-xs flex items-center justify-center gap-1.5"><Users size={11} /> RSVP</Link>
-                            : <span className="flex items-center justify-center gap-1.5 text-xs font-bold text-[var(--clr-green)] bg-[var(--clr-bg-green)] py-2 rounded-lg border border-[var(--clr-border-green)]"><Check size={11} /> Free Event</span>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-center mt-6 sm:hidden">
-                <Link to="/events" className="btn-outline-green px-5 py-2.5 text-sm inline-flex items-center gap-1.5">All Events <ChevronRight size={14} /></Link>
-              </div>
+              <p className="scs-friction-copy">See the room, ask questions and decide without pressure.</p>
             </div>
-          </div>
-          <div className="h-px" style={{ background: 'var(--clr-border)' }} />
-        </>
-      )}
 
-      {/* =========== CTA BLOCK =========== */}
-      <section className="py-16 sm:py-20 relative overflow-hidden"
-        style={{ backgroundImage: `url(${COASTAL_IMG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-        <div className="absolute inset-0" style={{ background: 'rgba(13,93,62,0.82)' }} />
-        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <span className="inline-block w-12 h-1 bg-[var(--clr-seafoam)] rounded-full mb-5 mx-auto" />
-          <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-wide mb-4">
-            STRENGTH IS THE<br />FOUNDATION.
-          </h2>
-          <p className="text-white/85 text-base mb-8 font-semibold">
-            Whether you surf, climb, run trails, or just want to stay capable for life — it starts here.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/join"
-              data-testid="home-final-cta-join-now-button"
-              onClick={() => trackJoinNowClick('cta_block')}
-              className="bg-[var(--clr-coral)] text-white font-bold rounded-[var(--radius-md)] px-8 py-4 text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:bg-[var(--clr-coral-dark)] hover:-translate-y-0.5"
-              style={{ boxShadow: '0 4px 20px rgba(250,90,92,0.35)' }}>
-              Join Santa Cruz Strength
-            </Link>
-            <button
-              onClick={() => { trackBookTourClick('cta_block'); document.getElementById('tour-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
-              data-testid="home-final-cta-book-visit-button"
-              className="bg-white/15 backdrop-blur text-white font-bold rounded-[var(--radius-md)] px-8 py-4 text-sm border-2 border-white/30 hover:bg-white/25 transition-all duration-200">
-              Book a Tour First
-            </button>
+            <figure className="scs-hero-media">
+              <PublicImage
+                src={MEDIA.facility}
+                alt="Santa Cruz Strength training floor with racks, platforms, barbells and free weights"
+                width="1672"
+                height="941"
+                fetchPriority="high"
+              />
+              <figcaption>
+                <strong>151 Harvey West Blvd, Suite D</strong>
+                <span>Members: 24/7 access through the app</span>
+              </figcaption>
+            </figure>
           </div>
-          <p className="text-white/55 text-xs mt-5">No commitment required for a tour.</p>
-        </div>
-      </section>
+        </section>
 
-      {/* Wave */}
-      <WaveDivider from="var(--clr-bg)" to="var(--clr-green)" />
-
-      {/* =========== FAQ =========== */}
-      <section className="py-16 sm:py-20" style={{ background: 'var(--clr-bg)' }}>
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
-            <span className="green-accent-line mx-auto" />
-            <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }} data-testid="home-faq-accordion">
-              COMMON QUESTIONS
-            </h2>
+        <section className="scs-fact-band" aria-label="Facility facts">
+          <div className="scs-shell scs-fact-grid">
+            <div><Clock3 aria-hidden="true" /><span><strong>24/7 member access</strong>Through the member app</span></div>
+            <div><Dumbbell aria-hidden="true" /><span><strong>Strength-first floor</strong>Racks, platforms and free weights</span></div>
+            <div><Users aria-hidden="true" /><span><strong>Coaching available</strong>Personal training for a clear starting path</span></div>
           </div>
-          <Accordion type="single" collapsible className="space-y-3">
-            {FAQ_ITEMS.map((item) => (
-              <AccordionItem key={item.q} value={item.q}
-                className="bg-white rounded-[var(--radius-lg)] px-5 border-none"
-                style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--clr-border)' }}>
-                <AccordionTrigger
-                  className="text-[var(--clr-charcoal)] text-sm font-bold py-4 hover:no-underline hover:text-[var(--clr-green)]">
-                  {item.q}
-                </AccordionTrigger>
-                <AccordionContent className="text-[var(--clr-text-muted)] text-sm leading-relaxed pb-4">
-                  {item.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </section>
+        </section>
 
-      {/* =========== LOCAL SECTION =========== */}
-      <section className="py-16 sm:py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
-            <span className="green-accent-line mx-auto" />
-            <h2 className="font-display text-4xl sm:text-5xl tracking-wide" style={{ color: 'var(--clr-charcoal)' }}>FIND US IN SANTA CRUZ</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="card-light p-6" data-testid="contact-address-block">
-              <h3 className="font-display text-2xl tracking-wide mb-5" style={{ color: 'var(--clr-green)' }}>VISIT US</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <MapPin size={17} style={{ color: 'var(--clr-green)', marginTop: 2 }} className="shrink-0" />
-                  <div>
-                    <p className="text-[var(--clr-charcoal)] text-sm font-bold">{GYM_CONFIG.address.full}</p>
-                    <p className="text-[var(--clr-text-light)] text-xs mt-0.5">Harvey West Business Park · Free parking</p>
-                  </div>
-                </li>
-                <li>
-                  <a href={GYM_CONFIG.phoneHref} data-testid="contact-click-to-call-button" className="flex items-center gap-3 group">
-                    <Phone size={17} style={{ color: 'var(--clr-green)' }} />
-                    <span className="font-bold text-sm text-[var(--clr-charcoal)] group-hover:text-[var(--clr-green)] transition-colors duration-200">{GYM_CONFIG.phone}</span>
-                  </a>
-                </li>
-              </ul>
-              <div className="mt-5 pt-5 border-t" style={{ borderColor: 'var(--clr-border)' }} data-testid="contact-hours-block">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock size={14} style={{ color: 'var(--clr-green)' }} />
-                  <h4 className="text-[var(--clr-charcoal)] text-xs font-bold uppercase tracking-wider">Access & Hours</h4>
-                </div>
-                <ul className="space-y-2">
-                  {GYM_CONFIG.hours.map((h, i) => (
-                    <li key={i}>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[var(--clr-text-muted)] font-semibold">{h.days}</span>
-                        <span className="text-[var(--clr-charcoal)] font-bold">{h.hours}</span>
-                      </div>
-                      {h.note && <p className="text-[var(--clr-text-light)] text-xs mt-0.5 text-right">{h.note}</p>}
-                    </li>
-                  ))}
+        <section className="scs-section scs-room" aria-labelledby="room-title">
+          <div className="scs-shell">
+            <div className="scs-section-heading">
+              <h2 id="room-title">Built for training, not posing</h2>
+              <p>The room is the proof. Tour the equipment, meet the people and decide whether it supports the work you want to do.</p>
+            </div>
+            <div className="scs-room-layout">
+              <div className="scs-room-image">
+                <PublicImage src={MEDIA.lift} alt="A strength athlete deadlifting on a platform while a group offers support" width="1122" height="1402" />
+              </div>
+              <div className="scs-room-copy">
+                <h3>What you can evaluate on a tour</h3>
+                <ul className="scs-check-list">
+                  <li><Check aria-hidden="true" /> The racks, platforms, bars and loading space</li>
+                  <li><Check aria-hidden="true" /> How the room feels during an actual training session</li>
+                  <li><Check aria-hidden="true" /> Membership access, current hours and day-pass details</li>
+                  <li><Check aria-hidden="true" /> Whether personal training fits your goals</li>
                 </ul>
-              </div>
-              <div className="mt-5">
-                <a href={GYM_CONFIG.phoneHref} className="btn-primary w-full py-3 text-sm text-center block">Call to Book a Tour</a>
+                <div className="scs-inline-actions">
+                  <TourLink className="scs-text-link" location="room">Arrange a facility tour <ArrowRight size={17} aria-hidden="true" /></TourLink>
+                  <Link className="scs-text-link scs-text-link-muted" to="/personal-training">Explore personal training</Link>
+                </div>
               </div>
             </div>
-            <div className="rounded-[var(--radius-xl)] overflow-hidden h-[400px] md:h-auto" style={{ boxShadow: 'var(--shadow-md)', border: '1px solid var(--clr-border)' }} data-testid="contact-map-embed">
-              <iframe title="Santa Cruz Strength Location"
+          </div>
+        </section>
+
+        <section className="scs-section scs-community" aria-labelledby="community-title">
+          <div className="scs-shell scs-community-layout">
+            <div className="scs-community-copy">
+              <h2 id="community-title">Strong people help each other get stronger</h2>
+              <p>Santa Cruz Strength is serious about training without making the room feel anonymous. Members describe a supportive place where people spot, share advice and celebrate the work.</p>
+              <blockquote>
+                “The people here are kind and supportive and are always happy to spot you and give tips.”
+                <cite>Ella Desmond, member review</cite>
+              </blockquote>
+              <Link to="/about" className="scs-text-link">Meet the gym <ArrowRight size={17} aria-hidden="true" /></Link>
+            </div>
+            <div className="scs-photo-pair" aria-label="Santa Cruz Strength community photographs">
+              <PublicImage src={MEDIA.community} alt="A group sharing a light moment between training sessions" width="1672" height="941" />
+              <PublicImage src={MEDIA.podium} alt="An active open-gym floor with lifters training together" width="1672" height="941" />
+            </div>
+          </div>
+        </section>
+
+        <section className="scs-section scs-paths" aria-labelledby="paths-title">
+          <div className="scs-shell">
+            <div className="scs-section-heading scs-section-heading-wide">
+              <h2 id="paths-title">Choose the next step that fits</h2>
+              <p>You do not need to solve your entire training plan before you walk through the door.</p>
+            </div>
+            <div className="scs-path-list">
+              <Link to="/join" className="scs-path-row" onClick={() => trackJoinNowClick('path_membership')}>
+                <span className="scs-path-icon"><ShieldCheck aria-hidden="true" /></span>
+                <span><strong>Membership</strong><small>Compare current access, prices and terms.</small></span>
+                <ArrowRight aria-hidden="true" />
+              </Link>
+              <Link to="/personal-training" className="scs-path-row">
+                <span className="scs-path-icon"><Dumbbell aria-hidden="true" /></span>
+                <span><strong>Personal training</strong><small>Start with coaching and a plan built around your goals.</small></span>
+                <ArrowRight aria-hidden="true" />
+              </Link>
+              <TourLink className="scs-path-row" location="path_tour">
+                <span className="scs-path-icon"><MapPin aria-hidden="true" /></span>
+                <span><strong>Free facility tour</strong><small>See the room and ask questions before deciding.</small></span>
+                <ArrowRight aria-hidden="true" />
+              </TourLink>
+            </div>
+          </div>
+        </section>
+
+        <section className="scs-section scs-tour" id="tour-form" aria-labelledby="tour-title">
+          <div className="scs-shell scs-tour-layout">
+            <div className="scs-tour-intro">
+              <p className="scs-location-line"><CalendarDays size={17} aria-hidden="true" /> Your first visit</p>
+              <h2 id="tour-title">Book a free tour</h2>
+              <p>Tell us what you are looking for. The Santa Cruz team will review the request and contact you to arrange the next step.</p>
+            </div>
+            <div className="scs-tour-form-panel">
+              <QuizForm source="book_a_tour" noAutoFocus />
+            </div>
+            <div className="scs-tour-support">
+              <ol className="scs-tour-steps">
+                <li><span>1</span><div><strong>Send your request</strong><small>Share your contact details and what brings you in.</small></div></li>
+                <li><span>2</span><div><strong>Coordinate a time</strong><small>The team will follow up about a suitable visit.</small></div></li>
+                <li><span>3</span><div><strong>See the floor</strong><small>Tour the space, equipment and membership options.</small></div></li>
+              </ol>
+              <PublicImage src={MEDIA.coach} alt="A coach guiding an athlete through a barbell deadlift" width="1672" height="941" />
+            </div>
+          </div>
+        </section>
+
+        <section className="scs-section scs-reviews" aria-labelledby="reviews-title">
+          <div className="scs-shell">
+            <div className="scs-section-heading">
+              <h2 id="reviews-title">What members say about the room</h2>
+              <p>Feedback shared by members of the Santa Cruz Strength community.</p>
+            </div>
+            <div className="scs-review-grid">
+              {TESTIMONIALS.map((testimonial) => (
+                <figure key={testimonial.name} className="scs-review">
+                  <div className="scs-stars" aria-label="Five star review">
+                    {[0, 1, 2, 3, 4].map((star) => <Star key={star} aria-hidden="true" fill="currentColor" />)}
+                  </div>
+                  <blockquote>“{testimonial.text}”</blockquote>
+                  <figcaption><strong>{testimonial.name}</strong><span>{testimonial.detail}</span></figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {upcomingEvents.length > 0 && (
+          <section className="scs-section scs-events" aria-labelledby="events-title">
+            <div className="scs-shell">
+              <div className="scs-section-heading scs-events-heading">
+                <div><h2 id="events-title">Upcoming at the gym</h2><p>Published events from the Santa Cruz Strength calendar.</p></div>
+                <Link to="/events" className="scs-text-link">View all events <ArrowRight size={17} aria-hidden="true" /></Link>
+              </div>
+              <div className="scs-event-list">
+                {upcomingEvents.map((event) => (
+                  <article key={event.id}>
+                    <CalendarDays aria-hidden="true" />
+                    <div><h3>{event.title}</h3><p>{new Date(`${event.date}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}{event.time ? ` at ${event.time}` : ''}</p></div>
+                    <Link to="/events" aria-label={`Learn more about ${event.title}`}><ArrowRight aria-hidden="true" /></Link>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="scs-section scs-visit" aria-labelledby="visit-title">
+          <div className="scs-shell scs-visit-layout">
+            <div className="scs-visit-details">
+              <h2 id="visit-title">Find Santa Cruz Strength</h2>
+              <address>
+                <span><MapPin aria-hidden="true" /><strong>{GYM_CONFIG.address.full}</strong></span>
+                <a href={GYM_CONFIG.phoneHref}><Phone aria-hidden="true" />{GYM_CONFIG.phone}</a>
+              </address>
+              <div className="scs-hours">
+                {GYM_CONFIG.hours.map((period) => (
+                  <div key={period.days}><strong>{period.days}</strong><span>{period.hours}</span><small>{period.note}</small></div>
+                ))}
+              </div>
+              <TourLink className="scs-button scs-button-primary" location="visit">Book a free tour <ArrowRight size={18} aria-hidden="true" /></TourLink>
+              <a className="scs-text-link" href={GYM_CONFIG.googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                Open directions <MapPin size={17} aria-hidden="true" />
+              </a>
+            </div>
+            <div className="scs-map" data-testid="contact-map-embed">
+              <iframe
+                title="Santa Cruz Strength location"
                 src="https://maps.google.com/maps?q=151+Harvey+West+Blvd+Ste+D+Santa+Cruz+CA+95060&output=embed"
-                width="100%" height="100%" style={{ border: 0, minHeight: '350px' }}
-                allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+                width="100%"
+                height="100%"
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* =========== FINAL CTA =========== */}
-      <section className="py-14" style={{ background: 'var(--clr-coral)' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="font-display text-4xl sm:text-5xl text-white tracking-wide mb-3">READY TO TRAIN SERIOUSLY?</h2>
-          <p className="text-white/85 text-base mb-6 font-semibold">Come see what a real strength gym feels like.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/join"
-              className="bg-white text-[var(--clr-coral)] font-bold rounded-[var(--radius-md)] px-8 py-3.5 text-sm hover:bg-white/90 transition-all duration-200 active:scale-[0.98]">
-              Join Santa Cruz Strength
-            </Link>
-            <Link to="/contact"
-              className="border-2 border-white/40 text-white font-bold rounded-[var(--radius-md)] px-8 py-3.5 text-sm hover:bg-white/15 transition-all duration-200">
-              Talk to a Coach
-            </Link>
+        <section className="scs-section scs-faq" aria-labelledby="faq-title">
+          <div className="scs-shell scs-faq-layout">
+            <div><h2 id="faq-title">Before you visit</h2><p>Clear answers to the questions people ask when comparing a local strength gym.</p></div>
+            <div className="scs-faq-list">
+              {FAQ_ITEMS.map((item) => (
+                <details key={item.question}>
+                  <summary>{item.question}<ChevronDown aria-hidden="true" /></summary>
+                  <p>{item.answer}</p>
+                </details>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
+        <section className="scs-closing" aria-label="Book a tour">
+          <div className="scs-shell">
+            <h2>Come see the room for yourself.</h2>
+            <TourLink className="scs-button scs-button-light" location="closing">Book a free tour <ArrowRight size={18} aria-hidden="true" /></TourLink>
+          </div>
+        </section>
+      </main>
       <Footer />
     </div>
   );

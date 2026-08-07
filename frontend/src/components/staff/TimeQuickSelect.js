@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getStaffedHours } from '../../lib/api';
 import { Clock, ChevronDown, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
-// 30-min slots 6:00 AM – 9:00 PM
+// 30-min slots 6:00 AM - 9:00 PM
 const ALL_SLOTS = [];
 for (let h = 6; h <= 21; h++) {
   for (const m of [0, 30]) {
@@ -94,7 +94,7 @@ export default function TimeQuickSelect({ value, onChange, selectedDate, classNa
           <p className="text-amber-300/80 text-xs leading-relaxed">
             {noStaffToday
               ? 'No staff scheduled this day. Please ensure someone will be available before confirming this appointment.'
-              : `${fmt12(value)} is outside staffed hours (${daySchedule?.open ? fmt12(daySchedule.open + ':00').replace(':00','') : ''}–${daySchedule?.close ? fmt12(daySchedule.close + ':00').replace(':00','') : ''}). Make sure someone will be here for this appointment.`
+              : `${fmt12(value)} is outside staffed hours (${daySchedule?.open ? fmt12(daySchedule.open + ':00').replace(':00','') : ''}-${daySchedule?.close ? fmt12(daySchedule.close + ':00').replace(':00','') : ''}). Make sure someone will be here for this appointment.`
             }
           </p>
         </div>
@@ -112,7 +112,7 @@ export default function TimeQuickSelect({ value, onChange, selectedDate, classNa
                 <>
                   <CheckCircle2 size={12} className="text-[#1B7A4A]" />
                   <span className="text-[#7FCCA6] text-xs font-medium">
-                    Staffed: {fmt12(daySchedule.open)} – {fmt12(daySchedule.close)}
+                    Staffed: {fmt12(daySchedule.open)} - {fmt12(daySchedule.close)}
                   </span>
                 </>
               ) : (
@@ -170,7 +170,7 @@ export default function TimeQuickSelect({ value, onChange, selectedDate, classNa
                       ? 'bg-red-950/40 text-red-300/70 border border-red-500/20 hover:bg-red-900/50 hover:text-red-200'
                       : 'bg-[var(--elevated-2)] text-white/60 border border-white/10 hover:bg-white/8'
                   }`}
-                  title={daySchedule?.enabled ? 'Outside staffed hours — ensure coverage' : ''}
+                  title={daySchedule?.enabled ? 'Outside staffed hours - ensure coverage' : ''}
                 >
                   {slot.label}
                 </button>

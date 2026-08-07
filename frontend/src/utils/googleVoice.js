@@ -1,7 +1,7 @@
 /**
  * Google Voice utilities
- * All gym phones use wifi-only with Google Voice —
- * these helpers open Google Voice web with the number pre-populated.
+ * All gym phones use wifi-only with Google Voice.
+ * These helpers open Google Voice web with the number pre-populated.
  */
 
 /**

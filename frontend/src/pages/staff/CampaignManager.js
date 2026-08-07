@@ -7,8 +7,9 @@ import {
   Clock, Mail, MessageSquare, Users, BarChart2, Zap, RefreshCw, Pencil, Eye, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { abcJoinUrl } from '../../config';
 
-const JOIN_URL = 'https://onlinejoin.abcfitness.com/signup/plan?club=31691';
+const JOIN_URL = abcJoinUrl();
 
 const SUBJECTS_DEFAULT = [
   "We've been thinking about you.",
@@ -113,7 +114,7 @@ export default function CampaignManager() {
   const handleStart = async (id) => {
     try {
       const res = await api.post(`/staff/campaigns/${id}/start`);
-      toast.success(res.data.message || 'Campaign started — first batch sending now');
+      toast.success(res.data.message || 'Campaign started - first batch sending now');
       await fetchCampaigns(); fetchDetail(id);
     } catch (err) { toast.error(err.response?.data?.detail || 'Failed to start'); }
   };
@@ -272,13 +273,13 @@ export default function CampaignManager() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={labelCls}>Follow-up (Wave 2) — days</label>
+                      <label className={labelCls}>Follow-up (Wave 2) - days</label>
                       <input type="number" min="1" value={form.wave2_delay_days}
                         onChange={e => setForm(p => ({ ...p, wave2_delay_days: parseInt(e.target.value) }))}
                         className={inputCls} />
                     </div>
                     <div>
-                      <label className={labelCls}>Final (Wave 3) — days</label>
+                      <label className={labelCls}>Final (Wave 3) - days</label>
                       <input type="number" min="1" value={form.wave3_delay_days}
                         onChange={e => setForm(p => ({ ...p, wave3_delay_days: parseInt(e.target.value) }))}
                         className={inputCls} />
@@ -340,9 +341,9 @@ export default function CampaignManager() {
                 {/* Progress */}
                 <div className="bg-white/4 border border-white/8 rounded-xl p-4 space-y-3">
                   {[
-                    { label: 'Wave 1 — Initial', sent: detail.wave1_sent, total: detail.total_leads, color: '#1B7A4A' },
-                    { label: 'Wave 2 — Follow-up (day ' + detail.wave2_delay_days + ')', sent: detail.wave2_sent, total: detail.wave1_sent, color: '#F59E0B' },
-                    { label: 'Wave 3 — Final (day ' + detail.wave3_delay_days + ')', sent: detail.wave3_sent, total: detail.wave2_sent, color: '#FA5A5C' },
+                    { label: 'Wave 1 - Initial', sent: detail.wave1_sent, total: detail.total_leads, color: '#1B7A4A' },
+                    { label: 'Wave 2 - Follow-up (day ' + detail.wave2_delay_days + ')', sent: detail.wave2_sent, total: detail.wave1_sent, color: '#F59E0B' },
+                    { label: 'Wave 3 - Final (day ' + detail.wave3_delay_days + ')', sent: detail.wave3_sent, total: detail.wave2_sent, color: '#FA5A5C' },
                   ].map(w => (
                     <div key={w.label}>
                       <div className="flex justify-between text-xs mb-1">
@@ -380,7 +381,7 @@ export default function CampaignManager() {
                     <div key={w.wave} className="flex items-start gap-3 py-2 border-b border-white/6 last:border-0">
                       <span className="text-[10px] font-bold px-2 py-0.5 bg-white/8 rounded-full text-white/50 shrink-0 mt-0.5">{w.day}</span>
                       <div>
-                        <p className="text-white/70 text-xs font-semibold">{w.wave} — {w.desc}</p>
+                        <p className="text-white/70 text-xs font-semibold">{w.wave} - {w.desc}</p>
                         {w.subjects && <p className="text-white/30 text-[10px] mt-0.5">{w.subjects}</p>}
                       </div>
                     </div>
@@ -506,7 +507,7 @@ export default function CampaignManager() {
                   { label: 'Est. Days', value: Math.ceil((detail.total_leads || 0) / (detail.batch_size_per_day || 70)) },
                 ].map(s => (
                   <div key={s.label} className="bg-white/4 rounded-xl p-3 text-center">
-                    <p className="text-white font-bold text-xl">{s.value || '—'}</p>
+                    <p className="text-white font-bold text-xl">{s.value || ' - '}</p>
                     <p className="text-white/35 text-[10px] mt-0.5">{s.label}</p>
                   </div>
                 ))}

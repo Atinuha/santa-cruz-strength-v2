@@ -1,5 +1,17 @@
-// Santa Cruz Strength — Business Configuration
+// Santa Cruz Strength - Business Configuration
 // Edit this file to update contact info, hours, links, etc.
+
+// ABC Fitness owns the membership transaction. Every join link in the app
+// derives from here, so a club change or a CRM migration is a one-line edit.
+export const ABC = {
+  base: 'https://onlinejoin.abcfitness.com',
+  clubId: '31691',
+};
+
+export const abcJoinUrl = (planId) =>
+  `${ABC.base}/signup/plan?club=${ABC.clubId}${planId ? `&planId=${planId}` : ''}`;
+
+export const abcGuestUrl = () => `${ABC.base}/guest/plan?club=${ABC.clubId}`;
 
 export const GYM_CONFIG = {
   name: 'Santa Cruz Strength',
@@ -15,19 +27,22 @@ export const GYM_CONFIG = {
   phone: '(408) 337-6709',
   phoneHref: 'tel:+14083376709',
   email: 'management@santacruzstrength.com',
-  // ABC Fitness signup link
-  joinUrl: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691',
-  // Hours — update these as needed
+  // ABC Fitness signup link. Derived, never hardcoded.
+  joinUrl: abcJoinUrl(),
+  // Hours - update these as needed
+  // Hours as published by the business. This is the single source; no page may
+  // state hours independently. Pending a dated owner confirmation that these
+  // are current, tracked as T-04.
   hours: [
     { days: 'Members', hours: '24 / 7 Access', note: 'Via mobile app' },
-    { days: 'Day Passes', hours: '9:00 AM – 6:00 PM', note: 'Monday – Sunday' },
-    { days: 'Staffed Hours', hours: 'Mon–Fri: 8 AM – 7 PM', note: 'Sat–Sun: 9 AM – 2 PM' },
+    { days: 'Day Passes', hours: '9:00 AM to 6:00 PM', note: 'Monday through Sunday' },
+    { days: 'Staffed Hours', hours: 'Mon to Fri: 8 AM to 7 PM', note: 'Sat and Sun: 9 AM to 2 PM' },
   ],
   // Google Review direct link
   // Get this from: google.com/business → "Get more reviews" → copy link
   googleReviewUrl: 'https://g.page/r/CUj8NPJ7NHNOEAE/review',
   googleMapsUrl: 'https://maps.app.goo.gl/cBFaKiDgratKXp1m6',
-  mapEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3189.9!2d-122.0308!3d36.9741!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808e41b53c63b4c1%3A0xf0d70e1a3b4c6a7b!2s151+Harvey+West+Blvd%2C+Santa+Cruz%2C+CA+95060!5e0!3m2!1sen!2sus!4v1234567890',
+  mapEmbedUrl: 'https://www.google.com/maps?q=151+Harvey+West+Blvd+Ste+D,+Santa+Cruz,+CA+95060&output=embed',
   // Social
   social: {
     instagram: 'https://www.instagram.com/santacruzstrength/',
@@ -35,7 +50,7 @@ export const GYM_CONFIG = {
   },
   // Instagram handle (without @)
   instagramHandle: 'santacruzstrength',
-  // Behold.so widget feed ID — get yours free at behold.so:
+  // Behold.so widget feed ID - get yours free at behold.so:
   //   1. Sign up at https://behold.so (free)
   //   2. Connect your @santacruzstrength Instagram account
   //   3. Create a "Widget" feed → copy the Feed ID (looks like: abc123xyz)
@@ -43,8 +58,63 @@ export const GYM_CONFIG = {
   beholdFeedId: 'IQB2fFQS1nAFKCbQ7SrH',
 };
 
+// Membership tiers exactly as published at santacruzstrength.com/join.
+// Do not edit prices or terms here without a dated owner approval; these are
+// commercial representations, not marketing copy.
+export const MEMBERSHIP_FEE_NOTE =
+  'All memberships carry a $50 annual enhancement fee. All cancellations require 30-day notice prior to the last billing date. Commitment memberships auto-renew to month-to-month at the end of the initial term.';
+
+export const MEMBERSHIP_TIERS = [
+  {
+    id: 'daypass', name: 'Day Pass', subtitle: '', price: '$20', cadence: 'same-day',
+    planId: '50837530f58641c38108fea62255030b', action: 'Get a day pass', tag: 'Try us out',
+    terms: ['Valid for same-day use only', 'Access during staffed hours'],
+  },
+  {
+    id: 'huscler-12', name: 'Huscler', subtitle: '12-month membership', price: '$75', cadence: 'per month',
+    planId: '823263ef0c354fd29bade28c18f280f2', action: 'Choose Huscler', tag: 'Most popular', featured: true,
+    terms: ['24/7 facility access via app', 'Unlimited open gym', 'Competition-grade equipment', '12-month initial agreement'],
+  },
+  {
+    id: 'annual', name: 'Annual Huscler', subtitle: 'Paid in full, one month free', price: '$825', cadence: 'one-time',
+    planId: '7a1dd8cec5cd4f30af82429e4f5957c5', action: 'Choose annual', tag: 'Best value',
+    note: '13 months total, $63 per month effective',
+    terms: ['24/7 facility access via app', '13 months total, one month free', 'Paid in full at signup'],
+  },
+  {
+    id: 'huscler-6', name: 'Huscler 6-Month', subtitle: '6-month agreement', price: '$82', cadence: 'per month',
+    planId: '5efa1abd3436408a99c4ce18c6216be2', action: 'Choose 6-month',
+    terms: ['6-month initial agreement'],
+  },
+  {
+    id: 'flex', name: 'Flex Huscler', subtitle: 'Month-to-month, no commitment', price: '$120', cadence: 'per month',
+    planId: 'a772569e9c38408c90fab7b9bda49fca', action: 'Choose Flex',
+    terms: ['Billed monthly until canceled', 'No agreement required'],
+  },
+  {
+    id: 'couples-12', name: 'Couples 12-Month', subtitle: 'Two members', price: '$120', cadence: 'per month',
+    planId: 'fdf12470797b47a1a6ac3c11c764d46e', action: 'Choose couples', note: '$60 per person',
+    terms: ['12-month initial agreement'],
+  },
+  {
+    id: 'couples-6', name: 'Couples 6-Month', subtitle: 'Two members', price: '$136', cadence: 'per month',
+    planId: '5d08a9e72aef4c8da136ab822f550eca', action: 'Choose couples', note: '$68 per person',
+    terms: ['6-month initial agreement'],
+  },
+  {
+    id: 'weekend-12', name: 'Weekend Warrior 12-Month', subtitle: 'Friday to Sunday access only', price: '$45', cadence: 'per month',
+    planId: '11b156f6da6e43289a145de648034aa9', action: 'Choose weekend',
+    terms: ['12-month initial agreement', 'Friday through Sunday access'],
+  },
+  {
+    id: 'weekend-6', name: 'Weekend Warrior 6-Month', subtitle: 'Friday to Sunday access only', price: '$55', cadence: 'per month',
+    planId: '4383e794de444449b5a1dd4b5160a6b4', action: 'Choose weekend',
+    terms: ['6-month initial agreement', 'Friday through Sunday access'],
+  },
+].map((tier) => ({ ...tier, link: abcJoinUrl(tier.planId) }));
+
 export const LEAD_SOURCES = [
-  // Priority sources — most current, highest intent
+  // Priority sources - most current, highest intent
   { value: 'website_form',               label: 'Website Form',               priority: true },
   { value: 'book_a_tour',                label: 'Book a Tour',                priority: true },
   { value: 'contact_page',               label: 'Contact Page',               priority: true },

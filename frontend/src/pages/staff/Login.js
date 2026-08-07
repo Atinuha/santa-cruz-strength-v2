@@ -5,7 +5,7 @@ import { login as apiLogin, verifyOtp as apiVerifyOtp } from '../../lib/api';
 import { Loader2, Eye, EyeOff, ArrowLeft, KeyRound, ShieldCheck, Monitor } from 'lucide-react';
 import { GYM_CONFIG } from '../../config';
 
-const LOGO_URL = 'https://customer-assets.emergentagent.com/job_f0e6860d-0e81-45b1-9e0b-f7bb6a04df72/artifacts/uf08gcdo_20260313_151045_0000.png';
+const LOGO_URL = '/assets/scs/logo.png';
 const DEVICE_TOKEN_KEY = 'scs_device_token';
 const DEVICE_EMAIL_KEY = 'scs_device_email';
 
@@ -39,14 +39,14 @@ export default function StaffLogin() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  // Step 1 — credentials
+  // Step 1 - credentials
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
 
-  // Step 2 — OTP
+  // Step 2 - OTP
   const [step, setStep]             = useState('credentials');
   const [otp, setOtp]               = useState('');
   const [rememberDevice, setRememberDevice] = useState(false);
@@ -60,7 +60,7 @@ export default function StaffLogin() {
     rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/45 focus:border-transparent
     transition-colors duration-200`;
 
-  // ── Submit credentials — direct login (2FA disabled) ───────────────────────
+  // ── Submit credentials - direct login (2FA disabled) ───────────────────────
   const handleCredentials = async (e) => {
     e.preventDefault();
     setError('');
@@ -117,7 +117,7 @@ export default function StaffLogin() {
     setOtp('');
     try {
       await apiLogin(email, password);
-      setOtpError('New code sent — check your email.');
+      setOtpError('New code sent - check your email.');
     } catch {
       setOtpError('Could not resend. Go back and try again.');
     }
@@ -141,7 +141,7 @@ export default function StaffLogin() {
             <h1 className="font-display text-2xl text-white tracking-wide">
               {step === 'otp' ? 'CHECK YOUR EMAIL' : 'STAFF LOGIN'}
             </h1>
-            <p className="text-white/52 text-sm mt-1">{GYM_CONFIG.name} — Lead CRM</p>
+            <p className="text-white/52 text-sm mt-1">{GYM_CONFIG.name} - Lead CRM</p>
           </div>
 
           <div className="card-marketing p-6">

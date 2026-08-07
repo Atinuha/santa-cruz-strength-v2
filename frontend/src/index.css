@@ -69,7 +69,7 @@
   min-height: 100vh;
   background-color: #0C1420 !important;
   color: #F0F4FF !important;
-  font-family: 'Inter', 'Nunito', system-ui, sans-serif;
+  font-family: 'Nunito', system-ui, sans-serif;
 }
 
 .crm-root .card-marketing {
@@ -140,7 +140,9 @@ body {
 }
 
 .font-display {
-  font-family: 'Bebas Neue', Impact, system-ui;
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.035em;
 }
 
 /* ==========================================
@@ -295,7 +297,7 @@ body {
   padding: 0.75rem 1rem;
   color: var(--clr-text);
   font-family: 'Nunito', sans-serif;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 500;
   transition: border-color 200ms, box-shadow 200ms;
   outline: none;

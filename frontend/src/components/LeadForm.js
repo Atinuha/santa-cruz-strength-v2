@@ -1,26 +1,45 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createLead } from '../lib/api';
 import { GYM_CONFIG, INTEREST_TYPES, START_TIMELINES, PREFERRED_CONTACTS } from '../config';
 import { Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLeadAttribution } from '../utils/attribution';
+import { trackFormStart, trackLeadSubmit } from '../utils/analytics';
+import PreviewNotice from './PreviewNotice';
+import { PREVIEW_MODE } from '../utils/previewSafety';
+import { buildMemberLeadPayload, createLeadRequestId } from '../utils/leadContracts';
+
+const createEmptyForm = (source) => ({
+  first_name: '',
+  last_name: '',
+  email: '',
+  phone: '',
+  interest_type: 'General Membership',
+  training_goals: '',
+  start_timeline: 'ASAP',
+  preferred_contact: 'call',
+  lead_source: source,
+  location: GYM_CONFIG.location,
+  sms_consent: false,
+});
 
 export default function LeadForm({ source = 'website_form', variant = 'default', ctaLabel, onSuccess }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [form, setForm] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    interest_type: 'General Membership',
-    training_goals: '',
-    start_timeline: 'ASAP',
-    preferred_contact: 'call',
-    lead_source: source,
-    location: GYM_CONFIG.location,
-  });
+  const [previewComplete, setPreviewComplete] = useState(false);
+  const formStartTracked = useRef(false);
+  const requestIdRef = useRef(null);
+  const [form, setForm] = useState(() => createEmptyForm(source));
+
+  if (!requestIdRef.current) requestIdRef.current = createLeadRequestId();
+
+  const handleFormStart = () => {
+    if (formStartTracked.current) return;
+    formStartTracked.current = true;
+    trackFormStart({ form_name: 'lead_form', lead_source: source });
+  };
 
   const validate = () => {
     const e = {};
@@ -47,7 +66,22 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
     }
     setLoading(true);
     try {
-      await createLead({ ...form });
+      if (PREVIEW_MODE) {
+        setForm(createEmptyForm(source));
+        setPreviewComplete(true);
+        return;
+      }
+      const payload = buildMemberLeadPayload({
+        form,
+        source,
+        attribution: getLeadAttribution(),
+        requestId: requestIdRef.current,
+        formId: 'legacy_lead_form',
+        offerId: 'free_facility_tour',
+      });
+      await createLead(payload);
+      requestIdRef.current = createLeadRequestId();
+      trackLeadSubmit({ interest_type: form.interest_type, lead_source: source });
       if (onSuccess) {
         onSuccess();
       } else {
@@ -64,8 +98,19 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
     focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-colors duration-200`;
   const errorClass = 'text-red-400 text-xs mt-1';
 
+  if (previewComplete) {
+    return (
+      <div className="scs-preview-success" role="status" data-testid="preview-lead-success">
+        <h3>Preview test complete</h3>
+        <p>No lead was sent and no form information was stored.</p>
+        <button type="button" className="scs-button scs-button-secondary" onClick={() => setPreviewComplete(false)}>Test the form again</button>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} onFocusCapture={handleFormStart} className="space-y-4" noValidate>
+      <PreviewNotice testId="preview-lead-notice">Use test information only. Nothing entered here will be sent or stored.</PreviewNotice>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-white/60 mb-1.5">First Name *</label>
@@ -158,7 +203,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
 
       <button type="submit" disabled={loading} data-testid="lead-form-submit-button"
         className="w-full btn-scs-primary py-3 rounded-md font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
-        {loading ? <><Loader2 size={15} className="animate-spin" /> Sending...</> : (ctaLabel || 'Request a Tour — No Commitment')}
+        {loading ? <><Loader2 size={15} className="animate-spin" /> Sending...</> : (ctaLabel || 'Request a Tour - No Commitment')}
       </button>
 
       <p className="text-center text-xs text-white/48">

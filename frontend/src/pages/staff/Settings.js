@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api, {
@@ -49,7 +49,7 @@ export default function Settings() {
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'staff', location: 'santa_cruz' });
   const [newInvite, setNewInvite] = useState({ name: '', email: '', role: 'staff' });
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     if (!isAdmin) return;
     setLoadingUsers(true);
     try {
@@ -70,9 +70,9 @@ export default function Settings() {
       } catch (err) { console.error('Failed to load SMS numbers:', err); }
       finally { setSmsLoading(false); }
     }
-  };
+  }, [isAdmin, isOwner]);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -97,7 +97,7 @@ export default function Settings() {
     try {
       const res = await createInvite(newInvite);
       setInviteResult(res.data);
-      toast.success(res.data.email_sent ? 'Invite sent via email!' : 'Invite created — copy the link below');
+      toast.success(res.data.email_sent ? 'Invite sent via email!' : 'Invite created - copy the link below');
       fetchAll();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to create invite');
@@ -454,15 +454,15 @@ export default function Settings() {
             <div className="mt-4 p-3 bg-white/3 rounded-lg border border-white/6">
               <p className="text-white/58 text-xs">
                 <strong className="text-white/55">Role permissions:</strong>{' '}
-                <span className="text-[#7FCCA6]/70">Owner</span> — full access including delete.{' '}
-                <span className="text-blue-300/70">Admin</span> — manage staff, delete leads.{' '}
-                <span className="text-white/65">Staff</span> — view leads, update status, add notes. Cannot delete.
+                <span className="text-[#7FCCA6]/70">Owner</span> - full access including delete.{' '}
+                <span className="text-blue-300/70">Admin</span> - manage staff, delete leads.{' '}
+                <span className="text-white/65">Staff</span> - view leads, update status, add notes. Cannot delete.
               </p>
             </div>
           </section>
         )}
 
-        {/* SMS Notification Numbers — Owner Only */}
+        {/* SMS Notification Numbers - Owner Only */}
         {isOwner && (
           <section className="card-marketing p-6" data-testid="sms-settings-section">
             <div className="flex items-center justify-between mb-5">
@@ -523,7 +523,7 @@ export default function Settings() {
           </section>
         )}
 
-        {/* Staff Schedule — Owner Only */}
+        {/* Staff Schedule - Owner Only */}
         {isOwner && staffedHours && (
           <section className="card-marketing p-6">
             <div className="flex items-center justify-between mb-5">
@@ -542,7 +542,7 @@ export default function Settings() {
             </div>
 
             <p className="text-white/58 text-xs mb-4">
-              Set when staff are available. This shows on the follow-up scheduler so your team knows if someone will be around — but you can still schedule outside these hours.
+              Set when staff are available. This shows on the follow-up scheduler so your team knows if someone will be around - but you can still schedule outside these hours.
             </p>
 
             <div className="space-y-2">
@@ -595,7 +595,7 @@ export default function Settings() {
             </div>
 
             <p className="text-white/42 text-xs mt-3">
-              * After-hours slots are shown dimmed on the follow-up scheduler. You can still pick them — they'll be marked as outside staffed hours.
+              * After-hours slots are shown dimmed on the follow-up scheduler. You can still pick them - they'll be marked as outside staffed hours.
             </p>
           </section>
         )}
@@ -607,11 +607,11 @@ export default function Settings() {
             Email notifications and invite emails require SMTP configuration. Contact your system admin to set:
           </p>
           <ul className="mt-3 space-y-1 text-white/52 text-xs font-mono">
-            <li>SMTP_HOST — e.g. smtp.gmail.com</li>
-            <li>SMTP_USER — sending email address</li>
-            <li>SMTP_PASSWORD — app password or SMTP password</li>
-            <li>NOTIFICATION_EMAIL — where new lead alerts go</li>
-            <li>FROM_EMAIL — display sender address</li>
+            <li>SMTP_HOST - e.g. smtp.gmail.com</li>
+            <li>SMTP_USER - sending email address</li>
+            <li>SMTP_PASSWORD - app password or SMTP password</li>
+            <li>NOTIFICATION_EMAIL - where new lead alerts go</li>
+            <li>FROM_EMAIL - display sender address</li>
           </ul>
           <p className="text-white/42 text-xs mt-3">Until configured, invite links can be copied and shared manually.</p>
         </section>
@@ -630,7 +630,7 @@ export default function Settings() {
                 inviteResult.email_sent ? 'bg-[#1B7A4A]/10 border-[#1B7A4A]/25' : 'bg-yellow-500/8 border-yellow-500/20'
               }`}>
                 <p className="text-white text-sm font-medium mb-1">
-                  {inviteResult.email_sent ? '✓ Invite email sent!' : 'Invite created — email not configured'}
+                  {inviteResult.email_sent ? '✓ Invite email sent!' : 'Invite created - email not configured'}
                 </p>
                 <p className="text-white/62 text-xs">Share this link with your staff member:</p>
               </div>
@@ -662,8 +662,8 @@ export default function Settings() {
                 <label className="block text-xs text-white/55 mb-1">Role</label>
                 <select value={newInvite.role} onChange={(e) => setNewInvite(p => ({...p, role: e.target.value}))}
                   className={inputClass + ' appearance-none'} style={{backgroundColor:'var(--elevated)'}}>
-                  <option value="staff" style={{background:'#1A1A1A'}}>Staff — view + notes (no delete)</option>
-                  {isOwner && <option value="admin" style={{background:'#1A1A1A'}}>Admin — full access</option>}
+                  <option value="staff" style={{background:'#1A1A1A'}}>Staff - view + notes (no delete)</option>
+                  {isOwner && <option value="admin" style={{background:'#1A1A1A'}}>Admin - full access</option>}
                 </select>
               </div>
               <div className="flex gap-2 pt-1">

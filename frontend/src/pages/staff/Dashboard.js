@@ -55,7 +55,7 @@ function QuickAddStrip({ onAdded }) {
         >
           <Zap size={14} className="text-[#1B7A4A]" />
           <span className="font-medium">Quick Add</span>
-          <span className="text-white/45 text-xs ml-1">— walk-in, call-in, or any quick entry</span>
+          <span className="text-white/45 text-xs ml-1"> - walk-in, call-in, or any quick entry</span>
         </button>
       ) : (
         <form onSubmit={handleSubmit} className="bg-[var(--surface)] border border-[#1B7A4A]/20 rounded-lg p-4">
@@ -210,10 +210,10 @@ export default function Dashboard() {
   };
 
   const KPI_STATS = [
-    { label: 'New (7 days)', value: stats?.new_7d ?? '—', icon: <TrendingUp size={15} />, testid: 'crm-dashboard-kpi-new', color: 'text-white/58' },
+    { label: 'New (7 days)', value: stats?.new_7d ?? ' - ', icon: <TrendingUp size={15} />, testid: 'crm-dashboard-kpi-new', color: 'text-white/58' },
     { label: 'Tour Booked', value: stats?.by_status?.['Booked Visit'] ?? 0, icon: <Calendar size={15} />, testid: 'crm-dashboard-kpi-booked', color: 'text-[#7FCCA6]/50' },
     { label: 'Members', value: stats?.by_status?.['Joined'] ?? 0, icon: <Users size={15} />, testid: 'crm-dashboard-kpi-joined', color: 'text-[#1B7A4A]/70' },
-    { label: 'Total Leads', value: stats?.total ?? '—', icon: <Activity size={15} />, testid: 'crm-dashboard-kpi-total', color: 'text-white/58' },
+    { label: 'Total Leads', value: stats?.total ?? ' - ', icon: <Activity size={15} />, testid: 'crm-dashboard-kpi-total', color: 'text-white/58' },
   ];
 
   const inputClass = 'bg-white/5 border border-white/12 text-white placeholder:text-white/48 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-colors duration-200';
@@ -226,7 +226,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 sm:gap-3">
             <Link to="/staff" className="flex items-center gap-2 group" title="CRM Dashboard">
               <div className="w-7 h-7 rounded overflow-hidden flex items-center justify-center shrink-0">
-                <img src="https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg"
+                <img src="/assets/scs/logo.png"
                   alt="SCS" className="w-full h-full object-contain"
                   style={{ filter: 'invert(1)', mixBlendMode: 'screen' }} />
               </div>
@@ -237,7 +237,7 @@ export default function Dashboard() {
             <span className="text-white/58 text-xs hidden sm:block">Lead CRM</span>
           </div>
           <div className="flex items-center gap-2">
-            {/* Website link — always visible on mobile */}
+            {/* Website link - always visible on mobile */}
             <Link
               to="/staff"
               className="flex items-center gap-1 text-white/58 hover:text-white text-xs font-medium border border-white/12 hover:border-white/28 px-2.5 py-1.5 rounded-md transition-colors duration-200"
@@ -360,7 +360,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-white/30 text-[10px] font-bold uppercase tracking-widest shrink-0">Source:</span>
 
-            {/* All — with priority toggle */}
+            {/* All - with priority toggle */}
             <button
               onClick={() => { setSourceFilter('all'); }}
               className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all duration-150 ${
@@ -371,7 +371,7 @@ export default function Dashboard() {
               All
             </button>
 
-            {/* Priority sources (website, walk-in, etc.) — highlighted in green */}
+            {/* Priority sources (website, walk-in, etc.) - highlighted in green */}
             {PRIORITY_SOURCES.map(s => (
               <button key={s.value}
                 onClick={() => setSourceFilter(sourceFilter === s.value ? 'all' : s.value)}
@@ -385,7 +385,7 @@ export default function Dashboard() {
               </button>
             ))}
 
-            {/* CSV / Manual — dimmer */}
+            {/* CSV / Manual - dimmer */}
             {OTHER_SOURCES.map(s => (
               <button key={s.value}
                 onClick={() => setSourceFilter(sourceFilter === s.value ? 'all' : s.value)}
@@ -497,7 +497,7 @@ export default function Dashboard() {
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <span className="text-white/48 text-xs">
-                          {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—'}
+                          {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : ' - '}
                         </span>
                       </td>
                       <td className="px-4 py-3">

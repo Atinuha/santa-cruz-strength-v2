@@ -1,348 +1,286 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarClock,
+  Check,
+  Compass,
+  Dumbbell,
+  Goal,
+  Loader2,
+  Search,
+  ShieldCheck,
+  Trophy,
+  UserRound,
+} from 'lucide-react';
 import { createLead } from '../lib/api';
-import { GYM_CONFIG, INTEREST_TYPES, PREFERRED_CONTACTS } from '../config';
-import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { trackLeadSubmit } from '../utils/analytics';
+import { GYM_CONFIG, PREFERRED_CONTACTS } from '../config';
+import { trackFormStart, trackLeadSubmit } from '../utils/analytics';
+import { getLeadAttribution } from '../utils/attribution';
+import { buildTourLeadPayload, createInitialTourForm, isTourPreviewMode } from '../utils/tourLead';
+import { createLeadRequestId } from '../utils/leadContracts';
 
-const STEPS = [
-  {
-    id: 'name',
-    title: "First, what's your name?",
-    subtitle: "No judgment. Just your name.",
-    type: 'name',
-  },
-  {
-    id: 'contact',
-    title: 'How do we reach you?',
-    subtitle: "We won't blow up your phone. Seriously.",
-    type: 'contact',
-  },
-  {
-    id: 'interest',
-    title: 'What brings you in?',
-    subtitle: 'Pick the one that fits best. (No wrong answers.)',
-    type: 'choice',
-    autoAdvance: true,
-    options: [
-      { value: 'General Membership', label: 'Lift heavy things', emoji: '🏋️' },
-      { value: 'Personal Training', label: 'Work with a coach', emoji: '🎯' },
-      { value: 'Performance / Sport Training', label: 'Train for my sport', emoji: '🏄' },
-      { value: 'Open Gym', label: 'Just explore the gym', emoji: '👀' },
-    ],
-  },
-  {
-    id: 'timeline',
-    title: 'When are you thinking?',
-    subtitle: 'No pressure. We just want to plan ahead.',
-    type: 'choice',
-    autoAdvance: true,
-    options: [
-      { value: 'ASAP', label: 'ASAP — I\'m ready now', emoji: '⚡' },
-      { value: '1-2 weeks', label: 'In a couple weeks', emoji: '📅' },
-      { value: '1 month', label: 'Within the month', emoji: '🗓️' },
-      { value: 'Just exploring', label: 'Just looking around', emoji: '🧭' },
-    ],
-  },
-  {
-    id: 'goals',
-    title: 'Anything we should know?',
-    subtitle: "Optional, but it helps us prepare. How should we reach you?",
-    type: 'goals',
-  },
+const INTEREST_OPTIONS = [
+  { value: 'General Membership', label: 'General membership', icon: Dumbbell },
+  { value: 'Personal Training', label: 'Personal training', icon: UserRound },
+  { value: 'Performance / Sport Training', label: 'Sport performance', icon: Trophy },
+  { value: 'Open Gym', label: 'Explore the gym', icon: Search },
+];
+
+const TIMELINE_OPTIONS = [
+  { value: 'ASAP', label: 'Ready now', icon: Goal },
+  { value: '1-2 weeks', label: 'Within two weeks', icon: CalendarClock },
+  { value: '1 month', label: 'Within a month', icon: ShieldCheck },
+  { value: 'Just exploring', label: 'Still exploring', icon: Compass },
+];
+
+const STEP_COPY = [
+  { title: 'Start with your contact details', subtitle: 'The team will use these details to reply about your visit.' },
+  { title: 'What would you like to explore?', subtitle: 'Choose the closest fit and tell us when you are thinking of starting.' },
+  { title: 'Help us prepare for your visit', subtitle: 'Add any useful context and choose how the team should reply.' },
 ];
 
 export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocus = false }) {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const [animDir, setAnimDir] = useState('right');
-  const [loading, setLoading] = useState(false);
-  const [pendingAdvance, setPendingAdvance] = useState(false);
   const firstInputRef = useRef(null);
-
-  const [form, setForm] = useState({
-    first_name: '', last_name: '', phone: '', email: '',
-    interest_type: '', start_timeline: '', training_goals: '',
-    preferred_contact: 'call', lead_source: source, location: GYM_CONFIG.location,
-    notes: '', sms_consent: false,
-  });
+  const formStarted = useRef(false);
+  const requestIdRef = useRef(null);
+  const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
+  const [previewComplete, setPreviewComplete] = useState(false);
+  const [form, setForm] = useState(() => createInitialTourForm({ source, location: GYM_CONFIG.location }));
+  const previewMode = isTourPreviewMode();
 
-  const current = STEPS[step];
-  const totalSteps = STEPS.length;
+  if (!requestIdRef.current) requestIdRef.current = createLeadRequestId();
 
-  // Focus first input on step change (skip initial load if noAutoFocus)
-  const isFirstRender = useRef(true);
   useEffect(() => {
-    if (noAutoFocus && isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    isFirstRender.current = false;
-    const t = setTimeout(() => firstInputRef.current?.focus(), 300);
-    return () => clearTimeout(t);
+    if (noAutoFocus && step === 0) return;
+    const focusTimer = window.setTimeout(() => firstInputRef.current?.focus(), 120);
+    return () => window.clearTimeout(focusTimer);
   }, [step, noAutoFocus]);
 
-  const validate = () => {
-    const e = {};
-    if (current.id === 'name') {
-      if (!form.first_name.trim()) e.first_name = 'First name required';
-    }
-    if (current.id === 'contact') {
-      if (!form.phone.trim()) e.phone = 'Phone number required';
-      if (!form.email.trim()) e.email = 'Email required';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Valid email required';
-      if (!form.sms_consent) e.sms_consent = 'Please agree to receive text messages to continue';
-    }
-    return e;
+  const markStarted = () => {
+    if (formStarted.current) return;
+    formStarted.current = true;
+    trackFormStart({ form_name: 'tour_quiz', lead_source: source });
   };
 
-  const goNext = () => {
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+  const updateField = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
+    setSubmitError('');
+  };
+
+  const validateStep = () => {
+    const nextErrors = {};
+    if (step === 0) {
+      if (!form.first_name.trim()) nextErrors.first_name = 'Enter your first name.';
+      if (!form.phone.trim()) nextErrors.phone = 'Enter a phone number.';
+      if (!form.email.trim()) nextErrors.email = 'Enter an email address.';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) nextErrors.email = 'Enter a valid email address.';
+    }
+    if (step === 1) {
+      if (!form.interest_type) nextErrors.interest_type = 'Choose what you want to explore.';
+      if (!form.start_timeline) nextErrors.start_timeline = 'Choose a starting timeframe.';
+    }
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const nextStep = () => {
+    if (!validateStep()) return;
+    setStep((current) => Math.min(current + 1, STEP_COPY.length - 1));
+  };
+
+  const previousStep = () => {
     setErrors({});
-    if (step < totalSteps - 1) {
-      setAnimDir('right');
-      setStep(s => s + 1);
-    }
+    setSubmitError('');
+    setStep((current) => Math.max(current - 1, 0));
   };
 
-  const goBack = () => {
-    setAnimDir('left');
-    setStep(s => Math.max(0, s - 1));
-    setErrors({});
-  };
-
-  const handleChoice = (field, value) => {
-    setForm(p => ({ ...p, [field]: value }));
-    if (current.autoAdvance) {
-      setPendingAdvance(true);
-      setTimeout(() => {
-        setPendingAdvance(false);
-        setAnimDir('right');
-        setStep(s => s + 1);
-      }, 1200);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && current.type !== 'goals') goNext();
-  };
-
-  const handleSubmit = async () => {
-    if (!form.first_name || !form.phone || !form.email) {
-      toast.error('Please fill in all required fields');
+  const submitForm = async (event) => {
+    event.preventDefault();
+    if (step < STEP_COPY.length - 1) {
+      nextStep();
       return;
     }
+
     setLoading(true);
+    setSubmitError('');
     try {
-      await createLead({
-        ...form,
-        interest_type: form.interest_type || 'General Membership',
-        start_timeline: form.start_timeline || 'Just exploring',
+      const payload = buildTourLeadPayload({
+        form,
+        source,
+        attribution: getLeadAttribution(),
+        requestId: requestIdRef.current,
       });
+      if (previewMode) {
+        setForm(createInitialTourForm({ source, location: GYM_CONFIG.location }));
+        setPreviewComplete(true);
+        return;
+      }
+      await createLead(payload);
+      requestIdRef.current = createLeadRequestId();
       trackLeadSubmit({ interest_type: form.interest_type, lead_source: source || 'website_form' });
       if (onSuccess) onSuccess();
       else navigate('/thank-you', { state: { source } });
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Something went wrong. Please try again.');
-    } finally { setLoading(false); }
+    } catch (error) {
+      setSubmitError(error.response?.data?.detail || 'We could not send the request. Please try again or call the gym.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const inputCls = (field) =>
-    `input-light ${ errors[field] ? 'border-[var(--clr-coral)] ring-2 ring-[var(--clr-coral)]/20' : '' }`;
+  const inputClass = (field) => `input-light ${errors[field] ? 'border-[var(--clr-coral)] ring-2 ring-[var(--clr-coral)]/20' : ''}`;
+
+  if (previewComplete) {
+    return (
+      <div role="status" className="scs-preview-success" data-testid="preview-tour-success">
+        <Check size={26} aria-hidden="true" />
+        <h3>Preview test complete</h3>
+        <p>No request was sent, and no form information was stored. Production mode will use the approved CRM lead endpoint.</p>
+        <button type="button" className="scs-button scs-button-secondary" onClick={() => { setStep(0); setPreviewComplete(false); }}>
+          Test the form again
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full">
-      {/* Progress */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-700 text-[var(--clr-green)] uppercase tracking-widest font-bold">
-            Step {step + 1} of {totalSteps}
-          </span>
+    <form onSubmit={submitForm} onFocusCapture={markStarted} onPointerDownCapture={markStarted} noValidate>
+      {previewMode && (
+        <div className="scs-preview-notice" role="note" data-testid="preview-tour-notice">
+          Preview test mode. Use test information only. Nothing entered here will be sent or stored.
+        </div>
+      )}
+      <div className="mb-6" aria-label={`Step ${step + 1} of ${STEP_COPY.length}`}>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-[var(--clr-green)] uppercase tracking-widest font-bold">Step {step + 1} of {STEP_COPY.length}</span>
           {step > 0 && (
-            <button onClick={goBack}
-              className="flex items-center gap-1 text-xs text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-200 font-semibold">
-              <ArrowLeft size={12} /> Back
+            <button type="button" onClick={previousStep} className="flex items-center gap-1 min-h-11 text-sm text-[var(--clr-text-muted)] hover:text-[var(--clr-green)] transition-colors duration-150 font-semibold">
+              <ArrowLeft size={14} aria-hidden="true" /> Back
             </button>
           )}
         </div>
-        <div className="flex gap-1.5">
-          {STEPS.map((_, i) => (
-            <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden bg-[var(--clr-seafoam)]">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: i <= step ? '100%' : '0%',
-                  backgroundColor: i < step ? 'var(--clr-green)' : i === step ? 'var(--clr-coral)' : 'transparent',
-                }}
-              />
-            </div>
+        <div className="flex gap-2" aria-hidden="true">
+          {STEP_COPY.map((_, index) => (
+            <span key={index} className={`h-1.5 flex-1 ${index <= step ? 'bg-[var(--clr-green)]' : 'bg-[var(--clr-seafoam)]'}`} />
           ))}
         </div>
       </div>
 
-      {/* Step title */}
-      <div className={`mb-5 animate-fade-in-up`} key={`title-${step}`}>
-        <h3 className="text-[var(--clr-charcoal)] font-bold text-xl leading-tight mb-1">
-          {current.title}
-        </h3>
-        <p className="text-[var(--clr-text-muted)] text-sm">{current.subtitle}</p>
+      <div className="mb-6">
+        <h3 className="text-[var(--clr-charcoal)] font-bold text-xl leading-tight mb-2">{STEP_COPY[step].title}</h3>
+        <p className="text-[var(--clr-text-muted)] text-base leading-relaxed">{STEP_COPY[step].subtitle}</p>
       </div>
 
-      {/* Step content */}
-      <div className={`animate-fade-in-up`} key={`content-${step}`}>
-
-        {/* NAME */}
-        {current.type === 'name' && (
-          <div className="space-y-3" onKeyDown={handleKeyDown}>
-            <div>
-              <input ref={firstInputRef} value={form.first_name}
-                onChange={e => { setForm(p => ({...p, first_name: e.target.value})); setErrors(p => ({...p, first_name: undefined})); }}
-                placeholder="First name" className={inputCls('first_name')}
-                data-testid="lead-form-name-input" />
-              {errors.first_name && <p className="text-[var(--clr-coral)] text-xs mt-1 font-semibold">{errors.first_name}</p>}
-            </div>
-            <input value={form.last_name}
-              onChange={e => setForm(p => ({...p, last_name: e.target.value}))}
-              placeholder="Last name (optional)" className="input-light" />
+      {step === 0 && (
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="tour-first-name" className="block text-base font-bold text-[var(--clr-charcoal)] mb-2">First name <span aria-hidden="true">*</span></label>
+            <input id="tour-first-name" ref={firstInputRef} value={form.first_name} onChange={(event) => updateField('first_name', event.target.value)} placeholder="Your first name" autoComplete="given-name" className={inputClass('first_name')} aria-invalid={Boolean(errors.first_name)} aria-describedby={errors.first_name ? 'tour-first-name-error' : undefined} data-testid="lead-form-name-input" />
+            {errors.first_name && <p id="tour-first-name-error" role="alert" className="text-[var(--clr-coral)] text-sm mt-1 font-semibold">{errors.first_name}</p>}
           </div>
-        )}
-
-        {/* CONTACT */}
-        {current.type === 'contact' && (
-          <div className="space-y-3" onKeyDown={handleKeyDown}>
-            <div>
-              <input ref={firstInputRef} type="tel" value={form.phone}
-                onChange={e => { setForm(p => ({...p, phone: e.target.value})); setErrors(p => ({...p, phone: undefined})); }}
-                placeholder="Phone number" className={inputCls('phone')}
-                data-testid="lead-form-phone-input" />
-              {errors.phone && <p className="text-[var(--clr-coral)] text-xs mt-1 font-semibold">{errors.phone}</p>}
-            </div>
-            <div>
-              <input type="email" value={form.email}
-                onChange={e => { setForm(p => ({...p, email: e.target.value})); setErrors(p => ({...p, email: undefined})); }}
-                placeholder="Email address" className={inputCls('email')}
-                data-testid="lead-form-email-input" />
-              {errors.email && <p className="text-[var(--clr-coral)] text-xs mt-1 font-semibold">{errors.email}</p>}
-            </div>
-            <label className="flex items-start gap-2.5 cursor-pointer group" data-testid="sms-consent-checkbox">
-              <input
-                type="checkbox"
-                checked={form.sms_consent}
-                onChange={e => { setForm(p => ({...p, sms_consent: e.target.checked})); setErrors(p => ({...p, sms_consent: undefined})); }}
-                className="mt-0.5 w-4 h-4 rounded border-2 border-[var(--clr-border)] accent-[var(--clr-green)] cursor-pointer shrink-0"
-              />
-              <span className="text-[11px] leading-relaxed" style={{ color: 'var(--clr-text-muted)' }}>
-                I agree to receive recurring automated text messages (SMS/MMS) from Santa Cruz Strength
-                at the phone number provided. Consent is not a condition of purchase. Msg &amp; data rates
-                may apply. Msg frequency varies. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for
-                help. <a href="/privacy" target="_blank" className="underline hover:text-[var(--clr-green)]">Privacy Policy</a> &amp; <a href="/terms" target="_blank" className="underline hover:text-[var(--clr-green)]">Terms</a>.
-              </span>
-            </label>
-            {errors.sms_consent && <p className="text-[var(--clr-coral)] text-xs font-semibold">{errors.sms_consent}</p>}
+          <div>
+            <label htmlFor="tour-last-name" className="block text-base font-bold text-[var(--clr-charcoal)] mb-2">Last name <span className="font-normal text-[var(--clr-text-muted)]">(optional)</span></label>
+            <input id="tour-last-name" value={form.last_name} onChange={(event) => updateField('last_name', event.target.value)} placeholder="Your last name" autoComplete="family-name" className="input-light" />
           </div>
-        )}
-
-        {/* CHOICE */}
-        {current.type === 'choice' && (
-          <div className="grid grid-cols-2 gap-2.5">
-            {current.options.map(opt => {
-              const isSelected = form[current.id === 'interest' ? 'interest_type' : 'start_timeline'] === opt.value;
-              return (
-                <button key={opt.value} type="button"
-                  onClick={() => handleChoice(
-                    current.id === 'interest' ? 'interest_type' : 'start_timeline',
-                    opt.value
-                  )}
-                  disabled={pendingAdvance}
-                  className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-sm font-bold transition-all duration-200 ${
-                    isSelected
-                      ? 'border-[var(--clr-green)] bg-[var(--clr-bg-green)] text-[var(--clr-green)] shadow-md'
-                      : 'border-[var(--clr-border)] bg-white text-[var(--clr-text)] hover:border-[var(--clr-seafoam-dark)] hover:bg-[var(--clr-seafoam)]/30'
-                  }`}
-                >
-                  {isSelected && (
-                    <span className="absolute top-2 right-2 w-4 h-4 bg-[var(--clr-green)] rounded-full flex items-center justify-center">
-                      <Check size={10} className="text-white" />
-                    </span>
-                  )}
-                  <span className="text-2xl">{opt.emoji}</span>
-                  <span className="text-center leading-tight">{opt.label}</span>
-                </button>
-              );
-            })}
+          <div>
+            <label htmlFor="tour-phone" className="block text-base font-bold text-[var(--clr-charcoal)] mb-2">Phone number <span aria-hidden="true">*</span></label>
+            <input id="tour-phone" type="tel" inputMode="tel" value={form.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="(408) 555-0123" autoComplete="tel" className={inputClass('phone')} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? 'tour-phone-error' : undefined} data-testid="lead-form-phone-input" />
+            {errors.phone && <p id="tour-phone-error" role="alert" className="text-[var(--clr-coral)] text-sm mt-1 font-semibold">{errors.phone}</p>}
           </div>
-        )}
+          <div>
+            <label htmlFor="tour-email" className="block text-base font-bold text-[var(--clr-charcoal)] mb-2">Email address <span aria-hidden="true">*</span></label>
+            <input id="tour-email" type="email" inputMode="email" value={form.email} onChange={(event) => updateField('email', event.target.value)} placeholder="you@example.com" autoComplete="email" className={inputClass('email')} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'tour-email-error' : undefined} data-testid="lead-form-email-input" />
+            {errors.email && <p id="tour-email-error" role="alert" className="text-[var(--clr-coral)] text-sm mt-1 font-semibold">{errors.email}</p>}
+          </div>
+        </div>
+      )}
 
-        {/* GOALS */}
-        {current.type === 'goals' && (
-          <div className="space-y-3">
-            <textarea value={form.training_goals}
-              onChange={e => setForm(p => ({...p, training_goals: e.target.value}))}
-              placeholder="Training goals, injuries, questions... (optional)"
-              rows={3}
-              data-testid="lead-form-goals-textarea"
-              className="input-light resize-none" />
-            <div>
-              <p className="text-xs font-semibold text-[var(--clr-text-muted)] mb-2">Best way to reach you?</p>
-              <div className="flex gap-2">
-                {PREFERRED_CONTACTS.map(c => (
-                  <button key={c.value} type="button"
-                    onClick={() => setForm(p => ({...p, preferred_contact: c.value}))}
-                    className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-bold border-2 transition-all duration-200 ${
-                      form.preferred_contact === c.value
-                        ? 'border-[var(--clr-green)] bg-[var(--clr-bg-green)] text-[var(--clr-green)]'
-                        : 'border-[var(--clr-border)] bg-white text-[var(--clr-text-muted)] hover:border-[var(--clr-seafoam-dark)]'
-                    }`}>
-                    {c.label}
+      {step === 1 && (
+        <div className="space-y-6">
+          <fieldset>
+            <legend className="text-base font-bold text-[var(--clr-charcoal)] mb-3">What brings you in?</legend>
+            <div className="grid grid-cols-2 gap-3">
+              {INTEREST_OPTIONS.map((option, index) => {
+                const OptionIcon = option.icon;
+                const selected = form.interest_type === option.value;
+                return (
+                  <button key={option.value} ref={index === 0 ? firstInputRef : undefined} type="button" onClick={() => updateField('interest_type', option.value)} aria-pressed={selected} className={`min-h-[96px] p-4 border text-sm font-bold flex flex-col items-start justify-between gap-3 transition-colors duration-150 ${selected ? 'border-[var(--clr-green)] bg-[var(--clr-bg-green)] text-[var(--clr-green)]' : 'border-[var(--clr-border)] bg-white text-[var(--clr-text)] hover:border-[var(--clr-green)]'}`}>
+                    <OptionIcon size={23} aria-hidden="true" />{option.label}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          </div>
-        )}
-      </div>
+            {errors.interest_type && <p role="alert" className="text-[var(--clr-coral)] text-sm mt-2 font-semibold">{errors.interest_type}</p>}
+          </fieldset>
 
-      {/* Action button */}
-      <div className="mt-6">
-        {step < totalSteps - 1 && current.type !== 'choice' && (
-          <button onClick={goNext}
-            className="btn-primary w-full text-base py-3.5"
-            data-testid="lead-form-submit-button">
-            Continue <ArrowRight size={16} />
-          </button>
-        )}
-        {step === totalSteps - 1 && (
-          <button onClick={handleSubmit} disabled={loading}
-            className="btn-coral w-full text-base py-3.5"
-            data-testid="lead-form-submit-button">
-            {loading
-              ? <><Loader2 size={16} className="animate-spin" /> Sending...</>
-              : <><Check size={16} /> Request My Tour — It's Free</>}
-          </button>
-        )}
-        {current.type === 'choice' && pendingAdvance && (
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <Loader2 size={14} className="animate-spin text-[var(--clr-green)]" />
-            <span className="text-xs text-[var(--clr-text-muted)]">Moving on...</span>
+          <fieldset>
+            <legend className="text-base font-bold text-[var(--clr-charcoal)] mb-3">When are you thinking of starting?</legend>
+            <div className="grid grid-cols-2 gap-3">
+              {TIMELINE_OPTIONS.map((option) => {
+                const OptionIcon = option.icon;
+                const selected = form.start_timeline === option.value;
+                return (
+                  <button key={option.value} type="button" onClick={() => updateField('start_timeline', option.value)} aria-pressed={selected} className={`min-h-[90px] p-4 border text-sm font-bold flex flex-col items-start justify-between gap-3 transition-colors duration-150 ${selected ? 'border-[var(--clr-green)] bg-[var(--clr-bg-green)] text-[var(--clr-green)]' : 'border-[var(--clr-border)] bg-white text-[var(--clr-text)] hover:border-[var(--clr-green)]'}`}>
+                    <OptionIcon size={22} aria-hidden="true" />{option.label}
+                  </button>
+                );
+              })}
+            </div>
+            {errors.start_timeline && <p role="alert" className="text-[var(--clr-coral)] text-sm mt-2 font-semibold">{errors.start_timeline}</p>}
+          </fieldset>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-5">
+          <div>
+            <label htmlFor="tour-goals" className="block text-base font-bold text-[var(--clr-charcoal)] mb-2">Training goals or questions <span className="font-normal text-[var(--clr-text-muted)]">(optional)</span></label>
+            <textarea id="tour-goals" ref={firstInputRef} value={form.training_goals} onChange={(event) => updateField('training_goals', event.target.value)} placeholder="What would make this a useful visit?" rows={4} data-testid="lead-form-goals-textarea" className="input-light resize-none" />
           </div>
+
+          <fieldset>
+            <legend className="text-base font-bold text-[var(--clr-charcoal)] mb-2">Preferred reply</legend>
+            <div className="flex flex-wrap gap-2">
+              {PREFERRED_CONTACTS.map((contact) => (
+                <button key={contact.value} type="button" onClick={() => updateField('preferred_contact', contact.value)} aria-pressed={form.preferred_contact === contact.value} className={`min-h-11 flex-1 px-3 border text-sm font-bold transition-colors duration-150 ${form.preferred_contact === contact.value ? 'border-[var(--clr-green)] bg-[var(--clr-bg-green)] text-[var(--clr-green)]' : 'border-[var(--clr-border)] bg-white text-[var(--clr-text-muted)] hover:border-[var(--clr-green)]'}`}>
+                  {contact.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <label className="flex items-start gap-3 cursor-pointer" data-testid="sms-consent-checkbox">
+            <input type="checkbox" checked={form.sms_consent} onChange={(event) => updateField('sms_consent', event.target.checked)} className="mt-0.5 w-5 h-5 border-2 border-[var(--clr-border)] accent-[var(--clr-green)] cursor-pointer shrink-0" />
+            <span className="text-base leading-relaxed text-[var(--clr-text-muted)]">
+              Optional: I agree to receive automated operational texts from Santa Cruz Strength about this inquiry and visit, including confirmations, reminders and replies. This does not enroll me in promotional marketing texts. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply <strong>STOP</strong> to cancel or <strong>HELP</strong> for help. See the <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a>.
+            </span>
+          </label>
+        </div>
+      )}
+
+      {submitError && (
+        <div role="alert" className="mt-5 border border-red-300 bg-red-50 text-red-800 p-4 text-sm">
+          {submitError} <a href={GYM_CONFIG.phoneHref} className="font-bold underline">Call {GYM_CONFIG.phone}</a>.
+        </div>
+      )}
+
+      <div className="mt-6">
+        <button type="submit" disabled={loading} className="btn-primary w-full text-base py-3.5 disabled:opacity-50 disabled:cursor-not-allowed" data-testid="lead-form-submit-button">
+          {loading ? <><Loader2 size={17} className="animate-spin" aria-hidden="true" /> Sending request...</> : step < STEP_COPY.length - 1 ? <>Continue <ArrowRight size={17} aria-hidden="true" /></> : <><Check size={17} aria-hidden="true" /> Request my free tour</>}
+        </button>
+        <p className="text-center text-base leading-relaxed text-[var(--clr-text-muted)] mt-3">No membership commitment. The team will review your request and follow up.</p>
+        {step === 2 && (
+          <p className="text-center text-base leading-relaxed mt-3 text-[var(--clr-text-muted)]">
+            By submitting, you agree that Santa Cruz Strength may use the information provided to respond by phone or email. Optional SMS consent is controlled separately above.
+          </p>
         )}
-        <p className="text-center text-xs text-[var(--clr-text-light)] mt-3">
-          No commitment. A coach will reach out within 24 hours.
-        </p>
-        <p className="text-center text-[10px] leading-relaxed mt-2" style={{ color: 'var(--clr-text-light)', opacity: 0.75 }}>
-          By submitting this form and checking the SMS consent box above, you expressly agree to receive recurring
-          automated promotional and informational text messages (SMS/MMS) and emails from Santa Cruz
-          Strength at the phone number and email provided. Consent is not a condition of
-          purchase. Message frequency varies. Message and data rates may apply.
-          Reply <strong>STOP</strong> to cancel. Reply <strong>HELP</strong> for help.
-          View our{' '}
-          <a href="/privacy" className="underline hover:text-[var(--clr-green)] transition-colors duration-150">Privacy Policy</a>{' '}
-          &amp; <a href="/terms" className="underline hover:text-[var(--clr-green)] transition-colors duration-150">Terms &amp; Conditions</a>.
-        </p>
       </div>
-    </div>
+    </form>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 /**
- * CRMLayout — wraps all staff/admin pages.
+ * CRMLayout - wraps all staff/admin pages.
  * Adds 'crm-page' class to body so dark CSS variables kick in.
  * Removes it on unmount so public pages get light theme back.
  */

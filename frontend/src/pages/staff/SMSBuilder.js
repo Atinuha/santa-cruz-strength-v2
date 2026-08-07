@@ -4,6 +4,7 @@ import { ArrowLeft, Send, Save, Loader2, Check, Smartphone, RefreshCw } from 'lu
 import { toast } from 'sonner';
 import { MERGE_FIELDS } from '../../utils/emailBlocks';
 import api from '../../lib/api';
+import { abcJoinUrl } from '../../config';
 
 // TCPA-required opt-out footer
 const OPT_OUT_SUFFIX = ' Reply STOP to opt out.';
@@ -72,7 +73,7 @@ export default function SMSBuilder() {
   }, [campaignId]);
 
   function defaultSMS(c) {
-    const joinUrl = c?.join_url || 'https://onlinejoin.abcfitness.com/signup/plan?club=31691';
+    const joinUrl = c?.join_url || abcJoinUrl();
     return `Hey {{first_name}}, Santa Cruz Strength here. We've been thinking about you. Sign up for any committed membership and we'll give you 2 months free. No catch. ${joinUrl}${OPT_OUT_SUFFIX}`;
   }
 
@@ -107,7 +108,7 @@ export default function SMSBuilder() {
     try {
       const res = await api.post(`/staff/campaigns/${campaignId}/test-sms`);
       toast.success(`Test SMS sent to ${res.data.sent_to}`);
-    } catch (err) { toast.error(err.response?.data?.detail || 'SMS test failed — check MailerSend setup'); }
+    } catch (err) { toast.error(err.response?.data?.detail || 'SMS test failed - check MailerSend setup'); }
     finally { setTestSending(false); }
   };
 
@@ -146,7 +147,7 @@ export default function SMSBuilder() {
 
       <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden">
 
-        {/* LEFT — Editor */}
+        {/* LEFT - Editor */}
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-xl mx-auto space-y-5">
 
@@ -187,13 +188,13 @@ export default function SMSBuilder() {
             <div className="bg-[#1B7A4A]/8 border border-[#1B7A4A]/20 rounded-xl p-4 space-y-2">
               <p className="text-[#7FCCA6] text-xs font-bold">📋 TCPA Compliance Rules</p>
               <ul className="text-white/45 text-[11px] space-y-1 leading-relaxed">
-                <li>• "Reply STOP to opt out" must be in the message — auto-added if missing on save</li>
+                <li>• "Reply STOP to opt out" must be in the message - auto-added if missing on save</li>
                 <li>• Keep under 160 chars to avoid splitting (1 segment = 1 credit)</li>
-                <li>• URL shorteners are fine — paste full URL and it counts toward chars</li>
+                <li>• URL shorteners are fine - paste full URL and it counts toward chars</li>
                 <li>• SMS replies are forwarded to management@santacruzstrength.com via webhook</li>
               </ul>
               <div className={`flex items-center gap-2 text-[10px] font-semibold mt-2 ${smsText.includes('STOP') ? 'text-[#7FCCA6]' : 'text-amber-400'}`}>
-                {smsText.includes('STOP') ? '✅ Opt-out text present' : '⚠️ "STOP" opt-out missing — will be added on save'}
+                {smsText.includes('STOP') ? '✅ Opt-out text present' : '⚠️ "STOP" opt-out missing - will be added on save'}
               </div>
             </div>
 
@@ -211,13 +212,13 @@ export default function SMSBuilder() {
           </div>
         </div>
 
-        {/* RIGHT — Phone preview */}
+        {/* RIGHT - Phone preview */}
         <div className="lg:w-72 border-t lg:border-t-0 lg:border-l border-white/8 p-6 flex flex-col items-center justify-start bg-[#0c1510]">
           <p className="text-white/30 text-xs font-bold uppercase tracking-wider mb-6 self-start">Live Preview</p>
           <PhoneMockup text={previewText} />
           <div className="mt-6 w-full space-y-2 text-center">
             <p className="text-white/25 text-[10px]">
-              {segs === 1 ? '✅ Single segment — 1 credit per recipient' : `⚠️ ${segs} segments — ${segs} credits per recipient`}
+              {segs === 1 ? '✅ Single segment - 1 credit per recipient' : `⚠️ ${segs} segments - ${segs} credits per recipient`}
             </p>
             {campaign?.total_leads && (
               <p className="text-white/20 text-[10px]">

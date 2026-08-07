@@ -12,7 +12,7 @@ import {
 import ImageUploadField from '../../components/ImageUploadField';
 import api from '../../lib/api';
 
-const GIPHY_KEY = 'dc6zaTOxFJmzC'; // free public beta key
+const GIPHY_KEY = process.env.REACT_APP_GIPHY_KEY || '';
 
 // ── Colour presets ────────────────────────────────────────────────────────────
 const COLOR_PRESETS = ['#0D5D3E','#1B7A4A','#FA5A5C','#F59E0B','#3B82F6','#8B5CF6','#1a1a1a','#444444','#888888','#ffffff'];
@@ -41,6 +41,11 @@ function GifPicker({ onSelect, onClose }) {
 
   const search = useCallback(async (q) => {
     if (!q.trim()) return;
+    if (!GIPHY_KEY) {
+      toast.error('GIF search is not configured');
+      setGifs([]);
+      return;
+    }
     setLoading(true);
     try {
       const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(q)}&limit=12&rating=g`;
@@ -270,9 +275,9 @@ export default function EmailBuilder() {
       { ...DEFAULT_BLOCK.text,   id: Date.now() + 2,
         content: "Hey {{first_name}},\n\nWe've been thinking about you.\n\nWe just wrapped our 11th annual Iron Roses, and moments like that remind us what this place really is.\n\nYou were part of that. And it's not the same without you here." },
       { ...DEFAULT_BLOCK.button, id: Date.now() + 3,
-        text: '🔥 Come Back Stronger — 2 Months Free', url: '{{join_url}}' },
+        text: '🔥 Come Back Stronger - 2 Months Free', url: '{{join_url}}' },
       { ...DEFAULT_BLOCK.text,   id: Date.now() + 4, size: '13', color: '#888888',
-        content: "You don't need to be \"ready.\" You just need to walk back through the door.\n\n— Santa Cruz Strength" },
+        content: "You don't need to be \"ready.\" You just need to walk back through the door.\n\n - Santa Cruz Strength" },
       { ...DEFAULT_BLOCK.footer, id: Date.now() + 5 },
     ];
   }
@@ -499,7 +504,7 @@ function BlockPreview({ block }) {
       return <div style={{ padding: '12px 24px', background: block.bgColor || '#fff', textAlign: 'center' }}>
         {block.url
           ? <img src={block.url} alt="gif" style={{ maxWidth: `${block.width || 100}%` }} />
-          : <div style={{ height: 80, background: '#f0f0f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: 13 }}>🎬 No GIF yet — click to search</div>}
+          : <div style={{ height: 80, background: '#f0f0f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: 13 }}>🎬 No GIF yet - click to search</div>}
       </div>;
 
     case 'button':

@@ -1,0 +1,179 @@
+{
+  "site": {
+    "name": "Santa Cruz Strength",
+    "origin": "https://santacruzstrength.com",
+    "defaultRobots": "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+  },
+  "routes": [
+    {
+      "path": "/",
+      "indexable": true,
+      "title": "Santa Cruz Strength | Strength Gym in Santa Cruz, CA",
+      "description": "Train at Santa Cruz Strength with 24/7 member access, strength equipment, personal training and free facility tours.",
+      "h1": "A Stronger Place to Train. A Better Place to Belong.",
+      "canonical": "https://santacruzstrength.com/"
+    },
+    {
+      "path": "/about",
+      "indexable": true,
+      "title": "About Santa Cruz Strength | Local Strength Gym",
+      "description": "Learn about Santa Cruz Strength, its training environment, coaches and approach to serving local athletes and beginners.",
+      "h1": "About Santa Cruz Strength",
+      "canonical": "https://santacruzstrength.com/about"
+    },
+    {
+      "path": "/join",
+      "indexable": true,
+      "title": "Santa Cruz Strength Memberships | Prices and Access",
+      "description": "Compare current Santa Cruz Strength memberships, day-pass access, terms and the next step for joining the gym.",
+      "h1": "Choose Access That Matches How You Train",
+      "canonical": "https://santacruzstrength.com/join"
+    },
+    {
+      "path": "/personal-training",
+      "indexable": true,
+      "title": "Personal Training in Santa Cruz | Santa Cruz Strength",
+      "description": "Review personal training at Santa Cruz Strength, meet the coaches and choose a starting path for your goals.",
+      "h1": "Get a Plan, a Coach and Useful Feedback",
+      "canonical": "https://santacruzstrength.com/personal-training"
+    },
+    {
+      "path": "/events",
+      "indexable": true,
+      "title": "Strength Events in Santa Cruz | Santa Cruz Strength",
+      "description": "See published workshops, barbell clubs and strength events at Santa Cruz Strength in Harvey West.",
+      "h1": "Strength Events and Workshops in Santa Cruz",
+      "canonical": "https://santacruzstrength.com/events"
+    },
+    {
+      "path": "/blog",
+      "indexable": true,
+      "title": "Santa Cruz Strength Training Blog",
+      "description": "Read local articles about strength training, beginner questions, outdoor athletes, coaching and gym culture in Santa Cruz.",
+      "h1": "Useful Answers Before and After You Walk In",
+      "canonical": "https://santacruzstrength.com/blog"
+    },
+    {
+      "path": "/blog/why-surfers-in-santa-cruz-should-lift-weights",
+      "indexable": true,
+      "title": "Why Santa Cruz Surfers Should Lift Weights",
+      "description": "Learn how strength training can support surfers in Santa Cruz, with practical guidance from Santa Cruz Strength.",
+      "h1": "Why Santa Cruz Surfers Should Lift Weights",
+      "canonical": "https://santacruzstrength.com/blog/why-surfers-in-santa-cruz-should-lift-weights"
+    },
+    {
+      "path": "/blog/how-many-days-a-week-should-you-lift",
+      "indexable": true,
+      "title": "How Many Days a Week Should You Lift?",
+      "description": "Learn how training goals, schedule and recovery affect the number of strength-training days that may fit your week.",
+      "h1": "How Many Days a Week Should You Lift?",
+      "canonical": "https://santacruzstrength.com/blog/how-many-days-a-week-should-you-lift"
+    },
+    {
+      "path": "/blog/best-gym-santa-cruz-serious-athletes",
+      "indexable": true,
+      "title": "Choosing a Strength Gym in Santa Cruz",
+      "description": "See what athletes should compare when choosing a Santa Cruz gym, including equipment, access, coaching and training culture.",
+      "h1": "How to Choose a Strength Gym in Santa Cruz",
+      "canonical": "https://santacruzstrength.com/blog/best-gym-santa-cruz-serious-athletes"
+    },
+    {
+      "path": "/blog/strength-training-for-outdoor-athletes-santa-cruz",
+      "indexable": true,
+      "title": "Strength Training for Santa Cruz Outdoor Athletes",
+      "description": "Learn how climbers, trail runners and cyclists can add strength training without replacing their sport-specific practice.",
+      "h1": "Strength Training for Santa Cruz Outdoor Athletes",
+      "canonical": "https://santacruzstrength.com/blog/strength-training-for-outdoor-athletes-santa-cruz"
+    },
+    {
+      "path": "/blog/can-you-lose-weight-by-lifting-weights",
+      "indexable": true,
+      "title": "Can You Lose Weight by Lifting Weights?",
+      "description": "Learn how strength training relates to body composition, energy use and a consistent training plan.",
+      "h1": "Can You Lose Weight by Lifting Weights?",
+      "canonical": "https://santacruzstrength.com/blog/can-you-lose-weight-by-lifting-weights"
+    },
+    {
+      "path": "/blog/how-long-should-a-workout-be",
+      "indexable": true,
+      "title": "How Long Should a Strength Workout Be?",
+      "description": "Learn how workout length depends on training goals, session structure, experience and recovery.",
+      "h1": "How Long Should a Strength Workout Be?",
+      "canonical": "https://santacruzstrength.com/blog/how-long-should-a-workout-be"
+    },
+    {
+      "path": "/blog/is-strength-training-good-for-beginners",
+      "indexable": true,
+      "title": "Is Strength Training Good for Beginners?",
+      "description": "Learn how beginners can start strength training, choose an appropriate first step and build skill over time.",
+      "h1": "Is Strength Training Good for Beginners?",
+      "canonical": "https://santacruzstrength.com/blog/is-strength-training-good-for-beginners"
+    },
+    {
+      "path": "/contact",
+      "indexable": true,
+      "title": "Contact Santa Cruz Strength in Harvey West",
+      "description": "Find Santa Cruz Strength at 151 Harvey West Blvd Ste D, contact the gym and book a free facility tour.",
+      "h1": "Come See the Room Before You Decide",
+      "canonical": "https://santacruzstrength.com/contact"
+    },
+    {
+      "path": "/privacy",
+      "indexable": true,
+      "title": "Privacy Policy | Santa Cruz Strength",
+      "description": "Read how Santa Cruz Strength collects, uses and protects information submitted through its website and membership forms.",
+      "h1": "Santa Cruz Strength Privacy Policy",
+      "canonical": "https://santacruzstrength.com/privacy"
+    },
+    {
+      "path": "/terms",
+      "indexable": true,
+      "title": "Terms and Conditions | Santa Cruz Strength",
+      "description": "Review the terms and conditions that govern use of the Santa Cruz Strength website and online forms.",
+      "h1": "Santa Cruz Strength Terms and Conditions",
+      "canonical": "https://santacruzstrength.com/terms"
+    },
+    {
+      "path": "/local-wellness",
+      "indexable": false,
+      "title": "Local Wellness in Santa Cruz | Santa Cruz Strength",
+      "description": "Review the Santa Cruz Strength local wellness program and its eligibility requirements.",
+      "h1": "Local Wellness at Santa Cruz Strength",
+      "canonical": "https://santacruzstrength.com/local-wellness",
+      "robots": "noindex,follow"
+    },
+    {
+      "path": "/pride",
+      "indexable": false,
+      "title": "Pride at Santa Cruz Strength",
+      "description": "Review current Pride program or event information from Santa Cruz Strength.",
+      "h1": "Pride at Santa Cruz Strength",
+      "canonical": "https://santacruzstrength.com/pride",
+      "robots": "noindex,follow"
+    },
+    {
+      "path": "/thank-you",
+      "indexable": false,
+      "title": "Thank You | Santa Cruz Strength",
+      "description": "Your Santa Cruz Strength request has been received.",
+      "h1": "Thank You",
+      "canonical": "https://santacruzstrength.com/thank-you",
+      "robots": "noindex,nofollow"
+    }
+  ],
+  "dynamicRoutes": [
+    {
+      "pattern": "/review/:token",
+      "indexable": false,
+      "robots": "noindex,nofollow",
+      "sitemap": false
+    },
+    {
+      "pattern": "/staff/*",
+      "indexable": false,
+      "robots": "noindex,nofollow",
+      "sitemap": false,
+      "authenticationRequired": true
+    }
+  ]
+}

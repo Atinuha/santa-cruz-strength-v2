@@ -54,9 +54,6 @@ export default function BlogPost() {
 
   return (
     <div className="min-h-screen bg-[var(--clr-bg)]">
-      {/* SEO meta via helmet-ish approach — just set document title */}
-      {post && (document.title = `${post.seo_title || post.title} | Santa Cruz Strength`)}
-
       <Navbar />
 
       {/* Hero */}

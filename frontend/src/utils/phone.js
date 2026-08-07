@@ -1,5 +1,5 @@
 /**
- * Phone number utilities — consistent formatting across the app.
+ * Phone number utilities - consistent formatting across the app.
  * Display format: (123) 123-4567
  */
 
@@ -21,7 +21,7 @@ export function formatPhone(phone) {
 
 /**
  * Normalise to E.164 (+1XXXXXXXXXX) for SMS / Google Voice.
- * Already exported from googleVoice.js — keep this for backend-mirroring use.
+ * Already exported from googleVoice.js - keep this for backend-mirroring use.
  */
 export function toE164(phone) {
   if (!phone) return '';

@@ -1,94 +1,123 @@
 /**
- * Santa Cruz Strength — Analytics Utility
- * Wraps Google Analytics 4 (gtag) and Meta Pixel (fbq).
- * All calls are safe-guarded so they never throw if the scripts haven't loaded.
+ * Santa Cruz Strength analytics utility.
  *
- * GA4 Measurement ID : G-GJVM3NJVJH
- * Meta Pixel ID      : add to index.html when ready
+ * GA4 and Meta calls are guarded so missing credentials never break a page.
+ * The initial GA4 config uses send_page_view:false in public/index.html.
  */
 
-const GA_ID = 'G-GJVM3NJVJH';
+import { ANALYTICS_GRANTED, getAnalyticsConsent, getMarketingConsent } from './analyticsConsent';
 
-// ─── Core helpers ────────────────────────────────────────────────────────────
+const GA_ID = 'G-GJVM3NJVJH';
+let lastTrackedPage = '';
 
 const gtag = (...args) => {
-  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+  if (getAnalyticsConsent() === ANALYTICS_GRANTED && typeof window !== 'undefined' && typeof window.gtag === 'function') {
     window.gtag(...args);
   }
 };
 
 const fbq = (...args) => {
-  if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+  if (getMarketingConsent() === ANALYTICS_GRANTED && typeof window !== 'undefined' && typeof window.fbq === 'function') {
     window.fbq(...args);
   }
 };
 
-// ─── Page view (called on every route change by RouteTracker) ────────────────
+const createEventId = (prefix) => {
+  const token = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${token}`;
+};
 
 export const trackPageView = (path) => {
-  gtag('config', GA_ID, { page_path: path });
+  if (getAnalyticsConsent() !== ANALYTICS_GRANTED) {
+    lastTrackedPage = '';
+    return;
+  }
+  if (!path || path === lastTrackedPage) return;
+  lastTrackedPage = path;
+
+  const pageLocation = typeof window !== 'undefined'
+    ? `${window.location.origin}${path}`
+    : path;
+
+  gtag('event', 'page_view', {
+    page_path: path,
+    page_location: pageLocation,
+    page_title: typeof document !== 'undefined' ? document.title : '',
+  });
   fbq('track', 'PageView');
 };
 
-// ─── Conversion events ───────────────────────────────────────────────────────
+export const resetAnalyticsPageState = () => {
+  lastTrackedPage = '';
+};
 
-/**
- * Fired when the quiz / lead form is submitted successfully.
- * Maps to GA4 recommended event "generate_lead" and Meta "Lead".
- */
+export const trackFormStart = ({ form_name = 'lead_form', lead_source = 'website_form' } = {}) => {
+  gtag('event', 'form_start', {
+    form_name,
+    lead_source,
+  });
+  fbq('trackCustom', 'FormStart', {
+    form_name,
+    lead_source,
+  });
+};
+
 export const trackLeadSubmit = ({ interest_type = '', lead_source = 'website_form' } = {}) => {
-  gtag('event', 'generate_lead', {
+  const eventId = createEventId('lead');
+  const parameters = {
     event_category: 'lead_capture',
     interest_type,
     lead_source,
-  });
-  fbq('track', 'Lead', { content_category: interest_type });
+    event_id: eventId,
+  };
+
+  gtag('event', 'generate_lead', parameters);
+  if (['book_a_tour', 'book_a_visit', 'contact_page'].includes(lead_source)) {
+    gtag('event', 'tour_request', parameters);
+  }
+
+  fbq(
+    'track',
+    'Lead',
+    { content_category: interest_type, lead_source },
+    { eventID: eventId }
+  );
+
+  return eventId;
 };
 
-/**
- * Fired when any "Join Now" CTA is clicked (external ABC Fitness link).
- * Maps to GA4 "begin_checkout" + Meta "InitiateCheckout".
- */
 export const trackJoinNowClick = (location = '') => {
   gtag('event', 'begin_checkout', {
     event_category: 'conversion',
     event_label: 'join_now',
     click_location: location,
   });
-  fbq('track', 'InitiateCheckout', { content_name: 'Gym Membership', content_category: location });
+  fbq('track', 'InitiateCheckout', {
+    content_name: 'Gym Membership',
+    content_category: location,
+  });
 };
 
-/**
- * Fired when a "Book a Tour" CTA is clicked.
- * Maps to GA4 "schedule" + Meta "Schedule".
- */
 export const trackBookTourClick = (location = '') => {
-  gtag('event', 'schedule', {
+  gtag('event', 'tour_cta_click', {
     event_category: 'lead_capture',
-    event_label: 'book_tour',
     click_location: location,
   });
-  fbq('track', 'Schedule', { content_name: 'Gym Tour', content_category: location });
+  fbq('trackCustom', 'TourCtaClick', { click_location: location });
 };
 
-/**
- * Fired when someone clicks "Call Us" / the phone number.
- */
-export const trackPhoneClick = () => {
-  gtag('event', 'contact', {
+export const trackPhoneClick = (phoneTarget = '') => {
+  gtag('event', 'click_to_call', {
     event_category: 'engagement',
-    event_label: 'phone_click',
+    phone_target: phoneTarget,
   });
-  fbq('track', 'Contact');
+  fbq('track', 'Contact', { contact_method: 'phone' });
 };
 
-/**
- * Fired when someone lands on /thank-you (confirmed lead).
- */
 export const trackThankYouPageView = () => {
-  gtag('event', 'conversion', {
+  gtag('event', 'lead_confirmation_view', {
     event_category: 'lead_capture',
-    event_label: 'thank_you_page',
   });
-  fbq('track', 'SubmitApplication');
 };

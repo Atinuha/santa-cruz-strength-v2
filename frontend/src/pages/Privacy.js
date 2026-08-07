@@ -6,12 +6,12 @@ import { GYM_CONFIG } from '../config';
 
 export default function Privacy() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
-  const updated = 'April 2026';
+  const updated = 'August 3, 2026';
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
+    <div className="scs-site scs-readable-page min-h-screen" style={{ background: 'var(--clr-bg)' }}>
       <Navbar />
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-32 pb-20">
+      <main id="main-content" className="max-w-3xl mx-auto px-4 sm:px-6 pt-32 pb-20">
         <span className="green-accent-line" />
         <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Legal</p>
         <h1 className="font-display text-4xl sm:text-5xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>
@@ -40,8 +40,8 @@ export default function Privacy() {
             </ul>
             <p className="text-sm leading-relaxed mt-3">We also automatically collect:</p>
             <ul className="text-sm leading-relaxed space-y-1 ml-4 list-disc list-outside mt-1">
-              <li>Usage data (pages visited, time on site) via Google Analytics</li>
-              <li>Cookies and similar tracking technologies</li>
+              <li>Usage data such as pages visited through optional Google Analytics, only after analytics consent</li>
+              <li>Cookies and similar technologies needed for site operation or allowed analytics</li>
               <li>Device and browser information</li>
             </ul>
           </section>
@@ -51,8 +51,8 @@ export default function Privacy() {
             <ul className="text-sm leading-relaxed space-y-1.5 ml-4 list-disc list-outside">
               <li>To respond to your inquiries and schedule gym tours</li>
               <li>To send membership information and follow up on your interest</li>
-              <li>To send transactional emails and SMS messages related to your inquiry</li>
-              <li>To send promotional and marketing communications (you may opt out at any time)</li>
+              <li>To send email replies and, when you separately opt in, operational SMS messages related to your inquiry or visit</li>
+              <li>To send promotional or marketing communications only when the applicable separate consent has been provided</li>
               <li>To improve our website and understand how visitors use it</li>
               <li>To comply with legal obligations</li>
             </ul>
@@ -61,15 +61,19 @@ export default function Privacy() {
           <section>
             <h2 className="font-bold text-lg mb-3" style={{ color: 'var(--clr-charcoal)' }}>4. SMS / Text Message Communications</h2>
             <p className="text-sm leading-relaxed mb-3">
-              <strong>Opt-in:</strong> By submitting a form on santacruzstrength.com and providing your phone number,
-              you expressly consent to receive recurring automated promotional and informational text messages
-              (SMS/MMS) from Santa Cruz Strength at the phone number provided. You may also opt in by texting
-              the keyword <strong>START</strong> to (408) 583-6671. Additionally, staff may collect phone numbers
-              and verbal consent during walk-in visits at our gym and enter them into our system.
+              <strong>Operational messages:</strong> Providing a phone number by itself does not enroll you in
+              recurring text messages. If you select the optional SMS checkbox on a website form, we may send
+              automated operational texts about that inquiry or visit, such as a reply, confirmation, reminder,
+              rescheduling notice, or requested membership information.
             </p>
             <p className="text-sm leading-relaxed mb-3">
-              <strong>Consent is not a condition of purchase.</strong> Message frequency varies (up to 10 messages per month).
-              Message and data rates may apply.
+              <strong>Marketing messages:</strong> Promotional offers and general marketing texts require a
+              separate express opt-in. Consent to operational inquiry messages does not by itself enroll you in
+              recurring promotional marketing. Any staff-collected SMS consent must be recorded through the
+              documented consent process before automated texts are sent.
+            </p>
+            <p className="text-sm leading-relaxed mb-3">
+              <strong>Consent is not a condition of purchase.</strong> Message frequency varies. Message and data rates may apply.
             </p>
             <p className="text-sm leading-relaxed mb-3">
               <strong>To opt out:</strong> Reply <strong>STOP</strong> to any text message we send you. You will receive a
@@ -79,9 +83,9 @@ export default function Privacy() {
               <strong>For help:</strong> Reply <strong>HELP</strong> or contact us at {GYM_CONFIG.email} or {GYM_CONFIG.phone}.
             </p>
             <p className="text-sm leading-relaxed">
-              Your mobile phone number will not be sold, rented, or shared with third parties or affiliates
-              for promotional or marketing purposes. Information collected through SMS opt-in will not be
-              shared with any third parties.
+              Your mobile phone number and SMS consent will not be sold, rented, or shared with third parties
+              or affiliates for their promotional or marketing purposes. We may use messaging providers that
+              process this information on our behalf to deliver messages you requested.
             </p>
           </section>
 
@@ -91,19 +95,20 @@ export default function Privacy() {
               We do not sell your personal information. We may share it with:
             </p>
             <ul className="text-sm leading-relaxed space-y-1.5 ml-4 list-disc list-outside">
-              <li><strong>Service providers</strong> — including Resend (email delivery), MailerSend (SMS delivery), and Google Analytics (website analytics) who process data on our behalf</li>
-              <li><strong>ABC Fitness</strong> — our membership management platform, when you initiate a membership signup</li>
-              <li><strong>Law enforcement or regulators</strong> — when required by applicable law</li>
+              <li><strong>Service providers</strong> - including email, SMS, website hosting, membership, and consented analytics providers that process data on our behalf</li>
+              <li><strong>ABC Fitness</strong> - our membership management platform, when you initiate a membership signup</li>
+              <li><strong>Law enforcement or regulators</strong> - when required by applicable law</li>
             </ul>
           </section>
 
           <section>
             <h2 className="font-bold text-lg mb-3" style={{ color: 'var(--clr-charcoal)' }}>6. Cookies & Analytics</h2>
             <p className="text-sm leading-relaxed">
-              We use Google Analytics to understand how visitors interact with our website. Google Analytics
-              sets cookies on your device to collect information about your browsing activity on our site.
-              This data is aggregated and anonymized where possible. You can opt out of Google Analytics by
-              installing the{' '}
+              Optional Google Analytics remains off until you select <strong>Allow analytics</strong>. If allowed,
+              it may set cookies and collect information about pages visited and site interactions. You can revoke
+              that choice at any time by selecting <strong>Privacy choices</strong> in the website footer. Revoking
+              disables future analytics collection in this browser and removes the analytics cookies the website
+              can identify. You can also use the{' '}
               <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer"
                 className="underline underline-offset-2 hover:text-[var(--clr-green)] transition-colors duration-200">
                 Google Analytics Opt-out Browser Add-on
@@ -185,7 +190,7 @@ export default function Privacy() {
           <Link to="/terms" className="text-[var(--clr-green)] text-sm font-bold hover:underline">Terms &amp; Conditions →</Link>
           <Link to="/" className="text-[var(--clr-text-muted)] text-sm font-semibold hover:text-[var(--clr-green)] transition-colors duration-200">← Back to Home</Link>
         </div>
-      </div>
+      </main>
       <Footer />
     </div>
   );

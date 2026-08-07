@@ -12,8 +12,8 @@ import { toast } from 'sonner';
 
 const CATEGORIES = ['Powerlifting Meet', 'Workshop', 'Open Gym', 'Community', 'Challenge', 'General'];
 const TICKET_TYPES = [
-  { value: 'free',     label: 'Free — No Registration',   icon: '🎉' },
-  { value: 'rsvp',     label: 'RSVP — Track Attendees',   icon: '📋' },
+  { value: 'free',     label: 'Free - No Registration',   icon: '🎉' },
+  { value: 'rsvp',     label: 'RSVP - Track Attendees',   icon: '📋' },
   { value: 'external', label: 'External Tickets (Eventbrite, etc.)', icon: '🎟️' },
 ];
 
@@ -80,7 +80,7 @@ function EventForm({ initial, onSave, onCancel, saving }) {
           <select value={form.time} onChange={e => set('time', e.target.value)}
             className={inputCls + ' appearance-none'} style={{ background: 'rgba(255,255,255,0.05)' }}>
             {TIME_OPTIONS.map(t => (
-              <option key={t} value={t} style={{ background: '#111f16' }}>{t || '— Select time —'}</option>
+              <option key={t} value={t} style={{ background: '#111f16' }}>{t || ' - Select time - '}</option>
             ))}
           </select>
         </div>
@@ -89,7 +89,7 @@ function EventForm({ initial, onSave, onCancel, saving }) {
           <select value={form.end_time} onChange={e => set('end_time', e.target.value)}
             className={inputCls + ' appearance-none'} style={{ background: 'rgba(255,255,255,0.05)' }}>
             {TIME_OPTIONS.map(t => (
-              <option key={t} value={t} style={{ background: '#111f16' }}>{t || '— Select time —'}</option>
+              <option key={t} value={t} style={{ background: '#111f16' }}>{t || ' - Select time - '}</option>
             ))}
           </select>
         </div>
@@ -199,7 +199,7 @@ function EventForm({ initial, onSave, onCancel, saving }) {
           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${form.published ? 'left-5' : 'left-0.5'}`} />
         </div>
         <span className={`text-sm font-semibold ${form.published ? 'text-[#7FCCA6]' : 'text-white/40'}`}>
-          {form.published ? 'Published — visible on site' : 'Draft — hidden from public'}
+          {form.published ? 'Published - visible on site' : 'Draft - hidden from public'}
         </span>
       </label>
 

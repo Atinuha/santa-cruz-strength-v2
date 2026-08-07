@@ -18,9 +18,9 @@ export default function ThankYou() {
   // Fire confirmed-lead conversion on mount
   useEffect(() => { trackThankYouPageView(); }, []);
   return (
-    <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
+    <div className="scs-site scs-readable-page min-h-screen" style={{ background: 'var(--clr-bg)' }}>
       <Navbar />
-      <section className="pt-32 pb-20 min-h-screen flex items-center">
+      <main id="main-content" className="pt-32 pb-20 min-h-screen flex items-center">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
           <div className="w-16 h-16 rounded-full bg-[var(--clr-bg-green)] flex items-center justify-center mx-auto mb-6" style={{ border: '2px solid var(--clr-border-green)' }}>
             <CheckCircle2 size={32} style={{ color: 'var(--clr-green)' }} />
@@ -46,7 +46,7 @@ export default function ThankYou() {
             </Link>
           </div>
         </div>
-      </section>
+      </main>
       <Footer />
     </div>
   );

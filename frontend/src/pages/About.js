@@ -4,7 +4,10 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { GYM_CONFIG } from '../config';
 import { getTeamMembers, getSiteContent } from '../lib/api';
+import { PREVIEW_MODE } from '../utils/previewSafety';
 import { User, ArrowRight } from 'lucide-react';
+import PublicImage from '../components/PublicImage';
+import { SCS_MEDIA } from '../config/media';
 
 export default function About() {
   const [team, setTeam] = useState([]);
@@ -13,6 +16,7 @@ export default function About() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (PREVIEW_MODE) return;
     getTeamMembers().then(({ data }) => {
       setTeam(data.filter(m => m.category === 'team'));
       setTrainers(data.filter(m => m.category === 'trainer'));
@@ -23,9 +27,10 @@ export default function About() {
   const c = (key, fallback = '') => content[key] || fallback;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
+    <div className="scs-site min-h-screen" style={{ background: 'var(--clr-bg)' }}>
       <Navbar />
 
+      <main>
       {/* Hero */}
       <section className="pt-32 pb-16" data-testid="about-hero">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
@@ -43,6 +48,16 @@ export default function About() {
           <p className="text-[var(--clr-text)] text-sm sm:text-base leading-relaxed max-w-2xl mx-auto font-medium whitespace-pre-line">
             {c('about_story', '')}
           </p>
+          <figure className="scs-editorial-hero mt-10">
+            <PublicImage
+              src={SCS_MEDIA.communityWide}
+              alt="A large group gathered together on a strength training floor"
+              width="1672"
+              height="941"
+              fetchPriority="high"
+            />
+            <figcaption>Different goals. One room built around consistent work and mutual support.</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -149,6 +164,7 @@ export default function About() {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

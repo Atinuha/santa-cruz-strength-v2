@@ -226,7 +226,7 @@ export default function CorporateLeads() {
             </div>
             {discovered.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs text-white/40 mb-2">{discovered.length} businesses found near Santa Cruz Strength — not yet in your CRM</p>
+                <p className="text-xs text-white/40 mb-2">{discovered.length} businesses found near Santa Cruz Strength - not yet in your CRM</p>
                 {discovered.map((biz) => (
                   <div key={biz.osm_id || biz.name} className="flex items-center gap-3 bg-white/4 border border-white/8 rounded-xl px-4 py-3 hover:bg-white/6 transition-colors">
                     <input type="checkbox" checked={selectedBiz.has(biz.name)} onChange={() => setSelectedBiz(prev => { const n = new Set(prev); n.has(biz.name) ? n.delete(biz.name) : n.add(biz.name); return n; })}
@@ -283,7 +283,7 @@ export default function CorporateLeads() {
                         {l.status}
                       </span>
                     </div>
-                    <p className="text-xs text-white/45 truncate">{l.contact_name || 'No contact'} {l.email ? `— ${l.email}` : ''}</p>
+                    <p className="text-xs text-white/45 truncate">{l.contact_name || 'No contact'} {l.email ? ` - ${l.email}` : ''}</p>
                     <div className="flex items-center gap-3 mt-1.5 text-[10px] text-white/30">
                       {l.estimated_enrolled > 0 && <span><Users size={10} className="inline mr-0.5" />{l.estimated_enrolled}</span>}
                       {l.cold_email_wave > 0 && <span><Mail size={10} className="inline mr-0.5" />Wave {l.cold_email_wave}/3</span>}
@@ -300,7 +300,7 @@ export default function CorporateLeads() {
                     <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
                       <div>
                         <h2 className="text-base font-bold text-white">{detail.business_name}</h2>
-                        <p className="text-xs text-white/45">{detail.contact_name} {detail.contact_title ? `— ${detail.contact_title}` : ''}</p>
+                        <p className="text-xs text-white/45">{detail.contact_name} {detail.contact_title ? ` - ${detail.contact_title}` : ''}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {detail.email && detail.cold_email_wave < 3 && (
@@ -318,13 +318,13 @@ export default function CorporateLeads() {
                     </div>
                     <div className="p-5 space-y-5">
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
-                        <div><span className="text-white/35 block">Email</span>{detail.email ? <a href={`mailto:${detail.email}`} className="text-emerald-400">{detail.email}</a> : <span className="text-white/20">—</span>}</div>
-                        <div><span className="text-white/35 block">Phone</span><span className="text-white/70">{detail.phone || '—'}</span></div>
-                        <div><span className="text-white/35 block">Address</span><span className="text-white/70">{detail.business_address || '—'}</span></div>
-                        <div><span className="text-white/35 block">Website</span>{detail.website_or_instagram ? <a href={detail.website_or_instagram.startsWith('http') ? detail.website_or_instagram : `https://${detail.website_or_instagram}`} target="_blank" rel="noopener noreferrer" className="text-emerald-400">{detail.website_or_instagram}</a> : <span className="text-white/20">—</span>}</div>
-                        <div><span className="text-white/35 block">Employees</span><span className="text-white/70">{detail.employee_count || '—'}</span></div>
-                        <div><span className="text-white/35 block">Est. Enrolled</span><span className="text-white font-bold">{detail.estimated_enrolled || '—'}</span></div>
-                        <div><span className="text-white/35 block">Model</span><span className="text-white/70">{CONTRIB_LABELS[detail.contribution_model] || detail.contribution_model || '—'}</span></div>
+                        <div><span className="text-white/35 block">Email</span>{detail.email ? <a href={`mailto:${detail.email}`} className="text-emerald-400">{detail.email}</a> : <span className="text-white/20"> - </span>}</div>
+                        <div><span className="text-white/35 block">Phone</span><span className="text-white/70">{detail.phone || ' - '}</span></div>
+                        <div><span className="text-white/35 block">Address</span><span className="text-white/70">{detail.business_address || ' - '}</span></div>
+                        <div><span className="text-white/35 block">Website</span>{detail.website_or_instagram ? <a href={detail.website_or_instagram.startsWith('http') ? detail.website_or_instagram : `https://${detail.website_or_instagram}`} target="_blank" rel="noopener noreferrer" className="text-emerald-400">{detail.website_or_instagram}</a> : <span className="text-white/20"> - </span>}</div>
+                        <div><span className="text-white/35 block">Employees</span><span className="text-white/70">{detail.employee_count || ' - '}</span></div>
+                        <div><span className="text-white/35 block">Est. Enrolled</span><span className="text-white font-bold">{detail.estimated_enrolled || ' - '}</span></div>
+                        <div><span className="text-white/35 block">Model</span><span className="text-white/70">{CONTRIB_LABELS[detail.contribution_model] || detail.contribution_model || ' - '}</span></div>
                         <div><span className="text-white/35 block">Lead Score</span><span className="text-emerald-400 font-bold">{detail.score || 0}/100</span></div>
                         <div><span className="text-white/35 block">Email Wave</span><span className="text-white/70">{detail.cold_email_wave || 0}/3</span></div>
                       </div>

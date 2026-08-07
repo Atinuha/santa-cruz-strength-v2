@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@fontsource/archivo-black": "^5.3.0",
     "@fontsource/nunito": "^5.2.7",
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.8",
@@ -63,7 +64,13 @@
   },
   "scripts": {
     "start": "craco start",
+    "prebuild": "node scripts/validate-production-env.mjs && node scripts/generate-sitemap.mjs",
     "build": "craco build",
+    "prebuild:preview": "node scripts/generate-sitemap.mjs",
+    "build:preview": "REACT_APP_PREVIEW_MODE=true craco build",
+    "postbuild:preview": "REACT_APP_PREVIEW_MODE=true node scripts/generate-route-heads.mjs",
+    "postbuild": "node scripts/generate-route-heads.mjs",
+    "validate:seo": "node scripts/generate-sitemap.mjs && node scripts/validate-seo.mjs",
     "test": "craco test"
   },
   "browserslist": {

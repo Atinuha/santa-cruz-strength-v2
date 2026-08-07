@@ -5,8 +5,8 @@ import { Instagram, ExternalLink, Camera } from 'lucide-react';
  * InstagramFeed
  *
  * Two modes:
- *  - feedId empty  → branded placeholder with "Follow us" CTA
- *  - feedId set    → loads the Behold.so widget (free, no token needed)
+ * - feedId empty  → branded placeholder with "Follow us" CTA
+ * - feedId set    → loads the Behold.so widget (free, no token needed)
  *
  * Setup instructions for staff:
  *  1. Go to https://behold.so (free account)
@@ -35,7 +35,7 @@ export default function InstagramFeed({ feedId, handle, profileUrl }) {
     scriptLoaded.current = true;
 
     return () => {
-      // Leave the script in place — removing it while mounted breaks re-renders
+      // Leave the script in place - removing it while mounted breaks re-renders
     };
   }, [feedId]);
 
@@ -84,7 +84,7 @@ export default function InstagramFeed({ feedId, handle, profileUrl }) {
 }
 
 function PlaceholderFeed({ handle, profileUrl }) {
-  // Six placeholder "post" shapes — mimic an Instagram grid row
+  // Six placeholder "post" shapes - mimic an Instagram grid row
   const placeholders = [
     { shade: 'bg-[var(--clr-bg-green)]', label: 'Squat day 🏋️' },
     { shade: 'bg-[var(--clr-seafoam)]', label: 'Coach Kyle at SCS' },

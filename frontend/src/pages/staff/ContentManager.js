@@ -11,30 +11,30 @@ import {
 const SEO_KEYWORDS = ['Santa Cruz', 'strength', 'gym', 'training', 'coach', 'fitness', 'powerlifting', 'Santa Cruz Strength', 'personal training'];
 
 const SEO_TIPS = {
-  home_hero_headline: { seo: 'high', tip: 'H1 tag — most important for SEO. Include "strength" and "training".' },
+  home_hero_headline: { seo: 'high', tip: 'H1 tag - most important for SEO. Include "strength" and "training".' },
   home_hero_subtitle: { seo: 'high', tip: 'Visible text under H1. Use natural keywords: gym, Santa Cruz, athletes.' },
   home_hero_subtext: { seo: 'medium', tip: 'Secondary text. Reinforce location: "Santa Cruz".' },
-  home_benefits_headline: { seo: 'high', tip: 'H2 tag — include "strength" or "training".' },
+  home_benefits_headline: { seo: 'high', tip: 'H2 tag - include "strength" or "training".' },
   home_benefits_subtitle: { seo: 'medium', tip: 'Describe what makes the gym unique. Use natural language.' },
-  home_environment_headline: { seo: 'high', tip: 'H2 tag — "training" is a strong keyword here.' },
+  home_environment_headline: { seo: 'high', tip: 'H2 tag - "training" is a strong keyword here.' },
   home_environment_text: { seo: 'medium', tip: 'Body copy. Mention equipment, coaching, facility.' },
   home_environment_subtext: { seo: 'low', tip: 'Supporting detail. Keep authentic.' },
-  home_who_headline: { seo: 'high', tip: 'H2 tag — great place for "train" or "belong".' },
+  home_who_headline: { seo: 'high', tip: 'H2 tag - great place for "train" or "belong".' },
   home_who_text: { seo: 'medium', tip: 'Mention Santa Cruz, community, athletic.' },
   home_who_subtext: { seo: 'low', tip: 'Describe member types. Helps with long-tail keywords.' },
-  about_headline: { seo: 'high', tip: 'H1 tag — include "Santa Cruz Strength" for brand SEO.' },
+  about_headline: { seo: 'high', tip: 'H1 tag - include "Santa Cruz Strength" for brand SEO.' },
   about_mission: { seo: 'medium', tip: 'Mission statement. Keep it memorable and shareable.' },
-  about_story: { seo: 'high', tip: 'Longest content block — great for keywords. Mention location, gym type, coaching, community.' },
+  about_story: { seo: 'high', tip: 'Longest content block - great for keywords. Mention location, gym type, coaching, community.' },
   about_team_headline: { seo: 'medium', tip: 'H2 tag. "Team" helps with "Santa Cruz Strength team" searches.' },
   about_team_subtitle: { seo: 'low', tip: 'Short subtitle. Keep descriptive.' },
-  about_trainers_headline: { seo: 'high', tip: 'H2 tag — "trainers" and "coaching" are high-value keywords.' },
+  about_trainers_headline: { seo: 'high', tip: 'H2 tag - "trainers" and "coaching" are high-value keywords.' },
   about_trainers_subtitle: { seo: 'medium', tip: 'Include "coaching" or "personal training".' },
   about_cta_headline: { seo: 'medium', tip: 'CTA headline. Action-oriented works best.' },
   about_cta_text: { seo: 'low', tip: 'Keep conversational. Mention the gym or location.' },
-  training_headline: { seo: 'high', tip: 'H1 tag — "personal training" is a top search term.' },
+  training_headline: { seo: 'high', tip: 'H1 tag - "personal training" is a top search term.' },
   training_subtitle: { seo: 'high', tip: 'Include "coach", "strength", "Santa Cruz".' },
-  training_cta_headline: { seo: 'medium', tip: 'CTA — action words help conversion.' },
-  contact_headline: { seo: 'medium', tip: 'H1 tag — "Contact" + brand name helps local SEO.' },
+  training_cta_headline: { seo: 'medium', tip: 'CTA - action words help conversion.' },
+  contact_headline: { seo: 'medium', tip: 'H1 tag - "Contact" + brand name helps local SEO.' },
   contact_subtitle: { seo: 'low', tip: 'Keep friendly and clear.' },
   contact_form_headline: { seo: 'low', tip: 'Form heading. Keep direct.' },
   contact_form_subtitle: { seo: 'low', tip: 'Set expectations for response time.' },
@@ -362,10 +362,10 @@ export default function ContentManager() {
                 ))}
               </div>
               <div className="space-y-1.5 text-[10px] text-white/35 leading-relaxed">
-                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> <strong className="text-white/50">SEO: HIGH</strong></span> — These fields are H1/H2 headings or primary content. Google weighs them heavily. Always include target keywords naturally.</p>
-                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> <strong className="text-white/50">SEO: MEDIUM</strong></span> — Supporting text. Include keywords where natural. Focus on readability.</p>
-                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-white/20" /> <strong className="text-white/50">SEO: LOW</strong></span> — CTAs and short labels. Focus on conversion, not keywords.</p>
-                <p className="mt-2 text-white/25">Green tags = keywords found in your text. Gray +tags = keywords you could add. Keep it natural — don't stuff keywords.</p>
+                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> <strong className="text-white/50">SEO: HIGH</strong></span> - These fields are H1/H2 headings or primary content. Google weighs them heavily. Always include target keywords naturally.</p>
+                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> <strong className="text-white/50">SEO: MEDIUM</strong></span> - Supporting text. Include keywords where natural. Focus on readability.</p>
+                <p><span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-white/20" /> <strong className="text-white/50">SEO: LOW</strong></span> - CTAs and short labels. Focus on conversion, not keywords.</p>
+                <p className="mt-2 text-white/25">Green tags = keywords found in your text. Gray +tags = keywords you could add. Keep it natural - don't stuff keywords.</p>
               </div>
             </div>
 

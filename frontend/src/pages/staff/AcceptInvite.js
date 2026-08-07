@@ -14,7 +14,7 @@ export default function AcceptInvite() {
   const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    if (!token) setError('Invalid invite link — no token found.');
+    if (!token) setError('Invalid invite link - no token found.');
   }, [token]);
 
   const handleSubmit = async (e) => {
@@ -52,12 +52,12 @@ export default function AcceptInvite() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center mx-auto mb-4">
-            <img src="https://customer-assets.emergentagent.com/job_local-gym-hub/artifacts/luzlwc0v_SCS_Circle_Logo_1_20260308_193638_0000.jpg"
+            <img src="/assets/scs/logo.png"
               alt="Santa Cruz Strength" className="w-full h-full object-contain"
               style={{ filter: 'invert(1)', mixBlendMode: 'screen' }} />
           </div>
           <h1 className="font-display text-2xl text-white tracking-wide">JOIN THE TEAM</h1>
-          <p className="text-white/58 text-sm mt-1">Santa Cruz Strength — Staff Portal</p>
+          <p className="text-white/58 text-sm mt-1">Santa Cruz Strength - Staff Portal</p>
         </div>
 
         {!token ? (

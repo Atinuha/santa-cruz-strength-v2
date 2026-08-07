@@ -1,4 +1,16 @@
-# Getting Started with Create React App
+# Santa Cruz Strength frontend
+
+## Safe preview and production builds
+
+`npm run build:preview` creates the local approval build. It sets `REACT_APP_PREVIEW_MODE=true`. Public forms and mutation routes simulate their completion state without sending requests or storing submitted information. Public CRM reads are also skipped where the preview does not need live data.
+
+`npm run build` creates a production build and requires an explicit `REACT_APP_BACKEND_URL`. Copy `.env.example` to the appropriate deployment environment and provide the real HTTPS backend origin without a trailing `/api` segment. The build fails with a clear message if the variable is missing or invalid.
+
+When the backend variable is absent in local development or preview mode, API URLs use the safe same-origin `/api` fallback. They never produce `/undefined/api`.
+
+The preview build is not a production deployment and must not be used to collect leads, RSVPs, reviews, or corporate wellness inquiries.
+
+# Create React App reference
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

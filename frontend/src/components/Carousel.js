@@ -3,10 +3,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * Horizontal scroll carousel with:
- *  - Arrow navigation (desktop)
- *  - Native touch/swipe (mobile)
- *  - Auto-scroll (pauses on hover / user interaction)
- *  - Infinite loop via duplicated items
+ * - Arrow navigation (desktop)
+ * - Native touch/swipe (mobile)
+ * - Auto-scroll (pauses on hover / user interaction)
+ * - Infinite loop via duplicated items
  */
 export default function Carousel({
   children,

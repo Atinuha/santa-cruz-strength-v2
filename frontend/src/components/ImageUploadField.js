@@ -1,18 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Link, X, Loader2, ImageIcon, CheckCircle2 } from 'lucide-react';
-
-const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+import { uploadMedia } from '../lib/api';
+import { resolveApiBaseUrl } from '../utils/previewSafety';
 
 /**
  * ImageUploadField
  * Dual-mode image input: paste a URL OR upload a file directly.
  *
  * Props:
- *   value       — current image URL string
- *   onChange    — (url: string) => void
- *   label       — field label (default "Image")
- *   inputClass  — CSS class for the URL input
- *   darkMode    — true = CRM dark theme, false = light theme (default false)
+ *   value - current image URL string
+ *   onChange - (url: string) => void
+ *   label - field label (default "Image")
+ *   inputClass - CSS class for the URL input
+ *   darkMode - true = CRM dark theme, false = light theme (default false)
  */
 export default function ImageUploadField({ value, onChange, label = 'Image', inputClass = '', darkMode = true }) {
   const [mode, setMode]         = useState('url');   // 'url' | 'upload'
@@ -21,8 +21,6 @@ export default function ImageUploadField({ value, onChange, label = 'Image', inp
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
 
-  const token = localStorage.getItem('scs_token');
-
   const uploadFile = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -30,7 +28,7 @@ export default function ImageUploadField({ value, onChange, label = 'Image', inp
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      setError('File too large — max 8MB');
+      setError('File too large - max 8MB');
       return;
     }
     setError('');
@@ -38,19 +36,13 @@ export default function ImageUploadField({ value, onChange, label = 'Image', inp
     try {
       const form = new FormData();
       form.append('file', file);
-      const res = await fetch(`${BACKEND}/api/upload`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: form,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      const { data } = await uploadMedia(form);
       // Build full URL so it works on both preview and production
-      const fullUrl = data.url.startsWith('http') ? data.url : `${BACKEND}${data.url}`;
+      const fullUrl = data.url.startsWith('http') ? data.url : `${resolveApiBaseUrl()}${data.url}`;
       onChange(fullUrl);
       setMode('url');
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || err.message);
     } finally {
       setUploading(false);
     }
@@ -131,7 +123,7 @@ export default function ImageUploadField({ value, onChange, label = 'Image', inp
             <>
               <Upload size={22} className={base.muted} />
               <p className={`text-xs font-semibold ${base.text}`}>Drop image here or click to browse</p>
-              <p className={`text-[10px] ${base.muted}`}>JPEG, PNG, WebP, GIF — max 8MB</p>
+              <p className={`text-[10px] ${base.muted}`}>JPEG, PNG, WebP, GIF - max 8MB</p>
             </>
           )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
@@ -149,7 +141,7 @@ export default function ImageUploadField({ value, onChange, label = 'Image', inp
         <div className={`mt-2.5 relative rounded-lg overflow-hidden border ${base.previewBorder} group`}
           style={{ maxHeight: '140px' }}>
           <img src={value} alt="preview" className="w-full object-cover" style={{ maxHeight: '140px' }}
-            onError={() => setError('Could not load image — check the URL')} />
+            onError={() => setError('Could not load image - check the URL')} />
           <button type="button" onClick={() => onChange('')}
             className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <X size={12} className="text-white" />

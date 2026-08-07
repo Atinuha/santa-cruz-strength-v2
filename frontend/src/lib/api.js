@@ -1,6 +1,12 @@
 import axios from 'axios';
+import {
+  PREVIEW_MODE,
+  PreviewMutationBlockedError,
+  isMutationMethod,
+  resolveApiBaseUrl,
+} from '../utils/previewSafety';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL;
+const BASE_URL = resolveApiBaseUrl();
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
@@ -9,6 +15,9 @@ const api = axios.create({
 
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
+  if (PREVIEW_MODE && isMutationMethod(config.method)) {
+    return Promise.reject(new PreviewMutationBlockedError('API mutation'));
+  }
   const token = localStorage.getItem('scs_token');
   if (token) {
     config.headers['Authorization'] = `Bearer ${token}`;
@@ -32,7 +41,12 @@ api.interceptors.response.use(
 );
 
 // Public
-export const createLead = (data) => api.post('/leads', data);
+export const createLead = (data) => api.post('/v1/leads', data, {
+  headers: data.request_id ? { 'Idempotency-Key': data.request_id } : undefined,
+});
+export const createCorporateLead = (data) => api.post('/corporate-leads', data, {
+  headers: data.request_id ? { 'Idempotency-Key': data.request_id } : undefined,
+});
 
 // Auth
 export const login = (email, password, deviceToken = null) =>
@@ -105,5 +119,13 @@ export const getSiteContent = () => api.get('/content');
 // Site Content (Staff)
 export const getStaffContent = () => api.get('/staff/content');
 export const updateSiteContent = (key, value) => api.put(`/staff/content/${key}`, { value });
+
+// Staff media and content tools
+export const uploadMedia = (formData) => api.post('/upload', formData, {
+  headers: { 'Content-Type': undefined },
+});
+export const generateBlogIdeas = (force = false) => api.post('/staff/blog/ideas', null, {
+  params: force ? { force: true } : undefined,
+});
 
 export default api;
