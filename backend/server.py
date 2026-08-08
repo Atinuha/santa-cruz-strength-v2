@@ -2155,7 +2155,20 @@ async def _refresh_blog_ideas_background():
 async def _generate_blog_ideas_core():
     """Core generation logic - fetches trends + calls LLM, saves to cache."""
     import json as _json
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    # emergentintegrations is not on PyPI, so it is not a hard requirement and
+    # any host outside Emergent's private index will not have it. Only this one
+    # staff convenience feature needs it, so the absence degrades to a disabled
+    # feature rather than an unbootable backend. Import failure used to raise
+    # before the key check below, turning a missing optional package into a 500.
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except ImportError:
+        logger.warning(
+            '[BLOG IDEAS] emergentintegrations is not installed, so AI idea '
+            'generation is unavailable. Everything else is unaffected.'
+        )
+        return None
 
     # ── Fetch Google Trends in a thread (non-blocking) ─────────────────────────
     trend_topics = await asyncio.to_thread(_fetch_google_trends)

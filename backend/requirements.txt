@@ -20,7 +20,13 @@ distro==1.9.0
 dnspython==2.8.0
 ecdsa==0.19.1
 email-validator==2.3.0
-emergentintegrations==0.1.0
+# emergentintegrations==0.1.0
+#   Deliberately not a hard requirement. It has no PyPI distribution, so this
+#   one line aborted `pip install -r requirements.txt` on every host outside
+#   Emergent's private index, taking the whole backend down with it. It powers
+#   only the staff blog idea generator, which now degrades to a disabled
+#   feature when the package is absent. Install it separately, from that index,
+#   if you want that feature.
 fastapi==0.110.1
 fastuuid==0.14.0
 filelock==3.25.0

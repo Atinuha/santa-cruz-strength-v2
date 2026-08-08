@@ -98,7 +98,22 @@ The rule, in order:
 
 Vercel, Netlify, and Cloudflare Pages configurations already exist in the repo notes. Use the one matching the chosen host rather than authoring a new pattern. Verify with `curl -I https://<domain>/this-path-does-not-exist` and confirm the response line reads 404, then confirm /staff/anything returns 200.
 
-2b. TWO THINGS THAT BREAK ON FIRST DEPLOY, HANDLE THEM IN STEP 1
+2b. FIVE THINGS THAT BREAK ON FIRST DEPLOY, HANDLE THEM IN STEP 1
+
+Pin the backend to Python 3.11, 3.12 or 3.13. On 3.14 the requirements are
+unresolvable: google-api-core demands grpcio-status 1.75.1 or newer there,
+while this file pins 1.71.2, and pip stops with ResolutionImpossible. On 3.11
+everything installs clean.
+
+Set BOOTSTRAP_OWNER_EMAIL and BOOTSTRAP_OWNER_PASSWORD before the first boot.
+They are the only path to a first admin account. Without them the backend logs
+"[BOOTSTRAP] No owner exists" on every start and nobody can sign in to the
+staff CRM at all, which is not obvious because the public site works perfectly.
+
+DB_NAME must contain one of test, staging, preview, development, dev or local
+whenever APP_ENV is not production and database writes are on. Otherwise
+startup raises. A name like scs_review fails this and the error reads as a
+crash rather than as a rule.
 
 CORS_ORIGINS is mandatory or the backend will not boot. backend/security_controls.py raises at startup if CORS_ORIGINS is unset while APP_ENV is staging, preview or production, and it rejects localhost and 127.0.0.1 origins in those environments. This is deliberate, it fails closed rather than defaulting open. Set CORS_ORIGINS to the real deployed frontend origin before first boot. If the backend crashes on startup with a RuntimeError about origins, this is the cause, not a bug.
 
