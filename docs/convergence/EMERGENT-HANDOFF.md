@@ -50,7 +50,7 @@ Ship state to preserve, verify each after deploy:
 === THE SEQUENCE ===
 
 1. DEPLOY
-Stand up frontend and backend with a real MongoDB instance. Point REACT_APP_BACKEND_URL at the deployed API before building, not after. Confirm the seed ran: 27 posts, 7 team members, site content present. Confirm all three test suites pass against production configuration.
+Stand up frontend and backend with a real MongoDB instance. Point REACT_APP_BACKEND_URL at the deployed API before building, not after. That value is compiled into the JavaScript bundle, so a build made against a local address ships the local address. Any build directory produced before the API URL was known must be discarded and rebuilt, not patched. Confirm the seed ran: 27 posts, 7 team members, site content present. Confirm all three test suites pass against production configuration.
 
 2. HOST RULE, REAL 404s
 Write the host rule that returns an honest HTTP 404 for unknown URLs. This is a prerequisite for Google Search Console, not a polish item. A SPA catch all that answers every path with 200 will get the sitemap rejected and the site mis-indexed.
@@ -61,6 +61,12 @@ The rule, in order:
   Send everything else to /404.html with a genuine 404 status.
 
 Vercel, Netlify, and Cloudflare Pages configurations already exist in the repo notes. Use the one matching the chosen host rather than authoring a new pattern. Verify with `curl -I https://<domain>/this-path-does-not-exist` and confirm the response line reads 404, then confirm /staff/anything returns 200.
+
+2b. TWO THINGS THAT BREAK ON FIRST DEPLOY, HANDLE THEM IN STEP 1
+
+CORS_ORIGINS is mandatory or the backend will not boot. backend/security_controls.py raises at startup if CORS_ORIGINS is unset while APP_ENV is staging, preview or production, and it rejects localhost and 127.0.0.1 origins in those environments. This is deliberate, it fails closed rather than defaulting open. Set CORS_ORIGINS to the real deployed frontend origin before first boot. If the backend crashes on startup with a RuntimeError about origins, this is the cause, not a bug.
+
+/staff and /review have no prerendered directory and depend entirely on the host rule. The build produces 39 route directories and a real 404.html that boots the full SPA bundle, but frontend/build/staff and frontend/build/review do not exist, because those routes are client only. If the host serves its own generic 404 for unmatched paths instead of following the rule in step 2, then a staff member who bookmarks or refreshes /staff/dashboard is locked out of the CRM, and a customer clicking a review link at /review/<token> hits a dead page and the review funnel fails silently. Verify both by hand after deploying: load /staff/dashboard directly in a fresh tab and confirm the app boots, then load /review/anything and confirm the same.
 
 3. GOOGLE SEARCH CONSOLE
 Create a DOMAIN property. Verify by DNS TXT record. Submit sitemap.xml as a relative path.

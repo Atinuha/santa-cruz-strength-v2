@@ -1,0 +1,13 @@
+{
+  "manifest_version": "0.1.0",
+  "retrieved_at": "2026-08-08T15:56:00-07:00",
+  "sources": [
+    {"id":"S-001","title":"How GPT-5.6 fuses frontier intelligence with frontier efficiency","publisher":"OpenAI","published":"2026-07-29","url":"https://openai.com/index/gpt-5-6-frontier-intelligence-efficiency/","type":"primary_engineering_source","authority":"publisher_self-report","currentness":"current-sensitive","locators":["How our agentic harness streamlines repeated work","Avoid context bloat"]},
+    {"id":"S-002","title":"Effective context engineering for AI agents","publisher":"Anthropic","published":"2025-09-29","url":"https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents","type":"primary_engineering_source","authority":"publisher_guidance","currentness":"dated","locators":["Context engineering vs. prompt engineering","Why context engineering is important","Context retrieval and agentic search"]},
+    {"id":"S-003","title":"Memory for Claude Managed Agents","publisher":"Anthropic","published":"2026-04-23","url":"https://claude.com/blog/claude-managed-agents-memory","type":"primary_product_source","authority":"publisher_self-report","currentness":"current-sensitive","locators":["Portable memories for production-grade agents","What teams are building"]},
+    {"id":"S-004","title":"Introducing Managed Agents in the Gemini API","publisher":"Google","published":"2026-05-19","url":"https://blog.google/innovation-and-ai/technology/developers-tools/managed-agents-gemini-api/","type":"primary_product_source","authority":"publisher_self-report","currentness":"current-sensitive","locators":["Get access to Google's agent infrastructure","Custom instructions and skills"]},
+    {"id":"S-005","title":"ACM: Agentic Context Management for Long Horizon Tasks","publisher":"arXiv","published":"2026-07-26","url":"https://arxiv.org/abs/2607.23809","type":"research_preprint","authority":"author_claims_not_peer_reviewed","currentness":"current-sensitive","locators":["Abstract"]},
+    {"id":"S-006","title":"Agentic Context Management: Solving Agent Memory and Cost by Treating Them as Lifecycle and Architecture Problems","publisher":"arXiv","published":"2026-07-23","url":"https://arxiv.org/abs/2607.21503","type":"research_preprint","authority":"author_claims_not_peer_reviewed","currentness":"current-sensitive","locators":["Abstract","Introduction"]},
+    {"id":"S-007","title":"SelfMem: Self-Optimizing Memory for AI Agents","publisher":"arXiv","published":"2026-07-04","url":"https://arxiv.org/abs/2607.03726","type":"research_preprint","authority":"author_claims_not_peer_reviewed","currentness":"current-sensitive","locators":["Abstract"]}
+  ]
+}

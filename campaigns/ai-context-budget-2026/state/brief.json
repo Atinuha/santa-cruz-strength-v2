@@ -1,0 +1,26 @@
+{
+  "purpose": "Create a source-bound, save-worthy LinkedIn infographic explaining why context management is becoming the practical bottleneck for AI agents.",
+  "audience": "AI builders, product leaders, and technical operators who know agent terminology but need an operational model they can use.",
+  "intended_change": "The reader stops treating the context window as a storage bin and starts managing it as a finite working budget.",
+  "source_authority": "Fresh primary engineering sources and recent research, retrieved 2026-08-08. Trend selection is an explicitly labeled synthesis.",
+  "outputs": ["web", "linkedin_single_image", "linkedin_post", "qa_package"],
+  "assumptions": [
+    "The user wants a new Loomfile, not a continuation.",
+    "No relevant creator brand or voice files were supplied, so a neutral technical-editorial voice is used.",
+    "The existing Santa Cruz Strength brand files are unrelated and must not influence this campaign.",
+    "The primary desired behavior is save, with comments as the secondary signal.",
+    "American English is used because no creator locale was supplied and the active environment is California."
+  ],
+  "constraints": [
+    "HTML-first editable source",
+    "Self-contained runtime with local or embedded assets",
+    "No quantitative chart without comparable verified data",
+    "Body text at or above 12.5 source pixels",
+    "Protected footer zone",
+    "Meaning remains available without JavaScript",
+    "No em dashes, curly quotes, or AI-cliche phrasing in publishable copy"
+  ],
+  "open_questions": [
+    "Creator attribution and brand lockup remain intentionally blank pending user direction."
+  ]
+}
