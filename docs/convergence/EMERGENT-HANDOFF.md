@@ -11,14 +11,29 @@ Take a working local build of the Santa Cruz Strength site into production and w
 Clone it. That repository holds one branch and its history begins at the
 converged state, so there is no older tree to pick up by accident.
 
-Install the frontend with yarn, not npm:
+Install the frontend with yarn, not npm. This is not a preference, npm cannot
+install this project at all. Verified against a fresh clone of this repository:
 
-  cd frontend && yarn install
+  cd frontend
+  yarn install --frozen-lockfile
 
-Only yarn.lock is committed. There is no package-lock.json, so npm ci cannot
-run at all, and npm install resolves a broken ajv tree. Build with the npm
-script afterwards as described below; the script runner is not the problem,
-the dependency resolver is.
+If yarn is absent from the build image, `npx --yes yarn@1.22.22 install
+--frozen-lockfile` works, or enable corepack. Yarn emits peer warnings about
+react-day-picker, babel, typescript and workspaces. All are cosmetic and the
+build is green with them present.
+
+What happens if you reach for npm anyway, so you do not spend an hour on it:
+  npm ci               fails immediately, no package-lock.json is committed
+  npm install          fails in under a second, ERESOLVE, react-day-picker
+                       8.10.1 wants date-fns 2 or 3 and the project is on 4
+  npm install --legacy-peer-deps
+                       appears to work, installs 1510 packages over two
+                       minutes, and THEN the build dies on
+                       "Cannot find module 'ajv/dist/compile/codegen'"
+
+That last one is the trap. It fails late, after the log has already said the
+install succeeded. If you see the ajv error, the cause is that npm was used to
+install, not anything about the build.
 
 === ALREADY HANDLED, DO NOT REDO ===
 
@@ -49,6 +64,17 @@ Build the frontend with exactly this, from the repo root:
   cd frontend && REACT_APP_BACKEND_URL=<api-url> npm run build
 
 Use that form every time. It carries the prebuild and postbuild hooks that generate the sitemap and all 39 route shells. Reaching for `npx craco build` skips those hooks and yields an artifact that looks fine and is silently missing the shells and the sitemap. If a build finishes and the output lacks 39 route shells or sitemap.xml, discard it and rerun the command above.
+
+A correct build prints these three lines and produces these artifacts. Measured
+on a fresh clone of this repository, so treat any deviation as a real problem:
+
+  prebuild   Generated sitemap with 34 canonical URLs.
+  build      main.js about 267 kB gzipped, main.css about 21 kB
+  postbuild  Generated route-specific head shells for 39 routes plus 404.html.
+
+  build/sitemap.xml   exists, 34 <url> entries
+  build/404.html      exists, boots the full SPA bundle
+  route shells        38 subdirectory index.html files plus the root, 39 total
 
 Ship state to preserve, verify each after deploy:
   React 19 SPA on CRACO, FastAPI backend on Motor and MongoDB.
