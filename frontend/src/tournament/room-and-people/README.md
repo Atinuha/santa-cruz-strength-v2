@@ -238,7 +238,7 @@ page.
 | The room | `openGym`, the rack and bench row | Full bleed plate, tall, label beneath |
 | The visit | none | Deliberately empty. The photograph that belongs here is need 3 above |
 | The people | five API portraits plus two name panels | Inset series, 2:3, true colour |
-| Membership | `communityStrength`, the group at the wall | Bleeds off the right edge, copy in the left void |
+| Membership | `communityStrength`, the group at the wall | Bleeds off the right edge in a 7 of 12 cell sized to the frame's native 3:2, copy in the left void |
 | The visit block | none | Map tile only, which is not a photograph |
 | Questions | none | Type |
 
@@ -264,7 +264,7 @@ Not used, and why:
 | The room | Plate height drops from `72vh` to `52vh`, `object-position` moves to `50% 34%` to hold the wall seal and the plate cradle in frame. Label stays under the plate at `px-5` |
 | The visit | Single column, hairline separated lines keep their full width, CTA goes full width |
 | The people | The seven tile row becomes a horizontal scroll strip at `72vw` per tile with `scroll-snap-align: start`, so faces stay large rather than shrinking to thumbnails. Scrollbar hidden, native touch scroll, no custom handler |
-| Membership | Photograph stops bleeding and becomes a full width 4:3 band above the copy. Copy goes single column, both CTAs full width, the text link stays inline |
+| Membership | Photograph stops bleeding and becomes a full width band at `62vw` tall, which is close enough to its native 3:2 that nobody is cropped out of the row. Copy sits below it, both CTAs full width, the text link stays inline |
 | The visit block | Form panel first, contact column and map beneath it. Map keeps `min-h-[280px]` |
 | Questions | Unchanged, the disclosure list is already single column. Story paragraphs stay at `max-w-[46ch]` |
 
@@ -296,6 +296,46 @@ Not used, and why:
   `contact-click-to-call-button`, `contact-hours-block`, `home-map-embed`, `home-faq-accordion`,
   plus everything inside `QuizForm`.
 * The five FAQ strings are verbatim and stay in sync with `src/seo/home-schema.json`.
+
+## Verification
+
+* `CI=true npx craco test --watchAll=false` from `frontend/`. This candidate passes, including
+  `src/utils/pageIdentifiers.test.js`, which the first draft of this component failed: a
+  polymorphic `<Tag>` element in the reveal wrapper is not a declared identifier as far as that
+  check is concerned. The wrapper is a plain div now and the semantic `figure` is a real element in
+  the markup instead. The one remaining failure in the suite belongs to another candidate.
+* `node scripts/validate-seo.mjs`. Both dash checks pass over this directory. The two failures the
+  validator reports are in other candidates' directories.
+* `babel-preset-react-app` transform of `index.js` succeeds, so the component compiles.
+* **Not verified: browser render.** Nothing routes to this component yet, and wiring a route means
+  editing `App.js`, which is outside this directory. A render test is also not possible here:
+  `react-router-dom` 7 ships ESM that this project's jest configuration cannot resolve, and there is
+  no testing library installed to add. The composition below is reasoned from the real pixel
+  dimensions of each photograph, not from a screenshot of the page.
+
+## Project truth found wrong
+
+1. **The three wall frames are one photograph, not three.** `PROJECT-TRUTH.md` section 4.1 lists
+   `communityStrength`, `communityMedals` and `communityWall` on three separate rows with three
+   different one line descriptions, which reads as three assets. Opening them shows the same two
+   rows of the same lifters at the same painted wall in the same minute, differing only in whether
+   arms are raised and where people are looking. A direction that trusts the table can easily ship
+   two of them and think it has varied its photography. The usable library is five distinct moments,
+   not eight.
+2. **Section 4.1 undercounts the wall group.** The rows read like small group shots. The frames hold
+   roughly seventeen people across two rows, which is by a wide margin the strongest evidence of
+   community anywhere in this repository and is described in the inventory less prominently than the
+   five person backdrop shot.
+3. **`MEMBER_STORIES` cannot ship under the guardrails as written.** The tournament instructions ask
+   candidates to import it. Guardrail 9.1 item 8 requires source URL, capture date, exact wording
+   and permission before any testimonial renders, and `src/config/testimonials.js` records in its
+   own header that there are no dates and no source attribution. Two of the four conditions are
+   absent and permission is recorded nowhere. `Home.js` line 11 imports the constant and never
+   renders it, which suggests the current build reached the same conclusion silently. Worth an
+   explicit ruling from the owner rather than each candidate deciding alone.
+4. **Stone on chalk fails AA and the inventory says so, but the same token passes comfortably on
+   carbon.** Guardrail 26 records the roughly 2.8:1 failure without noting that the fix is
+   available inside the existing palette. On carbon, stone measures about 5.4:1.
 
 ## Deliberate omissions
 

@@ -1,0 +1,77 @@
+/*
+ * The Decision Desk. Local rules only, scoped by a dd- prefix.
+ *
+ * Everything Tailwind can express is left in the markup. What lands here is the
+ * handful of things it cannot: responsive nth-child rules, a filter, a numeric
+ * font feature, and one specificity override.
+ */
+
+/* One photographic grade for every plate on this page. The real gym has a
+   bright green painted wall stripe and the approved accent is clay. Pulling
+   saturation down stops those two fighting, without dimming the room into
+   something a visitor cannot read. */
+.dd-plate { filter: saturate(0.35) contrast(1.05); }
+
+/* Nine prices only read as a column if the figures are the same width. */
+.dd-num { font-variant-numeric: tabular-nums; }
+
+/* .scs-map ships a 10px radius as a documented legacy exception. This page runs
+   one radius scale, so the map joins it. Two classes beats one on specificity,
+   which wins without !important and without editing index.css. */
+.dd-map.scs-map { border-radius: var(--scs-radius); }
+
+/* MOTION_INTENSITY 3. Hover, focus and active only, and nothing at all when the
+   visitor has asked for less. */
+.dd-t {
+  transition: color 180ms ease-out, background-color 180ms ease-out,
+              border-color 180ms ease-out, opacity 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dd-t { transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Ruled groups.
+   A rule appears where two pieces of real data meet and nowhere else. Every
+   cell carries a top rule, so a row of cells reads as one continuous line
+   rather than as a stack of separate boxes, and vertical rules arrive only
+   once there is horizontal room for columns.
+   Outer cells lose their outer padding so the group aligns flush with the
+   page measure, which is what makes it read as a document rather than a card.
+   --------------------------------------------------------------------------- */
+
+.dd-row, .dd-grid2, .dd-grid3 { display: grid; grid-template-columns: 1fr; }
+.dd-row > *, .dd-grid2 > *, .dd-grid3 > * { padding: 1rem 0; }
+
+/* The Decision Row sits on carbon, so it takes the dark rule. */
+.dd-row > * { border-top: 1px solid var(--scs-border-dark); }
+.dd-grid2 > *, .dd-grid3 > * { border-top: 1px solid var(--scs-border); }
+
+@media (min-width: 640px) {
+  .dd-row { grid-template-columns: 1fr 1fr; }
+  .dd-row > *:nth-child(2n) { border-left: 1px solid var(--scs-border-dark); }
+  .dd-row > * { padding: 1.125rem 1.5rem; }
+  .dd-row > *:nth-child(odd) { padding-left: 0; }
+  .dd-row > *:nth-child(2n) { padding-right: 0; }
+}
+
+@media (min-width: 768px) {
+  .dd-grid2 { grid-template-columns: 1fr 1fr; }
+  .dd-grid3 { grid-template-columns: repeat(3, 1fr); }
+  .dd-grid2 > *, .dd-grid3 > * { padding: 1.25rem 1.75rem; }
+  .dd-grid2 > *:nth-child(2n) { border-left: 1px solid var(--scs-border); }
+  .dd-grid2 > *:nth-child(odd) { padding-left: 0; }
+  .dd-grid2 > *:nth-child(2n) { padding-right: 0; }
+  .dd-grid3 > * + * { border-left: 1px solid var(--scs-border); }
+  .dd-grid3 > *:first-child { padding-left: 0; }
+  .dd-grid3 > *:last-child { padding-right: 0; }
+}
+
+@media (min-width: 1024px) {
+  .dd-row { grid-template-columns: repeat(5, 1fr); }
+  .dd-row > *:nth-child(2n) { border-left: 0; padding-right: 1.5rem; }
+  .dd-row > * + * { border-left: 1px solid var(--scs-border-dark); }
+  .dd-row > *:nth-child(odd) { padding-left: 1.5rem; }
+  .dd-row > *:first-child { padding-left: 0; }
+  .dd-row > *:last-child { padding-right: 0; }
+}

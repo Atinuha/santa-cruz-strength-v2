@@ -26,6 +26,7 @@ import LocalWellness from './pages/LocalWellness';
 import Pride from './pages/Pride';
 import NotFound from './pages/NotFound';
 import ImplementationPreview from './pages/ImplementationPreview';
+import TournamentShell, { TournamentIndex } from './tournament/TournamentShell';
 
 // Staff CRM Pages
 import StaffLogin from './pages/staff/Login';
@@ -107,6 +108,13 @@ export default function App() {
           {process.env.REACT_APP_PREVIEW_MODE === 'true' && (
             <Route path="/implementation-preview" element={<ImplementationPreview />} />
           )}
+
+          {/* Phase 1 design tournament. Review scaffolding, not product: absent
+              from the sitemap, resolved to noindex by RouteSeo, and removed once
+              a direction is chosen. Deliberately not behind PREVIEW_MODE, since
+              the client has to be able to open it. */}
+          <Route path="/tournament" element={<TournamentIndex />} />
+          <Route path="/tournament/:slug" element={<TournamentShell />} />
 
           {/* Staff Auth */}
           <Route path="/staff/login" element={<CRMLayout><StaffLogin /></CRMLayout>} />

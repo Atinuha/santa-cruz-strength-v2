@@ -62,6 +62,17 @@ describe('JSX identifier resolution', () => {
           if (/^[A-Z][A-Za-z0-9_]*$/.test(name)) declared.add(name);
         }
       }
+      // Destructuring as its own statement, `const { Component } = candidate;`,
+      // which is how a component picked out of a lookup table gets rendered.
+      // The arrow-parameter pattern above did not cover this shape, so a real
+      // binding read as an undeclared tag. A guard that cries wolf is worse
+      // than no guard, because the next person learns to skip past it.
+      for (const m of body.matchAll(/(?:const|let|var)\s*{([^{}]*)}\s*=/g)) {
+        for (const part of m[1].split(',')) {
+          const name = part.trim().split(':').pop().trim();
+          if (/^[A-Z][A-Za-z0-9_]*$/.test(name)) declared.add(name);
+        }
+      }
       // Namespaced tags such as <Accordion.Item /> resolve through their root.
       for (const name of used) {
         const root = name.split('.')[0];

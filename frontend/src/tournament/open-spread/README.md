@@ -111,8 +111,8 @@ unaffected.
   container for the whole page including the hero, so every left edge on the
   page aligns.
 - **Grid.** 12 columns at `lg`. Single column below. Each spread names its own
-  start and span. Openings on this page fall on columns 1, 2, 1, 2, 6, 1 and 3
-  in sequence, never the same column twice running.
+  start and span. Openings fall on columns 1, 2, 1, 3, 6, 2, 1, 2, 1, 2 in
+  sequence, never the same column twice running.
 - **Vertical rhythm.** `py-24 sm:py-32 lg:py-40` on the reading spreads,
   `py-20 lg:py-28` on the two utility spreads at the back. That is roughly twice
   the current build's `py-16 sm:py-20` and it is what density 3 means here.
@@ -164,13 +164,13 @@ Ten sections plus the shared footer, in reading order.
 | 1 | Hero | Two leaf, type recto, plate verso | col 1 | Plate drops below type, 16:9 band |
 | 2 | The story | Offset text column plus marginal note | col 2 | Single column, note follows text with a hairline above |
 | 3 | The room | Full bleed plate, caption in the left margin below | col 1 | Plate 4:3, caption below |
-| 4 | The black plate | Full width carbon quote, alone | col 2 | Same, smaller type |
+| 4 | The black plate | Full width carbon quote, alone | col 3 | Same, smaller type |
 | 5 | Voices | Three member quotes on a staggered asymmetric grid | col 6 | Single column stack, offsets removed |
-| 6 | What a visit is | Open hairline reading list plus CTA | col 1 | Single column |
-| 7 | Membership | Narrow plate split, text left, tall plate right | col 3 | Plate above text, 16:9 |
-| 8 | Questions | Two column Q and A rows, question left, answer right | col 1 | Question and answer stack |
+| 6 | What a visit is | Open hairline reading list plus CTA | col 2 | Single column |
+| 7 | Membership | Narrow plate split, text left, tall plate right | col 1 | Plate above text, 16:9 |
+| 8 | Questions | Two column Q and A rows, question left, answer right | col 2 | Question and answer stack |
 | 9 | The visit | Form panel plus contact block plus map | col 1 | Panel, then contact, then map |
-| 10 | Recent posts | Conditional three across text and cover grid | col 1 | Single column |
+| 10 | Recent posts | Conditional three across text and cover grid | col 2 | Single column |
 
 Eyebrow count: **zero**, against a ceiling of three. The headline alone is
 enough and the absence is a differentiator.
@@ -285,8 +285,13 @@ Nothing on this page is invented. Every factual sentence traces to one of:
   build.
 - CMS key `about_story`, seeded at `backend/server.py:4812`. The story spread,
   the black plate quote and the belonging paragraph are verbatim sentences from
-  it, rearranged but not edited. Read through `copy()` with the seeded text as
-  fallback so a CMS edit reaches the homepage.
+  it, rearranged but not edited. Held as constants rather than read through
+  `copy()`: `about_story` is one newline separated blob and slicing a blob into
+  fragments at render time breaks the first time somebody edits a paragraph in
+  the CMS. If this direction ships, the honest fix is to seed the fragments this
+  page uses as their own keys, which is a backend change and outside a
+  candidate's boundary. Recorded here rather than faked with keys that would
+  never resolve.
 - The current homepage's approved copy for the visit list, the coaching
   sentence, the membership sentence and the five FAQ pairs.
 - `MEMBER_STORIES` from `src/config/testimonials.js`, verbatim, uncut.
@@ -353,12 +358,34 @@ Reported, not routed around.
    in case the transcription is accurate and the real file is one commit from
    failing its own validator.
 
-## Verification
+## Verification, run
 
-- `CI=true npx craco test --watchAll=false` from `frontend/`, run after the
-  build. Result recorded in the delivery report.
-- `node scripts/validate-seo.mjs` from `frontend/`, including both dash checks.
-- This directory is the only thing touched. No shared file, no other candidate,
-  no backend, no `PROJECT-TRUTH.md`.
+- `CI=true npx craco test --watchAll=false` from `frontend/`.
+  `src/tournament/open-spread/openSpread.test.js` **passes, 8 of 8.** The repo
+  suites that scan every source file, including `pageIdentifiers`,
+  `seoOwnership`, `leadContractUsage`, `mediaKeys` and `thirdPartyFrames`, all
+  pass with this directory present. Two suites in the full run are red and both
+  belong to another candidate, `starting-point-engine`. Nothing here is red.
+- `node scripts/validate-seo.mjs` from `frontend/`. Both dash checks pass over
+  this directory. The run's one failure is
+  `src/tournament/starting-point-engine/index.js` carrying literal dash
+  characters, which is that candidate's to fix.
+- The page renders. `openSpread.test.js` server renders the real component with
+  the real `Navbar`, `Footer`, `QuizForm` and `MapEmbed` and asserts the approved
+  hero copy, all seven preserved `data-testid` values, `GYM_CONFIG` sourced
+  address and phone, absence of any hours table or price, zero dash characters,
+  local `/assets/` images only, descriptive alt on every content image, and
+  exactly one `h1`.
+- **Not verified: the page in a browser.** No route points at it yet, routing is
+  wired centrally, so nothing visual has been looked at. The layout is argued
+  from the grid, not observed.
+- `react-router-dom` 7 ships an `.mjs` only entry that this project's CRA jest
+  transform cannot resolve, which is why the test mocks it virtually and why
+  other candidates' render tests fail outright. The app itself is unaffected.
+
+### Boundary
+
+This directory is the only thing touched. No shared file, no other candidate, no
+backend, no `PROJECT-TRUTH.md`.
 
 Routing is wired centrally. `index.js` exports the page component as default.
