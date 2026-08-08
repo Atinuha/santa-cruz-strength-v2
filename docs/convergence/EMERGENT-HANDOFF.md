@@ -3,19 +3,30 @@
 ```
 Take a working local build of the Santa Cruz Strength site into production and wire the integrations that only exist once a real domain does. The code is finished and green. What remains is deployment, DNS, one host rule, and a set of third party connections where several are deliberately held shut. Move through the sequence in order. Halt at every gate marked HUMAN CONFIRM and wait for a written go from Muhammad Atif before proceeding past it. Report what you did after each numbered step in one line, naming the artifact you produced or the setting you changed.
 
-=== GATE ZERO: HANDLE BEFORE ANY PUSH, MIRROR, OR PUBLICATION OF HISTORY ===
-HUMAN CONFIRM REQUIRED. IRREVERSIBLE.
+=== WHERE THE CODE IS, START HERE ===
 
-A 389 KB blob sits in git history containing a real customer export: 1329 email addresses with names, phone numbers, dates of birth, and home addresses. The file is untracked going forward. The blob is still reachable in history. Publishing that history anywhere, a public remote, a private remote, a mirror, a CI cache, an archive, exposes 1329 real people.
+  repository: https://github.com/Atinuha/santa-cruz-strength-site
+  branch:     convergence/t1-backend
+  commit:     3b88cf9
 
-Do this before history leaves the machine:
-  Confirm with the human that a full backup clone exists.
-  Purge the blob from history with git filter-repo or BFG, then expire reflogs and run an aggressive gc.
-  Verify the purge: `git rev-list --objects --all | grep -i <export-filename>` returns nothing, and `git cat-file -t <old-blob-sha>` reports the object is gone.
-  Keep the working tree free of it permanently. Treat any reappearance of that file as a stop-work event.
-  Report the verified purge before pushing anything.
+Clone that branch. Do not use main, which is an older state and deliberately
+untouched so a comparison remains possible.
 
-Until that purge is confirmed complete, keep every remote push, mirror, and repository import paused. Deployment from a local build directory is fine and unblocked.
+=== ALREADY HANDLED, DO NOT REDO ===
+
+Git history previously carried a 389 KB blob holding a real customer export:
+1329 email addresses with names, phone numbers, dates of birth, and home
+addresses. It was purged from all 131 commits with git filter-repo before this
+branch was ever pushed, and the purge was verified three ways: the blob sha is
+unreachable, no path matches the filename anywhere in history, and no blob in
+the repository begins with those column headers. The remote returns Not Found
+for that path. A full backup bundle of the pre-purge repository is held offline
+by Muhammad Atif.
+
+What this means for you: the history you clone is clean, and it must stay that
+way. Treat any reappearance of a customer export, a lead dump, or any file
+carrying personal data as a stop-work event, report it, and do not commit it.
+Keep personal data in the database where it belongs, never in the repository.
 
 === THE STANDING INVARIANT, HOLD IT THROUGHOUT ===
 
@@ -91,7 +102,7 @@ Surface this list to the human at handoff and again at launch. Leave each corres
 
 === CLOSE OUT WITH ===
 
-A deployment report carrying: the live URLs, the curl output proving a real 404 on an unknown path and a 200 on /staff/*, the three test suite counts, the DNS verification and sitemap submission status, every ALLOW_* flag you changed with the reason and evidence, the git history purge verification, and the still open items listed as open. Name what remains blocked plainly. A blocker reported as blocked is a finished step.
+A deployment report carrying: the live URLs, the curl output proving a real 404 on an unknown path and a 200 on /staff/*, the three test suite counts, the DNS verification and sitemap submission status, every ALLOW_* flag you changed with the reason and evidence, and the still open items listed as open. Name what remains blocked plainly. A blocker reported as blocked is a finished step.
 
 **PRODUCTION DOMAIN**:
 
