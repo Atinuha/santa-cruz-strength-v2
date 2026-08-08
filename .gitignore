@@ -113,3 +113,11 @@ credentials.json
 # Real customer lead exports. Never commit these.
 leads_export.csv
 *leads_export*.csv
+
+# Build platform residue and local scratch
+.gitconfig
+test_result.md
+test_reports/
+memory/test_credentials.md
+fitprintbros_blueprint.md
+plan.md
