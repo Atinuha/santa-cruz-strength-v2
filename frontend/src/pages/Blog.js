@@ -1,76 +1,161 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import PublicImage from '../components/PublicImage';
 import { getBlogPosts } from '../lib/api';
-import { SCS_MEDIA } from '../config/media';
+import { Calendar, ArrowRight, Clock, FileText, AlertTriangle } from 'lucide-react';
 
-const PREVIEW_MODE = process.env.REACT_APP_PREVIEW_MODE === 'true';
+const sanitize = (s) => (s || '').replace(/[\u2013\u2014]/g, ',');
+const CATEGORIES = ['All', 'Outdoor Athletes', 'Strength Science', 'Getting Started', 'Gym Culture', 'Training Tips'];
 
-function PublishedPost({ post, featured = false }) {
+function readingTime(html) {
+  if (!html) return 0;
+  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return Math.max(1, Math.round(text.split(' ').length / 200));
+}
+
+function PostCard({ post, featured = false }) {
+  const mins = post.reading_time_min || 0;
   return (
-    <Link to={`/blog/${post.slug}`} className={`scs-article-card ${featured ? 'scs-article-featured' : ''}`}>
-      {post.cover_image && <PublicImage src={post.cover_image} alt={`${post.title} article cover`} loading="lazy" />}
-      <div>
-        <span>{post.category || 'Training article'}</span>
-        <h2>{post.title}</h2>
-        <p>{post.excerpt}</p>
-        <strong>Read article <ArrowRight size={16} aria-hidden="true" /></strong>
+    <Link to={`/blog/${post.slug}`} data-testid={`blog-post-card-${post.slug}`}
+      className={`group overflow-hidden flex flex-col transition-opacity duration-180 hover:opacity-90 ${featured ? 'md:flex-row' : ''}`}
+      style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
+      {post.cover_image ? (
+        <div className={`overflow-hidden shrink-0 scs-photo ${featured ? 'md:w-2/5 h-52 md:h-auto' : 'h-44'}`}>
+          <img src={post.cover_image} alt="" className="w-full h-full object-cover" loading="lazy" />
+        </div>
+      ) : (
+        <div className={`shrink-0 flex items-center justify-center ${featured ? 'md:w-2/5 h-52 md:h-auto' : 'h-36'}`}
+          style={{ background: '#F0EDE7' }}>
+          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--scs-stone)' }}>Santa Cruz Strength</span>
+        </div>
+      )}
+      <div className={`p-5 flex flex-col flex-1 ${featured ? 'md:p-6' : ''}`}>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--scs-stone)' }}>{post.category}</span>
+          {post.created_at && (
+            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}>
+              <Calendar size={10} />{new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+          )}
+          {mins > 0 && (
+            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}>
+              <Clock size={10} />{mins} min read
+            </span>
+          )}
+        </div>
+        <h2 className={`font-semibold leading-snug mb-2 group-hover:opacity-80 transition-opacity duration-180 ${featured ? 'text-lg' : 'text-base'}`} style={{ color: 'var(--scs-charcoal)' }}>{sanitize(post.title)}</h2>
+        <p className="text-sm leading-relaxed flex-1 mb-4" style={{ color: 'var(--scs-text-muted)' }}>{sanitize(post.excerpt)}</p>
+        <span className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--scs-charcoal)' }}>Read <ArrowRight size={11} /></span>
       </div>
+    </Link>
+  );
+}
+
+function DraftCard({ draft }) {
+  const isEditorial = draft.review_status === 'editorial-review';
+  return (
+    <Link to={`/blog/${draft.slug}`} data-testid={`editorial-draft-${draft.slug}`}
+      className="group flex items-start gap-4 p-4 transition-opacity duration-180 hover:opacity-90"
+      style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
+      <div className="shrink-0 w-10 h-10 flex items-center justify-center" style={{ background: isEditorial ? '#A55438' : 'var(--scs-stone)', borderRadius: 'var(--scs-radius)' }}>
+        <FileText size={16} style={{ color: 'var(--scs-chalk)' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5" style={{ background: isEditorial ? 'rgba(165,84,56,0.1)' : 'rgba(142,134,122,0.15)', color: isEditorial ? '#A55438' : 'var(--scs-stone)', borderRadius: '2px' }}>{isEditorial ? 'Editorial Review' : 'Legacy Review'}</span>
+          <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--scs-text-light)' }}>{draft.category}</span>
+        </div>
+        <h3 className="text-sm font-semibold leading-snug mb-1 group-hover:opacity-80" style={{ color: 'var(--scs-charcoal)' }}>{sanitize(draft.title)}</h3>
+        <p className="text-xs leading-relaxed truncate" style={{ color: 'var(--scs-text-muted)' }}>{sanitize(draft.excerpt)}</p>
+      </div>
+      <ArrowRight size={14} className="shrink-0 mt-3" style={{ color: 'var(--scs-text-light)' }} />
     </Link>
   );
 }
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(!PREVIEW_MODE);
+  const [drafts, setDrafts] = useState([]);
+  const [cat, setCat] = useState('All');
+  const [loading, setLoading] = useState(true);
+  const isStaff = !!localStorage.getItem('token');
 
   useEffect(() => {
-    if (PREVIEW_MODE) return;
-    getBlogPosts({})
-      .then(({ data }) => setPosts(data.posts || []))
+    document.title = 'Blog | Santa Cruz Strength';
+    setLoading(true);
+    const p = {};
+    if (cat !== 'All') p.category = cat;
+    // Always fetch published posts regardless of environment/preview mode
+    getBlogPosts(p)
+      .then(r => setPosts(r.data.posts || []))
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [cat]);
+
+  useEffect(() => {
+    if (isStaff) {
+    }
+  }, [isStaff]);
+
+  const featured = posts[0];
+  const rest = posts.slice(1);
+  const editorialDrafts = drafts.filter(d => d.review_status === 'editorial-review');
+  const legacyDrafts = drafts.filter(d => d.review_status === 'legacy-review');
 
   return (
-    <div className="scs-site scs-subpage min-h-screen">
+    <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>
       <Navbar />
-      <main>
-        <section className="scs-subhero scs-blog-hero">
-          <div className="scs-shell scs-subhero-layout">
-            <div>
-              <p className="scs-location-line"><BookOpen size={17} aria-hidden="true" /> Strength training knowledge</p>
-              <h1>Useful answers before and after you walk in</h1>
-              <p>Local training guidance, first-visit questions and practical ways to evaluate whether a strength gym fits.</p>
-              <Link to="/contact" className="scs-button scs-button-primary">Book a facility tour <ArrowRight size={17} aria-hidden="true" /></Link>
+      <section className="pt-28 pb-8" style={{ background: 'var(--scs-chalk)', borderBottom: '1px solid var(--scs-border)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--scs-stone)' }}>From the Gym</p>
+          <h1 className="font-display text-3xl sm:text-4xl mb-3" style={{ color: 'var(--scs-charcoal)' }} data-testid="blog-list">Blog</h1>
+          <div className="flex flex-wrap gap-2 mt-4">
+            {CATEGORIES.map(c => (
+              <button key={c} onClick={() => setCat(c)}
+                className="px-3 py-1.5 text-xs font-semibold transition-colors duration-180"
+                style={{
+                  border: `1px solid ${cat === c ? 'var(--scs-charcoal)' : 'var(--scs-border)'}`,
+                  background: cat === c ? 'var(--scs-charcoal)' : 'var(--scs-warm-white)',
+                  color: cat === c ? 'var(--scs-chalk)' : 'var(--scs-text-muted)',
+                  borderRadius: 'var(--scs-radius)'
+                }}>
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Editorial Review Section (staff only) */}
+
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--scs-charcoal)', borderTopColor: 'transparent' }} />
             </div>
-            <figure>
-              <PublicImage src={SCS_MEDIA.chalkHands} alt="Chalked hands preparing for a strength training session" width="1448" height="1086" />
-              <figcaption>Training knowledge should help people make a better decision, not bury the next step.</figcaption>
-            </figure>
-          </div>
-        </section>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-sm" style={{ color: 'var(--scs-text-muted)' }}>No posts found.</p>
+            </div>
+          ) : (
+            <>
+              {featured && cat === 'All' && <div className="mb-8"><PostCard post={featured} featured /></div>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {(cat === 'All' ? rest : posts).map(p => <PostCard key={p.id} post={p} />)}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
 
-        <section className="scs-section scs-published-articles" aria-labelledby="published-title">
-          <div className="scs-shell">
-            <div className="scs-section-heading"><h2 id="published-title">Published by the gym</h2><p>Only articles marked published in the current content system appear here.</p></div>
-            {loading ? (
-              <p className="scs-empty-copy">Loading published articles...</p>
-            ) : posts.length > 0 ? (
-              <div className="scs-article-grid">{posts.map((post, index) => <PublishedPost key={post.id} post={post} featured={index === 0} />)}</div>
-            ) : (
-              <div className="scs-empty-state" role="status"><BookOpen aria-hidden="true" /><h3>{PREVIEW_MODE ? 'No public articles are available in this preview' : 'No published articles are available'}</h3><p>Internal drafts stay outside the public website. For a direct answer, book a facility tour or contact the team.</p><Link to="/contact" className="scs-button scs-button-primary">Contact the gym</Link></div>
-            )}
-          </div>
-        </section>
-
-        <section className="scs-closing" aria-label="Book a facility tour">
-          <div className="scs-shell"><h2>Use the guide. Then evaluate the room.</h2><Link to="/contact" className="scs-button scs-button-light">Book a free tour <ArrowRight size={17} aria-hidden="true" /></Link></div>
-        </section>
-      </main>
+      <section className="py-12" style={{ background: 'var(--scs-chalk)', borderTop: '1px solid var(--scs-border)' }}>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="font-display text-lg mb-3" style={{ color: 'var(--scs-charcoal)' }}>Visit the Gym</h2>
+          <Link to="/contact" className="btn-clay inline-flex items-center gap-2 px-6 py-3 text-sm">Book a Free Facility Tour <ArrowRight size={14} /></Link>
+        </div>
+      </section>
       <Footer />
     </div>
   );

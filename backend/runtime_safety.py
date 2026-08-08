@@ -28,7 +28,6 @@ PRODUCTION_CHANGES_APPROVED = env_flag("PRODUCTION_CHANGES_APPROVED")
 ALLOW_REMOTE_NONPROD_DATABASE = env_flag("ALLOW_REMOTE_NONPROD_DATABASE")
 ALLOW_TWILIO_WEBHOOKS = env_flag("ALLOW_TWILIO_WEBHOOKS")
 ALLOW_RESEND_WEBHOOKS = env_flag("ALLOW_RESEND_WEBHOOKS")
-ALLOW_MAILERSEND_WEBHOOKS = env_flag("ALLOW_MAILERSEND_WEBHOOKS")
 ALLOW_LEAD_OUTBOX_DISPATCH = env_flag("ALLOW_LEAD_OUTBOX_DISPATCH")
 ALLOW_LEAD_RESEND = env_flag("ALLOW_LEAD_RESEND")
 ALLOW_LEAD_TWILIO = env_flag("ALLOW_LEAD_TWILIO")
@@ -106,11 +105,6 @@ def validate_runtime_safety(database_name: str, mongo_url: str = "") -> None:
             "Resend webhooks remain disabled until the installed SDK verifier is validated"
         )
 
-    if ALLOW_MAILERSEND_WEBHOOKS:
-        raise RuntimeError(
-            "MailerSend webhooks remain disabled until a verified signature validator is installed"
-        )
-
     if ALLOW_LEAD_OUTBOX_DISPATCH and not (
         ALLOW_DATABASE_WRITES and ALLOW_SCHEDULERS
     ):
@@ -155,7 +149,6 @@ def runtime_summary() -> dict:
         "remote_nonproduction_database": ALLOW_REMOTE_NONPROD_DATABASE,
         "twilio_webhooks": ALLOW_TWILIO_WEBHOOKS,
         "resend_webhooks": ALLOW_RESEND_WEBHOOKS,
-        "mailersend_webhooks": ALLOW_MAILERSEND_WEBHOOKS,
         "lead_outbox_dispatch": ALLOW_LEAD_OUTBOX_DISPATCH,
         "lead_resend": ALLOW_LEAD_RESEND,
         "lead_twilio": ALLOW_LEAD_TWILIO,

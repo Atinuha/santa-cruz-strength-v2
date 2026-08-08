@@ -2,43 +2,215 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;500;600;700;800;900&display=swap');
+/* Barlow Condensed and DM Sans, self hosted.
+   These are the approved faces, ported from the design Mike signed off.
+   They are bundled rather than imported from Google because a font host
+   fires on every page view, before the consent banner is answered, and
+   sends the visitor's IP to a third party. Latin and latin-ext only. */
 
-/* ==========================================
-   LIGHT MARKETING THEME
-   ========================================== */
-:root {
-  --clr-green:       #0D5D3E;
-  --clr-green-dark:  #094831;
-  --clr-green-light: #1A7A54;
-  --clr-green-muted: #E8F5EE;
-  --clr-seafoam:     #CDEAE0;
-  --clr-seafoam-dark:#A8D5C6;
-  --clr-coral:       #FA5A5C;
-  --clr-coral-dark:  #D94042;
-  --clr-charcoal:    #1C1C1C;
-  --clr-text:        #2A2A2A;
-  --clr-text-muted:  #5C6370;
-  --clr-text-light:  #8A909A;
-  --clr-bg:          #F7F5F0;
-  --clr-bg-white:    #FFFFFF;
-  --clr-bg-green:    #E8F5EE;
-  --clr-border:      rgba(28,28,28,0.10);
-  --clr-border-green: rgba(13,93,62,0.18);
-  --radius-sm: 0.75rem;
-  --radius-md: 1.25rem;
-  --radius-lg: 1.75rem;
-  --radius-xl: 2.25rem;
-  --shadow-sm: 0 2px 12px rgba(13,93,62,0.08), 0 1px 3px rgba(0,0,0,0.05);
-  --shadow-md: 0 8px 32px rgba(13,93,62,0.12), 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-lg: 0 20px 60px rgba(13,93,62,0.14), 0 4px 16px rgba(0,0,0,0.08);
-  --shadow-card: 0 4px 20px rgba(13,93,62,0.09), 0 1px 4px rgba(0,0,0,0.05);
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(./fonts/HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3jWuYMBYrp0xg.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(./fonts/HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3bWuYMBYro.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(./fonts/HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3jWuYMBYrp0xg.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(./fonts/HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3bWuYMBYro.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(./fonts/HTxwL3I-JCGChYJ8VI-L6OO_au7B47b1z3jWuYMBYrp0xg.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(./fonts/HTxwL3I-JCGChYJ8VI-L6OO_au7B47b1z3bWuYMBYro.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url(./fonts/HTxwL3I-JCGChYJ8VI-L6OO_au7B45L0z3jWuYMBYrp0xg.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url(./fonts/HTxwL3I-JCGChYJ8VI-L6OO_au7B45L0z3bWuYMBYro.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(./fonts/rP2rp2ywxg089UriCZaSExd86J3t9jz86Mvy4qCRAL19DksVat-JDV30TGcro9o45zw.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(./fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6z9mXgjU0.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(./fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K6z9mXg.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(./fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6z9mXgjU0.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(./fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K6z9mXg.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(./fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6z9mXgjU0.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(./fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K6z9mXg.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(./fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6z9mXgjU0.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(./fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K6z9mXg.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* DARK CRM VARIABLES (staff pages keep dark) */
-.theme-crm,
-.crm-page,
-.crm-root {
+/* ==========================================================
+   SCS DESIGN CONTRACT
+   Carbon · Stone · Chalk · Clay (conversion only)
+   ========================================================== */
+:root {
+  /* Brand palette */
+  --scs-carbon:       #0C0C0B;
+  --scs-charcoal:     #242321;
+  --scs-stone:        #8E867A;
+  --scs-chalk:        #E8E1D6;
+  --scs-chalk-light:  #EDE8DF;
+  --scs-clay:         #A5543B;
+  --scs-clay-dark:    #8A4530;
+  --scs-warm-white:   #F5F2ED;
+
+  /* Semantic tokens */
+  --scs-bg:           #E8E1D6;
+  --scs-bg-alt:       #D9D2C6;
+  --scs-bg-dark:      #0C0C0B;
+  --scs-text:         #242321;
+  --scs-text-muted:   #8E867A;
+  --scs-text-light:   #A8A196;
+  --scs-text-on-dark:      #E8E1D6;
+  --scs-text-on-dark-muted: rgba(232,225,214,0.50);
+  --scs-border:       rgba(36,35,33,0.10);
+  --scs-border-dark:  rgba(232,225,214,0.10);
+
+  /* Dimensions */
+  --scs-radius:    2px;
+  --scs-radius-sm: 3px;
+  --scs-shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --scs-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --scs-shadow-lg: 0 4px 16px rgba(0,0,0,0.10);
+
+  /* Legacy token mappings, keeps unrewritten CRM overrides safe */
+  --clr-green:       #242321;
+  --clr-green-dark:  #0C0C0B;
+  --clr-green-light: #3D3B37;
+  --clr-green-muted: #E8E1D6;
+  --clr-seafoam:     #D9D2C6;
+  --clr-seafoam-dark:#C5BEB3;
+  --clr-coral:       #A5543B;
+  --clr-coral-dark:  #8A4530;
+  --clr-charcoal:    #0C0C0B;
+  --clr-text:        #242321;
+  --clr-text-muted:  #8E867A;
+  --clr-text-light:  #A8A196;
+  --clr-bg:          #E8E1D6;
+  --clr-bg-white:    #F5F2ED;
+  --clr-bg-green:    #E8E1D6;
+  --clr-border:      rgba(36,35,33,0.10);
+  --clr-border-green:rgba(36,35,33,0.10);
+  --radius-sm: 3px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* ==========================================================
+   CRM DARK THEME, Do not edit
+   ========================================================== */
+.theme-crm, .crm-page, .crm-root {
   --background: 220 25% 8%;
   --foreground: 0 0% 96%;
   --card: 220 22% 11%;
@@ -64,171 +236,209 @@
   background-color: #0C1420;
   color: #F0F4FF;
 }
-
 .crm-root {
   min-height: 100vh;
   background-color: #0C1420 !important;
   color: #F0F4FF !important;
-  font-family: 'Nunito', system-ui, sans-serif;
+  font-family: 'Inter', 'DM Sans', system-ui, sans-serif;
 }
-
 .crm-root .card-marketing {
   background: #162438 !important;
   border: 1px solid rgba(240,244,255,0.09) !important;
   color: #F0F4FF !important;
 }
-
 .crm-root input:not([type="date"]):not([type="time"]):not([type="checkbox"]),
-.crm-root textarea,
-.crm-root select {
+.crm-root textarea, .crm-root select {
   background-color: rgba(255,255,255,0.05) !important;
   border-color: rgba(240,244,255,0.14) !important;
   color: #F0F4FF !important;
 }
-
-.crm-root input::placeholder,
-.crm-root textarea::placeholder {
+.crm-root input::placeholder, .crm-root textarea::placeholder {
   color: rgba(240,244,255,0.35) !important;
 }
-
 .crm-root header {
   background-color: rgba(12,20,32,0.96) !important;
   border-bottom-color: rgba(240,244,255,0.08) !important;
 }
-
 .crm-root ::-webkit-scrollbar { width: 5px; height: 5px; }
 .crm-root ::-webkit-scrollbar-track { background: #0C1420; }
 .crm-root ::-webkit-scrollbar-thumb { background: #2A3A50; border-radius: 3px; }
-.crm-root ::-webkit-scrollbar-thumb:hover { background: #374F6A; }
 
-/* SHARED SHADCN TOKENS (light marketing) */
+/* ==========================================================
+   SHADCN TOKENS, Public marketing
+   ========================================================== */
 body:not(.crm-page) {
-  --background: 40 20% 97%;
-  --foreground: 0 0% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 11%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 11%;
-  --primary: 153 77% 21%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 160 40% 88%;
-  --secondary-foreground: 153 77% 21%;
-  --muted: 40 15% 93%;
-  --muted-foreground: 0 0% 36%;
-  --accent: 160 40% 88%;
-  --accent-foreground: 153 77% 21%;
-  --destructive: 0 84% 66%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 88%;
-  --input: 0 0% 94%;
-  --ring: 153 77% 21%;
-  --radius: 1rem;
+  --background: 36 18% 88%;
+  --foreground: 40 4% 13%;
+  --card: 36 20% 93%;
+  --card-foreground: 40 4% 13%;
+  --popover: 36 20% 93%;
+  --popover-foreground: 40 4% 13%;
+  --primary: 40 4% 13%;
+  --primary-foreground: 36 18% 88%;
+  --secondary: 36 10% 82%;
+  --secondary-foreground: 40 4% 13%;
+  --muted: 36 10% 85%;
+  --muted-foreground: 37 8% 52%;
+  --accent: 36 10% 82%;
+  --accent-foreground: 40 4% 13%;
+  --destructive: 14 54% 44%;
+  --destructive-foreground: 36 18% 88%;
+  --border: 36 6% 82%;
+  --input: 36 10% 86%;
+  --ring: 40 4% 13%;
+  --radius: 3px;
 }
 
 * { box-sizing: border-box; border-color: hsl(var(--border)); }
 
 body {
-  background-color: var(--clr-bg);
-  color: var(--clr-text);
-  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  background-color: var(--scs-bg);
+  color: var(--scs-text);
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  margin: 0;
-  padding: 0;
+  margin: 0; padding: 0;
   font-size: 1rem;
   line-height: 1.65;
+  overflow-x: hidden;
 }
+html { overflow-x: hidden; }
 
+/* ==========================================================
+   TYPOGRAPHY
+   ========================================================== */
 .font-display {
-  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  font-family: 'Barlow Condensed', Impact, system-ui;
   font-weight: 900;
-  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.95;
+}
+.font-display-medium {
+  font-family: 'Barlow Condensed', Impact, system-ui;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-/* ==========================================
-   MARKETING BUTTONS
-   ========================================== */
+/* ==========================================================
+   BUTTONS
+   ========================================================== */
 .btn-primary {
-  background-color: var(--clr-green);
-  color: white;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  border-radius: var(--radius-md);
+  background-color: var(--scs-charcoal);
+  color: var(--scs-chalk);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  border-radius: var(--scs-radius);
   padding: 0.75rem 1.75rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: background-color 200ms, transform 150ms, box-shadow 200ms;
+  transition: background-color 180ms, opacity 180ms;
   text-decoration: none;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(13,93,62,0.25);
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
 }
-.btn-primary:hover {
-  background-color: var(--clr-green-light);
-  box-shadow: 0 6px 20px rgba(13,93,62,0.30);
-  transform: translateY(-1px);
-}
-.btn-primary:active { transform: scale(0.98) translateY(0); }
+.btn-primary:hover { background-color: var(--scs-carbon); }
+.btn-primary:active { opacity: 0.9; }
 
+.btn-clay {
+  background-color: var(--scs-clay);
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  border-radius: var(--scs-radius);
+  padding: 0.75rem 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 180ms, opacity 180ms;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+}
+.btn-clay:hover { background-color: var(--scs-clay-dark); }
+.btn-clay:active { opacity: 0.9; }
+
+/* Legacy alias */
+.btn-coral { composes: btn-clay; }
 .btn-coral {
-  background-color: var(--clr-coral);
+  background-color: var(--scs-clay);
   color: white;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  border-radius: var(--radius-md);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  border-radius: var(--scs-radius);
   padding: 0.75rem 1.75rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: background-color 200ms, transform 150ms, box-shadow 200ms;
+  transition: background-color 180ms, opacity 180ms;
   text-decoration: none;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(250,90,92,0.25);
+  font-size: 0.875rem;
 }
-.btn-coral:hover {
-  background-color: var(--clr-coral-dark);
-  box-shadow: 0 6px 20px rgba(250,90,92,0.30);
-  transform: translateY(-1px);
-}
+.btn-coral:hover { background-color: var(--scs-clay-dark); }
 
-.btn-outline-green {
+.btn-outline {
   background-color: transparent;
-  color: var(--clr-green);
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  border-radius: var(--radius-md);
+  color: var(--scs-charcoal);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  border-radius: var(--scs-radius);
   padding: 0.75rem 1.75rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: all 200ms;
+  transition: background-color 180ms, color 180ms;
   text-decoration: none;
-  border: 2px solid var(--clr-green);
+  border: 1.5px solid var(--scs-charcoal);
   cursor: pointer;
+  font-size: 0.875rem;
+}
+.btn-outline:hover {
+  background-color: var(--scs-charcoal);
+  color: var(--scs-chalk);
+}
+.btn-outline-green { /* legacy alias */
+  background-color: transparent;
+  color: var(--scs-charcoal);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  border-radius: var(--scs-radius);
+  padding: 0.75rem 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 180ms, color 180ms;
+  text-decoration: none;
+  border: 1.5px solid var(--scs-charcoal);
+  cursor: pointer;
+  font-size: 0.875rem;
 }
 .btn-outline-green:hover {
-  background-color: var(--clr-green);
-  color: white;
-  transform: translateY(-1px);
+  background-color: var(--scs-charcoal);
+  color: var(--scs-chalk);
 }
 
-/* Legacy CRM button (dark theme) */
+/* CRM buttons, do not edit */
 .btn-scs-primary {
-  background-color: #1B7A4A;
-  color: white;
-  font-weight: 600;
-  transition: background-color 200ms, transform 150ms;
+  background-color: #1B7A4A; color: white; font-weight: 600;
+  transition: background-color 200ms;
 }
 .btn-scs-primary:hover { background-color: #145F3A; }
-.btn-scs-primary:active { transform: scale(0.98); }
 .btn-scs-secondary {
-  background: transparent;
-  color: #F0F4FF;
+  background: transparent; color: #F0F4FF;
   border: 1px solid rgba(240,244,255,0.18);
   transition: border-color 200ms, background-color 200ms;
 }
@@ -237,27 +447,22 @@ body {
   background-color: rgba(240,244,255,0.06);
 }
 
-/* ==========================================
-   MARKETING CARDS
-   ========================================== */
+/* ==========================================================
+   CARDS & SURFACES
+   ========================================================== */
 .card-light {
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--clr-border);
+  background: var(--scs-warm-white);
+  border-radius: var(--scs-radius);
+  box-shadow: var(--scs-shadow-sm);
+  border: 1px solid var(--scs-border);
 }
-.card-seafoam {
-  background: var(--clr-seafoam);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+.card-dark {
+  background: var(--scs-charcoal);
+  border-radius: var(--scs-radius);
+  color: var(--scs-chalk);
 }
-.card-green {
-  background: var(--clr-bg-green);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--clr-border-green);
-}
-
-/* Legacy CRM card */
+.card-seafoam { background: var(--scs-bg-alt); border-radius: var(--scs-radius); }
+.card-green { background: var(--scs-bg); border-radius: var(--scs-radius); border: 1px solid var(--scs-border); }
 .card-marketing {
   background: var(--elevated, rgba(255,255,255,0.04));
   border: 1px solid rgba(240,244,255,0.09);
@@ -265,169 +470,317 @@ body {
   box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-/* ==========================================
-   MARKETING ACCENT LINES
-   ========================================== */
-.green-accent-line,
-.red-accent-line {
-  width: 3rem;
-  height: 4px;
-  background: linear-gradient(90deg, var(--clr-green), var(--clr-seafoam-dark));
+/* ==========================================================
+   ACCENT RULES (hairlines, not decorative blobs)
+   ========================================================== */
+.green-accent-line, .scs-rule {
+  width: 2rem;
+  height: 2px;
+  background: var(--scs-clay);
   display: block;
-  margin-bottom: 1rem;
-  border-radius: 2px;
+  margin-bottom: 0.75rem;
 }
 .coral-accent-line {
-  width: 3rem;
-  height: 4px;
-  background: var(--clr-coral);
-  display: block;
-  margin-bottom: 1rem;
-  border-radius: 2px;
+  width: 2rem; height: 2px;
+  background: var(--scs-clay);
+  display: block; margin-bottom: 0.75rem;
 }
 
-/* ==========================================
-   INPUTS (light marketing)
-   ========================================== */
+/* ==========================================================
+   FORMS
+   ========================================================== */
 .input-light {
   width: 100%;
-  background: white;
-  border: 1.5px solid rgba(28,28,28,0.14);
-  border-radius: var(--radius-sm);
+  background: var(--scs-warm-white);
+  border: 1.5px solid rgba(36,35,33,0.15);
+  border-radius: var(--scs-radius);
   padding: 0.75rem 1rem;
-  color: var(--clr-text);
-  font-family: 'Nunito', sans-serif;
-  font-size: 1rem;
+  color: var(--scs-text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9375rem;
   font-weight: 500;
-  transition: border-color 200ms, box-shadow 200ms;
+  transition: border-color 180ms, box-shadow 180ms;
   outline: none;
 }
 .input-light:focus {
-  border-color: var(--clr-green);
-  box-shadow: 0 0 0 3px rgba(13,93,62,0.12);
+  border-color: var(--scs-charcoal);
+  box-shadow: 0 0 0 2px rgba(36,35,33,0.10);
 }
-.input-light::placeholder { color: var(--clr-text-light); }
+.input-light::placeholder { color: var(--scs-text-light); }
 
-/* ==========================================
-   WAVE DIVIDERS
-   ========================================== */
-.wave-top {
-  position: relative;
-}
-.wave-top::before {
-  content: '';
-  position: absolute;
-  top: -40px;
-  left: 0;
-  width: 100%;
-  height: 40px;
-  background: inherit;
-  clip-path: ellipse(55% 100% at 50% 100%);
-}
-
-/* ==========================================
-   KANBAN (CRM)
-   ========================================== */
+/* ==========================================================
+   CRM TABLES & KANBAN, Do not edit
+   ========================================================== */
 .kanban-column {
   background: rgba(240,244,255,0.03);
   border: 1px solid rgba(240,244,255,0.07);
-  border-radius: 0.875rem;
-  min-height: 200px;
+  border-radius: 0.875rem; min-height: 200px;
 }
 .kanban-card {
   background: var(--elevated, rgba(255,255,255,0.05));
   border: 1px solid rgba(240,244,255,0.09);
   border-radius: 0.625rem;
-  transition: background-color 200ms, border-color 200ms, transform 150ms;
+  transition: background-color 200ms, border-color 200ms;
   cursor: pointer;
 }
 .kanban-card:hover {
   background: var(--elevated-2, rgba(255,255,255,0.08));
   border-color: rgba(240,244,255,0.18);
-  transform: translateY(-1px);
 }
-
-/* CRM table */
 .crm-table th {
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 0.75rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em;
   color: rgba(240,244,255,0.45);
   background-color: rgba(0,0,0,0.2);
 }
 .crm-table tr:hover td { background-color: rgba(240,244,255,0.03); }
 
-/* ==========================================
-   ANIMATIONS
-   ========================================== */
+/* ==========================================================
+   MOTION, 160-240ms, transform/opacity only, interruptible
+   ========================================================== */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+.animate-fade-in-up { animation: fadeInUp 220ms ease-out forwards; }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
-.animate-fade-in { animation: fadeIn 0.35s ease-out forwards; }
+.animate-fade-in { animation: fadeIn 180ms ease-out forwards; }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-.animate-slide-in-right { animation: slideInRight 0.35s ease-out forwards; }
-
+.animate-slide-in-right { animation: slideInRight 200ms ease-out forwards; }
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-.animate-slide-in-left { animation: slideInLeft 0.35s ease-out forwards; }
+.animate-slide-in-left { animation: slideInLeft 200ms ease-out forwards; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in-up, .animate-fade-in,
-  .animate-slide-in-right, .animate-slide-in-left { animation: none; }
+  .animate-slide-in-right, .animate-slide-in-left {
+    animation: none !important;
+  }
 }
 
-/* Focus rings */
+/* Focus */
 *:focus-visible {
-  outline: 2px solid var(--clr-green);
+  outline: 2px solid var(--scs-charcoal);
   outline-offset: 2px;
 }
 
-/* Scrollbar (light) */
+/* Scrollbar, light */
 body:not(.crm-page) ::-webkit-scrollbar { width: 5px; height: 5px; }
-body:not(.crm-page) ::-webkit-scrollbar-track { background: var(--clr-bg); }
-body:not(.crm-page) ::-webkit-scrollbar-thumb { background: var(--clr-seafoam-dark); border-radius: 3px; }
-body:not(.crm-page) ::-webkit-scrollbar-thumb:hover { background: var(--clr-green-light); }
+body:not(.crm-page) ::-webkit-scrollbar-track { background: var(--scs-bg); }
+body:not(.crm-page) ::-webkit-scrollbar-thumb { background: var(--scs-stone); border-radius: 2px; }
 
-/* CRM scrollbar (dark) */
+/* CRM scrollbar */
 .crm-page ::-webkit-scrollbar { width: 5px; }
 .crm-page ::-webkit-scrollbar-track { background: #111; }
 .crm-page ::-webkit-scrollbar-thumb { background: #2A3A50; border-radius: 3px; }
 
-/* Default list reset */
 ul { list-style: none; padding: 0; margin: 0; }
 
-/* Time picker */
+/* Time picker (CRM) */
 .time-picker-dropdown {
-  background: white;
-  border: 1.5px solid var(--clr-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  background: white; border: 1.5px solid var(--scs-border);
+  border-radius: var(--scs-radius); box-shadow: var(--scs-shadow-lg);
 }
 
 /* Emergent badge */
 #emergent-badge-wrapper {
-  display: flex !important;
-  justify-content: flex-end !important;
+  display: flex !important; justify-content: flex-end !important;
   padding: 10px 16px 10px 0 !important;
-  background: var(--clr-bg) !important;
-  width: 100% !important;
+  background: var(--scs-bg) !important; width: 100% !important;
 }
 #emergent-badge {
   position: relative !important;
   bottom: auto !important; right: auto !important;
   z-index: auto !important; top: auto !important; left: auto !important;
 }
+
+/* Documentary photo treatment */
+.scs-photo { filter: saturate(0.88) contrast(1.03); }
+
+/* ==========================================================
+   PRIVACY CHOICES
+   These styles used to live in scs-ledger.css, which held a
+   design that was invented here rather than approved. That file
+   is gone, and the consent control rendered as unstyled text at
+   the foot of every page until this replaced it. Written in the
+   approved Carbon, Chalk and Clay tokens rather than reinstating
+   the old palette.
+   ========================================================== */
+.scs-consent-prompt {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 20px;
+  padding: 14px 20px;
+  background: var(--scs-carbon);
+  border-top: 1px solid var(--scs-border-dark);
+  color: var(--scs-text-on-dark);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.scs-consent-prompt p { margin: 0; max-width: 62ch; }
+.scs-consent-keep,
+.scs-consent-review,
+.scs-consent-cancel,
+.scs-consent-save {
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  padding: 8px 16px;
+  border-radius: var(--scs-radius);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.scs-consent-keep,
+.scs-consent-cancel {
+  background: transparent;
+  border: 1px solid rgba(232, 225, 214, 0.35);
+  color: var(--scs-chalk);
+}
+.scs-consent-review,
+.scs-consent-save {
+  background: var(--scs-clay);
+  border: 1px solid var(--scs-clay);
+  color: var(--scs-chalk);
+}
+.scs-consent-keep:hover, .scs-consent-cancel:hover { border-color: var(--scs-chalk); }
+.scs-consent-review:hover, .scs-consent-save:hover { background: var(--scs-clay-dark); }
+
+.scs-consent-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(12, 12, 11, 0.7);
+}
+.scs-consent-dialog {
+  width: min(100%, 33rem);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 26px;
+  background: var(--scs-warm-white);
+  color: var(--scs-text);
+  border: 1px solid var(--scs-border);
+  border-radius: var(--scs-radius);
+  box-shadow: var(--scs-shadow-lg);
+}
+.scs-consent-heading { margin-bottom: 18px; }
+.scs-consent-title {
+  font-family: 'Barlow Condensed', Impact, system-ui;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-size: 1.5rem;
+  margin: 4px 0 0;
+}
+.scs-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--scs-stone);
+  margin: 0;
+}
+.scs-consent-options { display: grid; gap: 14px; margin-bottom: 20px; }
+.scs-consent-options label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.scs-consent-options input { margin-top: 3px; accent-color: var(--scs-clay); }
+.scs-consent-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ==========================================================
+   CLICK TO LOAD MAP
+   The Google frame is loaded on request, not on page load: it
+   sends the visitor IP and sets cookies before the consent
+   control has been answered. These styles were lost when the
+   approved design system replaced the previous index.css, and
+   the placeholder rendered as an empty dark block on the
+   homepage and the contact page until this restored them.
+   Written to sit on the dark band the homepage puts it on.
+   ========================================================== */
+.scs-map { min-height: 200px; }
+.scs-map iframe { display: block; border: 0; border-radius: var(--scs-radius); }
+.scs-map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  min-height: 200px;
+  padding: 22px;
+  border: 1px solid rgba(232, 225, 214, 0.18);
+  border-radius: var(--scs-radius);
+  background: rgba(232, 225, 214, 0.04);
+  color: var(--scs-text-on-dark);
+}
+.scs-map-placeholder svg { color: var(--scs-clay); }
+.scs-map-address {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.scs-map-placeholder small {
+  color: var(--scs-text-on-dark-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.scs-map-placeholder .scs-button,
+.scs-map-placeholder button {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  cursor: pointer;
+  background: var(--scs-clay);
+  border: 1px solid var(--scs-clay);
+  border-radius: var(--scs-radius);
+  color: var(--scs-chalk);
+}
+.scs-map-placeholder button:hover { background: var(--scs-clay-dark); }
+.scs-map-placeholder .scs-text-link {
+  font-size: 0.82rem;
+  color: var(--scs-chalk);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* On the chalk coloured contact page the same component needs light treatment. */
+.scs-map-light .scs-map-placeholder {
+  border-color: var(--scs-border);
+  background: var(--scs-warm-white);
+  color: var(--scs-text);
+}
+.scs-map-light .scs-map-placeholder small { color: var(--scs-text-muted); }
+.scs-map-light .scs-map-placeholder .scs-text-link { color: var(--scs-charcoal); }

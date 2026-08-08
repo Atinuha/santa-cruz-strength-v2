@@ -1,174 +1,147 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import DOMPurify from 'dompurify';
 import { getBlogPost } from '../lib/api';
-import { Calendar, ArrowLeft, ArrowRight, BookOpen, Tag } from 'lucide-react';
+import { Calendar, ArrowLeft, ArrowRight, Tag, AlertTriangle, Clock } from 'lucide-react';
 import { GYM_CONFIG } from '../config';
 
-const CATEGORY_COLORS = {
-  'Outdoor Athletes': 'bg-[#2E6B8F]/20 text-[#8BC4DF] border-[#2E6B8F]/25',
-  'Strength Science': 'bg-[#1B7A4A]/15 text-[#7FCCA6] border-[#1B7A4A]/20',
-  'Getting Started': 'bg-purple-500/15 text-purple-300 border-purple-500/20',
-  'Gym Culture': 'bg-amber-500/15 text-amber-300 border-amber-500/20',
-  'Training Tips': 'bg-white/10 text-white/80 border-white/15',
-};
+const sanitizeDashes = (s) => (s || '').replace(/[\u2013\u2014]/g, ',');
+const stripSuffix = (s) => (s || '').replace(/\s*\|\s*Santa Cruz Strength\s*$/i, '');
+
+function readingTime(html) {
+  if (!html) return 0;
+  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return Math.max(1, Math.round(text.split(' ').length / 200));
+}
+
+function ArticleSchema({ post }) {
+  if (!post || post.noindex || post.review_status) return null;
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: sanitizeDashes(post.title),
+    description: sanitizeDashes(post.seo_description || post.excerpt || ''),
+    author: { '@type': 'Organization', name: post.author || 'Santa Cruz Strength' },
+    publisher: { '@type': 'Organization', name: 'Santa Cruz Strength' },
+    datePublished: post.created_at,
+    dateModified: post.updated_at || post.created_at,
+    mainEntityOfPage: `https://santacruzstrength.com/blog/${post.slug}`,
+  };
+  if (post.cover_image) data.image = post.cover_image;
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
+
+function FAQSchema({ post }) {
+  if (!post || post.noindex || post.review_status) return null;
+  const content = sanitizeDashes(post.content || '');
+  const faqPairs = [];
+  const h2Regex = /<h2[^>]*>(.*?)<\/h2>/gi;
+  const parts = content.split(h2Regex);
+  for (let i = 1; i < parts.length; i += 2) {
+    const question = parts[i]?.replace(/<[^>]+>/g, '').trim();
+    const answerHtml = parts[i + 1] || '';
+    const answer = answerHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (question && answer && question.includes('?')) {
+      faqPairs.push({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer.slice(0, 500) } });
+    }
+  }
+  if (faqPairs.length === 0) return null;
+  const data = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqPairs };
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
 
 export default function BlogPost() {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    setNotFound(false);
+    setLoading(true); setNotFound(false); setIsDraft(false);
+    // The staff draft fallback that used to sit in this catch called an
+    // editorial-drafts endpoint this backend does not publish. An unpublished
+    // slug is simply not found here.
     getBlogPost(slug)
-      .then(r => setPost(r.data))
-      .catch(() => setNotFound(true))
+      .then(r => { setPost(r.data); })
+      .catch(() => { setNotFound(true); })
       .finally(() => setLoading(false));
   }, [slug]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--clr-bg)] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#1B7A4A] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // react-helmet-async was a dependency this app does not have, doing a job it
+  // already does twice: generate-route-heads.mjs writes the real title,
+  // canonical and description into each blog shell at build time, and RouteSeo
+  // maintains them across client navigation. A third writer of the same tags is
+  // how they drift. Only the draft title, which neither of those covers, stays.
+  // isDraft rather than isReview, because isReview is declared below the early
+  // returns and a hook cannot sit below those. Reading it here would be a
+  // temporal dead zone error, which is exactly what blanked this page once.
+  useEffect(() => {
+    if (!post?.title) return;
+    const prefix = (isDraft || post?.review_status) ? '[Draft] ' : '';
+    document.title = `${prefix}${stripSuffix(sanitizeDashes(post.seo_title || post.title))} | Santa Cruz Strength`;
+  }, [post, isDraft]);
 
-  if (notFound) {
-    return (
-      <div className="min-h-screen bg-[var(--clr-bg)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white/40 text-sm mb-4">Post not found.</p>
-          <Link to="/blog" className="btn-scs-primary px-5 py-2.5 rounded-md text-sm font-semibold">← Back to Blog</Link>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--scs-bg)' }}><div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--scs-charcoal)', borderTopColor: 'transparent' }} /></div>;
+  if (notFound) return <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}><Navbar /><div className="pt-32 pb-20 min-h-[60vh] flex items-center justify-center" data-testid="blog-post-not-found"><div className="text-center"><p className="text-sm mb-4" style={{ color: 'var(--scs-text-muted)' }}>Post not found.</p><Link to="/blog" className="btn-primary px-5 py-2.5 text-sm">Back to Blog</Link></div></div><Footer /></div>;
 
-  const catColor = CATEGORY_COLORS[post?.category] || 'bg-white/10 text-white/70 border-white/12';
+  const isReview = isDraft || post?.review_status;
+  const isEditorial = post?.review_status === 'editorial-review';
+  const isLegacy = post?.review_status === 'legacy-review';
 
   return (
-    <div className="min-h-screen bg-[var(--clr-bg)]">
+    <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }} data-testid="blog-post">
+      <ArticleSchema post={post} />
+      <FAQSchema post={post} />
       <Navbar />
 
-      {/* Hero */}
-      {post?.cover_image && (
-        <div
-          className="relative h-64 sm:h-80 mt-16 overflow-hidden"
-          style={{ backgroundImage: `url(${post.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center 30%' }}
-        >
-          <div className="absolute inset-0 bg-white/40" />
+      {/* Editorial review banner */}
+      {isReview && (
+        <div className="mt-16 px-4 py-3 flex items-center justify-center gap-2" data-testid="editorial-review-banner"
+          style={{ background: isEditorial ? 'rgba(165,84,56,0.08)' : 'rgba(142,134,122,0.1)', borderBottom: `2px solid ${isEditorial ? '#A55438' : 'var(--scs-stone)'}` }}>
+          <AlertTriangle size={14} style={{ color: isEditorial ? '#A55438' : 'var(--scs-stone)' }} />
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: isEditorial ? '#A55438' : 'var(--scs-stone)' }}>
+            {isEditorial ? 'Editorial Review' : isLegacy ? 'Legacy Review' : 'Draft'} - Not Published - noindex
+          </span>
         </div>
       )}
 
-      <div className={`max-w-3xl mx-auto px-4 sm:px-6 ${post?.cover_image ? '-mt-16 relative z-10' : 'pt-28'}`}>
-
-        {/* Article header card */}
-        <div className="card-light p-6 sm:p-8 mb-8">
-          {/* Back link */}
-          <Link to="/blog" className="inline-flex items-center gap-1.5 text-[var(--clr-text-muted)] hover:text-white text-sm transition-colors duration-200 mb-5 group">
-            <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-            Back to Blog
-          </Link>
-
-          {/* Meta */}
-          <div className="flex flex-wrap items-center gap-2.5 mb-4">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${catColor}`}>
-              {post?.category}
-            </span>
-            {post?.created_at && (
-              <span className="text-[var(--clr-text-light)] text-xs flex items-center gap-1">
-                <Calendar size={11} />
-                {new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </span>
-            )}
-            {post?.author && (
-              <span className="text-[var(--clr-text-light)] text-xs">by {post.author}</span>
-            )}
+      {post?.cover_image && <div className={`relative h-56 sm:h-72 ${isReview ? '' : 'mt-16'} overflow-hidden scs-photo`} style={{ backgroundImage: `url(${post.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center 30%' }}><div className="absolute inset-0" style={{ background: 'rgba(232,225,214,0.2)' }} /></div>}
+      <div className={`max-w-3xl mx-auto px-4 sm:px-6 ${post?.cover_image ? '-mt-10 relative z-10' : isReview ? 'pt-12' : 'pt-28'}`}>
+        <article className="p-6 sm:p-8 mb-8" style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
+          <Link to="/blog" className="inline-flex items-center gap-1.5 text-sm mb-5 transition-colors duration-180" style={{ color: 'var(--scs-text-muted)' }}><ArrowLeft size={13} /> Blog</Link>
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--scs-stone)' }}>{post?.category}</span>
+            {post?.created_at && <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}><Calendar size={11} />{new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>}
+            {post?.content && <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}><Clock size={11} />{readingTime(post.content)} min read</span>}
+            {post?.author && <span className="text-xs" style={{ color: 'var(--scs-text-light)' }}>by {post.author}</span>}
           </div>
-
-          <h1 className="font-display text-3xl sm:text-4xl text-white tracking-wide leading-tight mb-3">
-            {post?.title}
-          </h1>
-
-          {post?.excerpt && (
-            <p className="text-[var(--clr-text)] text-base leading-relaxed border-l-2 border-[#1B7A4A] pl-4">
-              {post.excerpt}
-            </p>
-          )}
-        </div>
-
-        {/* Article content */}
-        <article className="card-light p-6 sm:p-8 mb-8 prose-article">
-          <div
-            className="text-[var(--clr-text)] leading-relaxed"
-            style={{ fontSize: '1rem', lineHeight: '1.75' }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post?.content || '') }}
-          />
+          <h1 className="font-display text-2xl sm:text-3xl leading-tight mb-4" style={{ color: 'var(--scs-charcoal)' }} data-testid="blog-post-title">{sanitizeDashes(post?.title || '')}</h1>
+          {post?.excerpt && <p className="text-sm leading-relaxed pl-4 mb-6" style={{ color: 'var(--scs-text-muted)', borderLeft: '2px solid var(--scs-clay)' }}>{sanitizeDashes(post.excerpt)}</p>}
+          <div className="prose-article leading-relaxed" data-testid="blog-post-content" style={{ color: 'var(--scs-text)', fontSize: '1rem', lineHeight: '1.75' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(sanitizeDashes(post?.content || '')) }} />
         </article>
-
-        {/* Tags */}
-        {post?.tags?.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-8">
-            <Tag size={13} className="text-[var(--clr-text-light)]" />
-            {post.tags.map((tag, i) => (
-              <span key={i} className="text-xs text-white/45 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* CTA */}
-        <div className="card-light p-6 sm:p-7 mb-12 border-[#1B7A4A]/25 bg-[#1B7A4A]/5">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[#1B7A4A] flex items-center justify-center shrink-0">
-              <span className="font-display text-white text-lg">S</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-white font-semibold text-sm mb-1">Ready to train at Santa Cruz Strength?</p>
-              <p className="text-white/55 text-xs leading-relaxed mb-3">
-                {GYM_CONFIG.address.full} · {GYM_CONFIG.phone}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Link to="/join" className="btn-scs-primary px-4 py-2 rounded-md text-xs font-semibold flex items-center gap-1.5">
-                  Book a Tour <ArrowRight size={12} />
-                </Link>
-                <a href={GYM_CONFIG.joinUrl} target="_blank" rel="noopener noreferrer"
-                  className="btn-scs-secondary px-4 py-2 rounded-md text-xs font-semibold">
-                  Join Now
-                </a>
-              </div>
-            </div>
-          </div>
+        {post?.tags?.length > 0 && <div className="flex flex-wrap items-center gap-2 mb-8"><Tag size={13} style={{ color: 'var(--scs-text-light)' }} />{post.tags.map((t, i) => <span key={`tag-${i}`} className="text-xs px-2 py-1" style={{ color: 'var(--scs-text-muted)', background: 'var(--scs-chalk)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>{t}</span>)}</div>}
+        <div className="p-5 mb-10" style={{ background: 'var(--scs-chalk)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--scs-charcoal)' }}>Train at Santa Cruz Strength</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--scs-text-muted)' }}>{GYM_CONFIG.address.full} &middot; {GYM_CONFIG.phone}</p>
+          <div className="flex gap-2"><Link to="/contact" className="btn-clay px-4 py-2 text-xs">Book a Free Facility Tour <ArrowRight size={12} /></Link><Link to="/join" className="btn-outline px-4 py-2 text-xs">Compare Memberships</Link></div>
         </div>
-
-        {/* Back to blog */}
-        <div className="text-center pb-12">
-          <Link to="/blog" className="inline-flex items-center gap-2 text-[var(--clr-text-muted)] hover:text-white text-sm transition-colors duration-200">
-            <ArrowLeft size={14} /> All Articles
-          </Link>
-        </div>
+        <div className="text-center pb-10"><Link to="/blog" className="text-sm flex items-center justify-center gap-2 transition-colors duration-180" style={{ color: 'var(--scs-text-muted)' }}><ArrowLeft size={14} /> All Articles</Link></div>
       </div>
-
       <Footer />
-
-      {/* Article content styling */}
       <style>{`
-        .prose-article h2 { color: #fff; font-family: 'Bebas Neue', Impact, sans-serif; font-size: 1.6rem; letter-spacing: 0.05em; margin: 1.75rem 0 0.75rem; }
-        .prose-article h3 { color: rgba(255,255,255,0.9); font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.6rem; }
-        .prose-article p { margin-bottom: 1.1rem; }
-        .prose-article ul, .prose-article ol { margin: 0.75rem 0 1.1rem 1.25rem; }
-        .prose-article li { margin-bottom: 0.4rem; }
+        .prose-article h2 { color: var(--scs-charcoal); font-family: 'Barlow Condensed', Impact, sans-serif; font-size: 1.4rem; font-weight: 900; text-transform: uppercase; margin: 1.5rem 0 0.75rem; }
+        .prose-article h3 { color: var(--scs-charcoal); font-size: 1.1rem; font-weight: 700; margin: 1.25rem 0 0.5rem; }
+        .prose-article p { margin-bottom: 1rem; }
+        .prose-article ul, .prose-article ol { margin: 0.75rem 0 1rem 1.25rem; }
+        .prose-article li { margin-bottom: 0.3rem; }
         .prose-article ul li { list-style-type: disc; }
         .prose-article ol li { list-style-type: decimal; }
-        .prose-article strong { color: rgba(255,255,255,0.92); }
-        .prose-article a { color: #7FCCA6; text-decoration: underline; }
+        .prose-article strong { color: var(--scs-charcoal); }
+        .prose-article a { color: var(--scs-clay); text-decoration: underline; }
+        .prose-article img { border-radius: var(--scs-radius); margin: 1rem 0; }
       `}</style>
     </div>
   );

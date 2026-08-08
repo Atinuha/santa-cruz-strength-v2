@@ -27,7 +27,6 @@ class RuntimeSafetyTests(unittest.TestCase):
         self.assertFalse(safety.ALLOW_SMS_SENDS)
         self.assertFalse(safety.ALLOW_TWILIO_WEBHOOKS)
         self.assertFalse(safety.ALLOW_RESEND_WEBHOOKS)
-        self.assertFalse(safety.ALLOW_MAILERSEND_WEBHOOKS)
 
     def test_staging_outbound_requires_test_mode(self):
         safety = self.load_safety(APP_ENV='staging', ALLOW_SMS_SENDS='true')
@@ -89,7 +88,10 @@ class RuntimeSafetyTests(unittest.TestCase):
         safety.validate_runtime_safety('santa_cruz_staging')
 
     def test_unverified_provider_webhooks_cannot_be_enabled(self):
-        safety = self.load_safety(APP_ENV='staging', ALLOW_MAILERSEND_WEBHOOKS='true')
+        # This used to assert on MailerSend. That provider and its flag are gone,
+        # so the property now rides on Resend, which carries the same guard: a
+        # webhook whose signature verifier is not validated cannot be turned on.
+        safety = self.load_safety(APP_ENV='staging', ALLOW_RESEND_WEBHOOKS='true')
         with self.assertRaisesRegex(RuntimeError, 'remain disabled'):
             safety.validate_runtime_safety('santa_cruz_staging')
 

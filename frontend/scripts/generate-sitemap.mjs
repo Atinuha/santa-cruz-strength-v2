@@ -24,9 +24,13 @@ const entries = registry.routes
     lastModified: publishedPosts.get(route.path)?.lastModified || null,
   }));
 
-const missingPosts = [...publishedPosts.keys()].filter(
-  (path) => !registry.routes.some((route) => route.path === path && route.indexable)
-);
+// A published post must be reachable in the registry. It may be absent from the
+// sitemap only when it is deliberately consolidated into another post, which is
+// a recorded decision rather than an oversight.
+const missingPosts = [...publishedPosts.keys()].filter((path) => {
+  const route = registry.routes.find((candidate) => candidate.path === path);
+  return !route || (!route.indexable && !route.consolidatedInto);
+});
 
 if (missingPosts.length) {
   throw new Error(`Published posts missing from route metadata: ${missingPosts.join(', ')}`);

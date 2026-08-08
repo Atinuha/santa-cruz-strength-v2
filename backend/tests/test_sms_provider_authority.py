@@ -58,7 +58,11 @@ class SmsProviderAuthorityTests(unittest.TestCase):
         self.assertNotIn('MAILERSEND', followup)
 
     def test_inbound_route_still_fails_closed(self):
-        self.assertIn('MailerSend webhooks are disabled pending verified signature support', SOURCE)
+        # Twilio is the only inbound SMS surface now. It refuses unless the flag
+        # is on and the signature verifies, which is what fail closed means here.
+        self.assertIn('if not ALLOW_TWILIO_WEBHOOKS', SOURCE)
+        self.assertIn('X-Twilio-Signature', SOURCE)
+        self.assertNotIn('mailersend-sms', SOURCE)
 
 
 if __name__ == '__main__':

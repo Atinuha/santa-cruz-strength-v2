@@ -5,13 +5,13 @@ import Footer from '../components/Footer';
 import { GYM_CONFIG } from '../config';
 
 export default function Terms() {
-  useEffect(() => { window.scrollTo(0, 0); }, []);
-  const updated = 'August 3, 2026';
+  useEffect(() => { window.scrollTo(0, 0); document.title = 'Terms & Conditions | Santa Cruz Strength'; }, []);
+  const updated = 'April 2026';
 
   return (
-    <div className="scs-site scs-readable-page min-h-screen" style={{ background: 'var(--clr-bg)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
       <Navbar />
-      <main id="main-content" className="max-w-3xl mx-auto px-4 sm:px-6 pt-32 pb-20">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-32 pb-20">
         <span className="green-accent-line" />
         <p className="text-[var(--clr-green)] text-xs font-bold uppercase tracking-widest mb-3">Legal</p>
         <h1 className="font-display text-4xl sm:text-5xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>
@@ -43,7 +43,7 @@ export default function Terms() {
           <section>
             <h2 className="font-bold text-lg mb-3" style={{ color: 'var(--clr-charcoal)' }}>3. Assumption of Risk &amp; Liability Waiver</h2>
             <div className="bg-amber-50 border border-amber-200 rounded-[var(--radius-lg)] px-5 py-4 mb-4">
-              <p className="text-sm font-bold text-amber-800 mb-1">Important - Please Read Carefully</p>
+              <p className="text-sm font-bold text-amber-800 mb-1">Important: Please Read Carefully</p>
               <p className="text-xs text-amber-700 leading-relaxed">
                 Physical exercise involves inherent risks of injury, illness, or death. By using our facilities
                 or participating in any program, you acknowledge and assume all such risks.
@@ -108,21 +108,19 @@ export default function Terms() {
             <div className="bg-[var(--clr-bg)] border rounded-[var(--radius-lg)] px-5 py-4 mb-4 space-y-3" style={{ borderColor: 'var(--clr-border)' }}>
               <p className="text-sm font-bold" style={{ color: 'var(--clr-charcoal)' }}>Program Name: Santa Cruz Strength Messaging</p>
               <p className="text-sm leading-relaxed">
-                <strong>Providing a phone number by itself does not enroll you in recurring text messages.</strong>
-                When a website form includes an optional SMS checkbox, selecting it authorizes automated
-                operational texts about that inquiry or visit. These may include replies, confirmations,
-                reminders, rescheduling notices, or membership information you requested.
-              </p>
-              <p className="text-sm leading-relaxed">
-                Promotional offers and general marketing texts require a separate express opt-in. Consent to
-                operational inquiry messages does not by itself authorize recurring promotional marketing.
+                By providing your phone number and submitting a form on santacruzstrength.com, or by texting
+                the keyword <strong>START</strong> to (408) 583-6671, you expressly consent to receive recurring
+                automated promotional and informational text messages (SMS/MMS) from Santa Cruz Strength.
+                These messages may include tour scheduling, membership information, follow-up messages,
+                promotional offers, and general gym updates.
               </p>
               <p className="text-sm leading-relaxed">
                 <strong>Consent is not a condition of purchase.</strong> You do not need to agree to receive
                 text messages in order to purchase a membership or use our services.
               </p>
               <p className="text-sm leading-relaxed">
-                <strong>Message frequency varies</strong> based on your inquiry and the messages you requested.
+                <strong>Message frequency varies.</strong> You may receive up to 10 messages per month
+                depending on your inquiry and membership status.
               </p>
               <p className="text-sm leading-relaxed">
                 <strong>Message and data rates may apply.</strong> Standard carrier rates for text messaging
@@ -137,9 +135,11 @@ export default function Terms() {
                 or contact us at management@santacruzstrength.com or (408) 337-6709.
               </p>
               <p className="text-sm leading-relaxed">
-                Your mobile phone number and SMS consent will not be sold or shared with third parties or
-                affiliates for their promotional marketing purposes. Messaging providers may process the
-                information on our behalf to deliver messages you requested.
+                Supported carriers include but are not limited to: AT&amp;T, T-Mobile, Verizon, Sprint, and
+                other major US carriers. T-Mobile is not liable for delayed or undelivered messages.
+              </p>
+              <p className="text-sm leading-relaxed">
+                Your mobile phone number will not be shared with third parties for marketing purposes.
                 View our <Link to="/privacy" className="underline underline-offset-2 hover:text-[var(--clr-green)] transition-colors duration-200">Privacy Policy</Link> for
                 full details on how we handle your information.
               </p>
@@ -149,7 +149,7 @@ export default function Terms() {
           <section>
             <h2 className="font-bold text-lg mb-3" style={{ color: 'var(--clr-charcoal)' }}>9. Age Requirements</h2>
             <p className="text-sm leading-relaxed">
-              Members must be 18 years of age or older. Individuals between 14-17 years of age may use
+              Members must be 18 years of age or older. Individuals between 14 to 17 years of age may use
               the facility only with a signed parental waiver and must be accompanied by a parent or
               guardian during all visits unless otherwise arranged with management.
             </p>
@@ -200,7 +200,7 @@ export default function Terms() {
           <Link to="/privacy" className="text-[var(--clr-green)] text-sm font-bold hover:underline">Privacy Policy →</Link>
           <Link to="/" className="text-[var(--clr-text-muted)] text-sm font-semibold hover:text-[var(--clr-green)] transition-colors duration-200">← Back to Home</Link>
         </div>
-      </main>
+      </div>
       <Footer />
     </div>
   );

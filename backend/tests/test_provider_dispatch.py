@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from lead_outbox import (  # noqa: E402
     RETRY_SCHEDULED, SUCCEEDED, TERMINAL_FAILED,
-    enqueue_lead_received_jobs, enqueue_outbox_job,
+    QuarantinedReplayRefused,
+    enqueue_lead_received_jobs, enqueue_outbox_job, replay_terminal_failure,
 )
 from provider_dispatch import (  # noqa: E402
     DeliveryError, DispatchConfig, ProviderReceipt, dispatch_batch, dispatch_one,
@@ -124,6 +125,84 @@ class ProviderDispatchTests(unittest.TestCase):
         self.assertEqual(result['state']['status'], TERMINAL_FAILED)
         self.assertEqual(result['state']['last_error_code'], 'sms_suppressed')
         self.assertEqual(sms.messages, [])
+
+    def test_consenting_consumer_lead_actually_receives_its_acknowledgement(self):
+        """Regression guard for the silently suppressed consumer acknowledgement.
+
+        The consumer form once omitted the email consent field, the intake
+        defaulted it to false, and this gate then refused every acknowledgement
+        without ever failing loudly. The lead saw nothing and staff saw a
+        delivered lead. Consent present has to reach the provider.
+        """
+        outbox, leads = MemoryCollection(), MemoryCollection()
+        leads.documents.append(make_lead(email_operational_opt_in=True))
+        enqueue_job(self, outbox, 'email')
+        email = FakeAdapter()
+
+        result = self.run_async(dispatch_one(
+            outbox, leads, config=make_config(), adapters={'email': email},
+            worker_id='worker-1', now=NOW,
+        ))
+
+        self.assertEqual(result['status'], 'succeeded')
+        self.assertEqual(result['state']['status'], SUCCEEDED)
+        self.assertEqual(len(email.messages), 1)
+        self.assertEqual(email.messages[0].recipient, 'lead@example.test')
+        self.assertEqual(email.messages[0].channel, 'email')
+
+    def test_consumer_acknowledgement_needs_consent_present_not_merely_unset(self):
+        """A missing consent key is the exact production shape of the defect."""
+        absent = make_lead()
+        del absent['email_operational_opt_in']
+        for label, lead in (('absent', absent), ('false', make_lead(email_operational_opt_in=False))):
+            with self.subTest(consent=label):
+                outbox, leads = MemoryCollection(), MemoryCollection()
+                leads.documents.append(lead)
+                enqueue_job(self, outbox, 'email')
+                email = FakeAdapter()
+
+                result = self.run_async(dispatch_one(
+                    outbox, leads, config=make_config(), adapters={'email': email},
+                    worker_id='worker-1', now=NOW,
+                ))
+
+                self.assertEqual(email.messages, [])
+                self.assertEqual(result['state']['status'], TERMINAL_FAILED)
+                self.assertEqual(result['state']['last_error_code'], 'email_suppressed')
+
+    def test_email_operational_and_marketing_consent_are_evaluated_separately(self):
+        """Operational and marketing consent are different permissions.
+
+        Declining marketing must not silence the acknowledgement someone asked
+        for, and accepting marketing must not manufacture operational consent.
+        """
+        outbox, leads = MemoryCollection(), MemoryCollection()
+        leads.documents.append(make_lead(
+            email_operational_opt_in=True, email_marketing_opt_in=False
+        ))
+        enqueue_job(self, outbox, 'email')
+        operational_only = FakeAdapter()
+        acknowledged = self.run_async(dispatch_one(
+            outbox, leads, config=make_config(), adapters={'email': operational_only},
+            worker_id='worker-1', now=NOW,
+        ))
+
+        marketing_lead = make_lead(email_marketing_opt_in=True)
+        del marketing_lead['email_operational_opt_in']
+        marketing_outbox, marketing_leads = MemoryCollection(), MemoryCollection()
+        marketing_leads.documents.append(marketing_lead)
+        enqueue_job(self, marketing_outbox, 'email')
+        marketing_only = FakeAdapter()
+        refused = self.run_async(dispatch_one(
+            marketing_outbox, marketing_leads, config=make_config(),
+            adapters={'email': marketing_only}, worker_id='worker-1', now=NOW,
+        ))
+
+        self.assertEqual(acknowledged['state']['status'], SUCCEEDED)
+        self.assertEqual(len(operational_only.messages), 1)
+        self.assertEqual(refused['state']['status'], TERMINAL_FAILED)
+        self.assertEqual(refused['state']['last_error_code'], 'email_suppressed')
+        self.assertEqual(marketing_only.messages, [])
 
     def test_timeout_is_bounded_and_retry_scheduled(self):
         outbox, leads = MemoryCollection(), MemoryCollection()
@@ -301,6 +380,87 @@ class ProviderDispatchTests(unittest.TestCase):
             outbox.documents[0]['last_error_code'],
             'delivery_outcome_unknown_after_lease_expiry',
         )
+
+    def _quarantine_an_sms_send(self, outbox, leads, sms):
+        """Drive a real send whose outcome is then genuinely unknown."""
+        leads.documents.append(make_lead())
+        enqueue_job(self, outbox, 'sms')
+        with self.assertRaises(WorkerCrash):
+            self.run_async(dispatch_one(
+                outbox, leads, config=make_config(lease_seconds=15),
+                adapters={'sms': sms}, worker_id='worker-1', now=NOW,
+            ))
+        self.run_async(dispatch_one(
+            outbox, leads, config=make_config(lease_seconds=15),
+            adapters={'sms': sms}, worker_id='worker-2',
+            now=NOW + timedelta(seconds=16),
+        ))
+        self.assertEqual(outbox.documents[0]['delivery_state'], 'quarantined')
+        return outbox.documents[0]['id']
+
+    def test_replaying_a_quarantined_sms_delivers_once_and_never_twice(self):
+        """Twilio has no idempotency key, so a blind replay reaches a real phone.
+
+        The first send may well have been accepted; only the outcome is
+        unknown. Until a human checks the provider log, replay stays refused
+        and nothing further may reach the member.
+        """
+        outbox, leads = MemoryCollection(), MemoryCollection()
+        sms = CrashAfterProviderCallAdapter()
+        job_id = self._quarantine_an_sms_send(outbox, leads, sms)
+
+        with self.assertRaises(QuarantinedReplayRefused):
+            self.run_async(replay_terminal_failure(
+                outbox, job_id=job_id, actor_id='ops-1',
+                reason='member says no text arrived',
+            ))
+
+        # The refusal must leave nothing a later worker can pick up. This
+        # adapter raises on contact, so a claim here would escape as WorkerCrash.
+        after_refusal = self.run_async(dispatch_one(
+            outbox, leads, config=make_config(lease_seconds=15),
+            adapters={'sms': sms}, worker_id='worker-3',
+            now=NOW + timedelta(seconds=600),
+        ))
+
+        self.assertIsNone(after_refusal)
+        self.assertEqual(len(sms.messages), 1)
+        self.assertEqual(outbox.documents[0]['status'], TERMINAL_FAILED)
+        self.assertEqual(outbox.documents[0]['delivery_state'], 'quarantined')
+        self.assertEqual(outbox.documents[0]['replay_count'], 0)
+
+    def test_confirmed_quarantine_replay_sends_exactly_one_further_message(self):
+        """The gate is a gate, not a wall.
+
+        Once an operator has confirmed against the provider log that nothing
+        was delivered, the replay proceeds, and it must produce one send rather
+        than resuming mid delivery or looping.
+        """
+        outbox, leads = MemoryCollection(), MemoryCollection()
+        crashed = CrashAfterProviderCallAdapter()
+        job_id = self._quarantine_an_sms_send(outbox, leads, crashed)
+
+        replayed = self.run_async(replay_terminal_failure(
+            outbox, job_id=job_id, actor_id='ops-1',
+            reason='provider log shows no message left the account',
+            confirmed_not_sent=True,
+            now=NOW + timedelta(seconds=600),
+        ))
+
+        healthy = FakeAdapter()
+        result = self.run_async(dispatch_one(
+            outbox, leads, config=make_config(lease_seconds=15),
+            adapters={'sms': healthy}, worker_id='worker-4',
+            now=NOW + timedelta(seconds=601),
+        ))
+
+        self.assertEqual(replayed['status'], RETRY_SCHEDULED)
+        self.assertEqual(replayed['attempt_count'], 0)
+        self.assertIsNone(replayed['delivery_begun_at'])
+        self.assertEqual(replayed['replay_history'][0]['actor_id'], 'ops-1')
+        self.assertEqual(result['state']['status'], SUCCEEDED)
+        self.assertEqual(len(healthy.messages), 1)
+        self.assertEqual(len(crashed.messages), 1)
 
     def test_resend_safe_retry_keeps_the_same_provider_idempotency_key(self):
         outbox, leads = MemoryCollection(), MemoryCollection()

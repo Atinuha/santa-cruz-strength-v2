@@ -2,12 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import PreviewNotice from '../components/PreviewNotice';
 import { GYM_CONFIG } from '../config';
-import { createCorporateLead } from '../lib/api';
-import { PREVIEW_MODE } from '../utils/previewSafety';
-import { getLeadAttribution } from '../utils/attribution';
-import { buildCorporateLeadPayload, createLeadRequestId } from '../utils/leadContracts';
+import api from '../lib/api';
 import { toast } from 'sonner';
 import {
   Building2, Users, Percent, HandCoins, HelpCircle,
@@ -15,8 +11,6 @@ import {
   ShoppingBag, Heart, Waves, Wrench, School, Briefcase, Store,
   Loader2, ChevronRight, ChevronLeft, Phone, Shield, Zap, Check,
 } from 'lucide-react';
-import PublicImage from '../components/PublicImage';
-import { SCS_MEDIA } from '../config/media';
 
 const CONTRIB_OPTIONS = [
   { value: 'employer_pays_all', label: 'Employer Pays All', desc: 'Company covers 100% of memberships', icon: HandCoins },
@@ -26,7 +20,7 @@ const CONTRIB_OPTIONS = [
 ];
 
 const HOW_STEPS = [
-  { num: '01', title: 'Tell us about your team', desc: 'Quick form - takes under 2 minutes.' },
+  { num: '01', title: 'Tell us about your team', desc: 'Quick form: takes under 2 minutes.' },
   { num: '02', title: 'Pick a contribution model', desc: 'Pay all, split, or just offer a discount.' },
   { num: '03', title: 'Get your custom plan', desc: 'We build a signup link or code for your team.' },
   { num: '04', title: 'Your team trains', desc: 'Employees join a real local gym community.' },
@@ -51,9 +45,9 @@ const FORM_STEPS = [
   { id: 'company', title: "What's your business called?", subtitle: 'We work with local Santa Cruz companies of all sizes.' },
   { id: 'contact', title: 'Who should we talk to?', subtitle: 'Name, email, and optionally phone.' },
   { id: 'team', title: 'How big is your team?', subtitle: 'Helps us recommend the right plan.' },
-  { id: 'model', title: 'How would you like to contribute?', subtitle: 'No commitment - just helps us tailor the proposal.' },
-  { id: 'details', title: 'Anything else we should know?', subtitle: 'Optional - start date, questions, etc.' },
-  { id: 'consent', title: "Almost done - let's stay in touch.", subtitle: 'We follow up within 1 business day.' },
+  { id: 'model', title: 'How would you like to contribute?', subtitle: 'Helps us tailor the proposal to your business.' },
+  { id: 'details', title: 'Anything else we should know?', subtitle: 'Optional: start date, questions, etc.' },
+  { id: 'consent', title: "Almost done: let's stay in touch.", subtitle: 'We will follow up using the details you provide.' },
 ];
 
 const EMPTY_FORM = {
@@ -71,9 +65,6 @@ export default function LocalWellness() {
   const [submitted, setSubmitted] = useState(false);
   const [step, setStep] = useState(0);
   const inputRef = useRef(null);
-  const requestIdRef = useRef(null);
-
-  if (!requestIdRef.current) requestIdRef.current = createLeadRequestId();
 
   const current = FORM_STEPS[step];
   const total = FORM_STEPS.length;
@@ -114,18 +105,11 @@ export default function LocalWellness() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
-      if (PREVIEW_MODE) {
-        setForm({ ...EMPTY_FORM });
-        setSubmitted(true);
-        return;
-      }
-      const payload = buildCorporateLeadPayload({
-        form,
-        attribution: getLeadAttribution(),
-        requestId: requestIdRef.current,
+      await api.post('/corporate-leads', {
+        ...form,
+        employee_count: parseInt(form.employee_count) || 0,
+        estimated_enrolled: parseInt(form.estimated_enrolled) || 0,
       });
-      await createCorporateLead(payload);
-      requestIdRef.current = createLeadRequestId();
       setSubmitted(true);
       toast.success('Request submitted!');
     } catch (err) { toast.error(err.response?.data?.detail || 'Something went wrong'); }
@@ -140,9 +124,8 @@ export default function LocalWellness() {
   const errCls = "text-[var(--clr-coral)] text-xs mt-1 font-semibold";
 
   return (
-    <div className="scs-site scs-readable-page min-h-screen" style={{ background: 'var(--clr-bg)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--clr-bg)' }}>
       <Navbar />
-      <main>
 
       {/* Hero */}
       <section className="pt-32 pb-20" data-testid="corporate-hero">
@@ -156,7 +139,7 @@ export default function LocalWellness() {
               </h1>
               <p className="text-[var(--clr-text)] text-base leading-relaxed mb-6 max-w-lg font-medium">
                 Corporate wellness memberships for Santa Cruz businesses that want healthier, stronger,
-                more supported employees - without the big-box gym energy.
+                more supported employees: without the big-box gym energy.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <a href="#corporate-form" className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 text-sm" data-testid="corporate-cta-pricing">
@@ -168,19 +151,15 @@ export default function LocalWellness() {
               </div>
             </div>
             <div className="hidden lg:block">
-              <figure className="scs-editorial-hero scs-editorial-hero-compact mb-5">
-                <PublicImage src={SCS_MEDIA.coachBriefing} alt="A coach briefing a small group on the training floor" width="1448" height="1086" />
-                <figcaption>A local training environment where people can learn, work and connect.</figcaption>
-              </figure>
               <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: 'var(--clr-border)', boxShadow: 'var(--shadow-md)' }}>
                 <h3 className="font-display text-lg tracking-wide mb-1" style={{ color: 'var(--clr-charcoal)' }}>TEAM PRICING</h3>
-                <p className="text-xs text-[var(--clr-text-muted)] mb-4">Based on enrolled employees - not total company size.</p>
+                <p className="text-xs text-[var(--clr-text-muted)] mb-4">Based on enrolled employees: not total company size.</p>
                 <div className="space-y-2.5">
                   {[
-                    { range: '3-5 enrolled', note: 'Small team discount' },
-                    { range: '6-10 enrolled', note: 'Growing team discount' },
-                    { range: '11-20 enrolled', note: 'Mid-size team discount' },
-                    { range: '21+ enrolled', note: 'Custom package - let\'s talk' },
+                    { range: '3 to 5 enrolled', note: 'Small team discount' },
+                    { range: '6 to 10 enrolled', note: 'Growing team discount' },
+                    { range: '11 to 20 enrolled', note: 'Mid-size team discount' },
+                    { range: '21+ enrolled', note: 'Custom package: let\'s talk' },
                   ].map((t) => (
                     <div key={t.range} className="flex items-center justify-between py-2.5 px-3 rounded-xl" style={{ background: 'var(--clr-bg)' }}>
                       <span className="text-sm font-bold" style={{ color: 'var(--clr-charcoal)' }}>{t.range}</span>
@@ -204,13 +183,13 @@ export default function LocalWellness() {
           </h2>
           <p className="text-[var(--clr-text)] text-sm leading-relaxed max-w-2xl mx-auto mb-8 font-medium">
             Most employee wellness programs are either too expensive, too complicated, or barely used.
-            A meditation app subscription doesn&apos;t cut it. Your team wants something real.
-            A local Santa Cruz gym where they can train, build strength, reduce stress, and feel connected.
+            A meditation app subscription doesn&apos;t cut it. Your team wants something real:
+            a local Santa Cruz gym where they can train, build strength, reduce stress, and feel connected.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {[
               { icon: Zap, title: 'Strength training that works', desc: 'A real gym, not a globo gym. Focused equipment, serious coaching, results your team can feel.' },
-              { icon: Users, title: 'A local community', desc: 'Your employees join a supportive Santa Cruz fitness community - not an anonymous cardio floor.' },
+              { icon: Users, title: 'A local community', desc: 'Your employees join a supportive Santa Cruz fitness community: not an anonymous cardio floor.' },
               { icon: Shield, title: 'Simple setup, zero hassle', desc: 'We handle memberships, billing, and onboarding. You pick the contribution model and we do the rest.' },
             ].map((b) => (
               <div key={b.title} className="text-left p-5 rounded-2xl" style={{ background: 'var(--clr-bg)', border: '1px solid var(--clr-border)' }}>
@@ -304,16 +283,15 @@ export default function LocalWellness() {
       {/* Quiz Form */}
       <section id="corporate-form" className="py-16 bg-white border-t" style={{ borderColor: 'var(--clr-border)' }} data-testid="corporate-form-section">
         <div className="max-w-xl mx-auto px-4 sm:px-6">
-          <PreviewNotice testId="preview-corporate-notice">Use test information only. Submitting this form will display the preview confirmation without sending or storing anything.</PreviewNotice>
 
           {submitted ? (
             <div className="text-center py-12 animate-fade-in-up" data-testid="corporate-form-success">
               <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--clr-bg-green)' }}>
                 <CheckCircle2 size={32} style={{ color: 'var(--clr-green)' }} />
               </div>
-              <h3 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>{PREVIEW_MODE ? 'PREVIEW TEST COMPLETE' : 'WE\'RE ON IT.'}</h3>
+              <h3 className="font-display text-2xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>WE&apos;RE ON IT.</h3>
               <p className="text-[var(--clr-text-muted)] text-sm mb-6 max-w-md mx-auto">
-                {PREVIEW_MODE ? 'No corporate wellness request was sent and no form information was stored.' : 'Thanks for your interest in corporate wellness at Santa Cruz Strength! Our team will follow up within 1 business day with a custom proposal.'}
+                Thanks for your interest in corporate wellness at Santa Cruz Strength! We will follow up using the details you provided.
               </p>
               <button onClick={() => navigate('/')} className="btn-primary px-6 py-3 text-sm">Back to Home</button>
             </div>
@@ -346,16 +324,13 @@ export default function LocalWellness() {
                 {current.id === 'company' && (
                   <div className="space-y-3" onKeyDown={handleKeyDown}>
                     <div>
-                      <label htmlFor="corporate-business-name" className="sr-only">Business name</label>
-                      <input id="corporate-business-name" ref={inputRef} value={form.business_name} onChange={e => set('business_name', e.target.value)}
+                      <input ref={inputRef} value={form.business_name} onChange={e => set('business_name', e.target.value)}
                         className={inputCls} placeholder="Business name *" data-testid="corp-business-name" />
                       {errors.business_name && <p className={errCls}>{errors.business_name}</p>}
                     </div>
-                    <label htmlFor="corporate-business-location" className="sr-only">Business city and state</label>
-                    <input id="corporate-business-location" value={form.business_address} onChange={e => set('business_address', e.target.value)}
+                    <input value={form.business_address} onChange={e => set('business_address', e.target.value)}
                       className={inputCls} placeholder="City, State (optional)" />
-                    <label htmlFor="corporate-business-website" className="sr-only">Business website or Instagram</label>
-                    <input id="corporate-business-website" value={form.website_or_instagram} onChange={e => set('website_or_instagram', e.target.value)}
+                    <input value={form.website_or_instagram} onChange={e => set('website_or_instagram', e.target.value)}
                       className={inputCls} placeholder="Website or @instagram (optional)" />
                   </div>
                 )}
@@ -364,22 +339,18 @@ export default function LocalWellness() {
                 {current.id === 'contact' && (
                   <div className="space-y-3" onKeyDown={handleKeyDown}>
                     <div>
-                      <label htmlFor="corporate-contact-name" className="sr-only">Contact name</label>
-                      <input id="corporate-contact-name" ref={inputRef} value={form.contact_name} onChange={e => set('contact_name', e.target.value)}
+                      <input ref={inputRef} value={form.contact_name} onChange={e => set('contact_name', e.target.value)}
                         className={inputCls} placeholder="Your name *" data-testid="corp-contact-name" />
                       {errors.contact_name && <p className={errCls}>{errors.contact_name}</p>}
                     </div>
-                    <label htmlFor="corporate-contact-title" className="sr-only">Contact role or title</label>
-                    <input id="corporate-contact-title" value={form.contact_title} onChange={e => set('contact_title', e.target.value)}
+                    <input value={form.contact_title} onChange={e => set('contact_title', e.target.value)}
                       className={inputCls} placeholder="Role / title (optional)" />
                     <div>
-                      <label htmlFor="corporate-contact-email" className="sr-only">Contact email</label>
-                      <input id="corporate-contact-email" ref={step === 1 && !form.contact_name ? null : inputRef} type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                      <input ref={step === 1 && !form.contact_name ? null : inputRef} type="email" value={form.email} onChange={e => set('email', e.target.value)}
                         className={inputCls} placeholder="Email *" data-testid="corp-email" />
                       {errors.email && <p className={errCls}>{errors.email}</p>}
                     </div>
-                    <label htmlFor="corporate-contact-phone" className="sr-only">Contact phone</label>
-                    <input id="corporate-contact-phone" type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
+                    <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
                       className={inputCls} placeholder="Phone (optional)" />
                   </div>
                 )}
@@ -388,13 +359,13 @@ export default function LocalWellness() {
                 {current.id === 'team' && (
                   <div className="space-y-3" onKeyDown={handleKeyDown}>
                     <div>
-                      <label htmlFor="corporate-employee-count" className="text-xs text-[var(--clr-text-muted)] font-semibold mb-1 block">Total employees at your company</label>
-                      <input id="corporate-employee-count" ref={inputRef} type="number" min="1" value={form.employee_count} onChange={e => set('employee_count', e.target.value)}
+                      <label className="text-xs text-[var(--clr-text-muted)] font-semibold mb-1 block">Total employees at your company</label>
+                      <input ref={inputRef} type="number" min="1" value={form.employee_count} onChange={e => set('employee_count', e.target.value)}
                         className={inputCls} placeholder="e.g. 15" data-testid="corp-employee-count" />
                     </div>
                     <div>
-                      <label htmlFor="corporate-estimated-enrolled" className="text-xs text-[var(--clr-text-muted)] font-semibold mb-1 block">How many would be interested in a gym membership?</label>
-                      <input id="corporate-estimated-enrolled" type="number" min="1" value={form.estimated_enrolled} onChange={e => set('estimated_enrolled', e.target.value)}
+                      <label className="text-xs text-[var(--clr-text-muted)] font-semibold mb-1 block">How many would be interested in a gym membership?</label>
+                      <input type="number" min="1" value={form.estimated_enrolled} onChange={e => set('estimated_enrolled', e.target.value)}
                         className={inputCls} placeholder="e.g. 8" data-testid="corp-estimated-enrolled" />
                     </div>
                   </div>
@@ -431,12 +402,12 @@ export default function LocalWellness() {
                 {current.id === 'details' && (
                   <div className="space-y-3" onKeyDown={handleKeyDown}>
                     <div>
-                      <label htmlFor="corporate-start-date" className="text-xs text-[var(--clr-text-muted)] font-semibold mb-1 block">Desired start date</label>
-                      <input id="corporate-start-date" ref={inputRef} type="date" value={form.desired_start_date} onChange={e => set('desired_start_date', e.target.value)} className={inputCls} />
+                      <label className="text-xs text-[var(--clr-text-muted)] font-semibold mb-1 block">Desired start date</label>
+                      <input ref={inputRef} type="date" value={form.desired_start_date} onChange={e => set('desired_start_date', e.target.value)} className={inputCls} />
                     </div>
                     <div>
-                      <label htmlFor="corporate-notes" className="text-xs text-[var(--clr-text-muted)] font-semibold mb-1 block">Notes or questions</label>
-                      <textarea id="corporate-notes" value={form.notes} onChange={e => set('notes', e.target.value)}
+                      <label className="text-xs text-[var(--clr-text-muted)] font-semibold mb-1 block">Notes or questions</label>
+                      <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
                         className={`${inputCls} resize-none`} rows={3} placeholder="Anything we should know?" />
                     </div>
                   </div>
@@ -458,7 +429,8 @@ export default function LocalWellness() {
                       <input type="checkbox" checked={form.sms_consent} onChange={e => set('sms_consent', e.target.checked)}
                         className="mt-0.5 w-4 h-4 rounded border-2 border-[var(--clr-border)] accent-[var(--clr-green)] cursor-pointer shrink-0" />
                       <span className="text-xs leading-relaxed text-[var(--clr-text-muted)]">
-                        Optional: I agree to receive automated operational texts from Santa Cruz Strength about this corporate membership inquiry. This does not enroll me in promotional marketing texts. Message frequency varies. Message and data rates may apply. Reply <strong>STOP</strong> to opt out. <a href="/privacy" target="_blank" className="underline">Privacy</a> &amp; <a href="/terms" target="_blank" className="underline">Terms</a>.
+                        I agree to receive text messages from Santa Cruz Strength about my corporate membership inquiry.
+                        Msg &amp; data rates may apply. Reply <strong>STOP</strong> to opt out. <a href="/privacy" target="_blank" className="underline">Privacy</a> &amp; <a href="/terms" target="_blank" className="underline">Terms</a>.
                       </span>
                     </label>
                   </div>
@@ -480,7 +452,7 @@ export default function LocalWellness() {
                   </button>
                 )}
                 <p className="text-center text-[10px] text-[var(--clr-text-light)] mt-3">
-                  No commitment. We follow up within 1 business day.
+                  We will follow up using the details you provide.
                 </p>
               </div>
             </div>
@@ -488,7 +460,6 @@ export default function LocalWellness() {
         </div>
       </section>
 
-      </main>
       <Footer />
     </div>
   );

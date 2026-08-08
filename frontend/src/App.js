@@ -46,7 +46,9 @@ import ContentManager from './pages/staff/ContentManager';
 import CorporateLeads from './pages/staff/CorporateLeads';
 
 import './App.css';
-import './scs-release.css';
+// scs-release.css and scs-ledger.css are gone. They held a design that was
+// invented in this repository rather than approved. The approved system now
+// lives in index.css, ported from the build Mike signed off.
 
 /** Updates attribution and fires one route-level page view outside staff utilities. */
 function RouteTracker() {

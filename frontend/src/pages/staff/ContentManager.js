@@ -11,8 +11,12 @@ import {
 const SEO_KEYWORDS = ['Santa Cruz', 'strength', 'gym', 'training', 'coach', 'fitness', 'powerlifting', 'Santa Cruz Strength', 'personal training'];
 
 const SEO_TIPS = {
-  home_hero_headline: { seo: 'high', tip: 'H1 tag - most important for SEO. Include "strength" and "training".' },
-  home_hero_subtitle: { seo: 'high', tip: 'Visible text under H1. Use natural keywords: gym, Santa Cruz, athletes.' },
+  // These keys must match what Home.js actually reads. They previously did not:
+  // the editor wrote home_hero_headline while the homepage read
+  // home_hero_headline_v2, so editing the H1 here changed nothing and reported
+  // no error. An editor that silently does nothing is worse than no editor.
+  home_hero_headline_v2: { seo: 'high', tip: 'H1 tag - most important for SEO. Include "strength" and "training".' },
+  home_hero_subtitle_v2: { seo: 'high', tip: 'Visible text under H1. Use natural keywords: gym, Santa Cruz, athletes.' },
   home_hero_subtext: { seo: 'medium', tip: 'Secondary text. Reinforce location: "Santa Cruz".' },
   home_benefits_headline: { seo: 'high', tip: 'H2 tag - include "strength" or "training".' },
   home_benefits_subtitle: { seo: 'medium', tip: 'Describe what makes the gym unique. Use natural language.' },
@@ -45,8 +49,8 @@ const PAGES = [
     id: 'home', label: 'Home', icon: Home, previewPath: '/',
     sections: [
       { heading: 'Hero Section', keys: [
-        { key: 'home_hero_headline', label: 'Hero Headline (H1)', type: 'textarea', rows: 3, help: 'Use line breaks for stacked text' },
-        { key: 'home_hero_subtitle', label: 'Hero Subtitle', type: 'text' },
+        { key: 'home_hero_headline_v2', label: 'Hero Headline (H1)', type: 'textarea', rows: 3, help: 'Use line breaks for stacked text' },
+        { key: 'home_hero_subtitle_v2', label: 'Hero Subtitle', type: 'text' },
         { key: 'home_hero_subtext', label: 'Hero Subtext', type: 'text' },
       ]},
       { heading: 'Benefits Section', keys: [

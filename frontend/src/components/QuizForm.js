@@ -274,7 +274,7 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
         <button type="submit" disabled={loading} className="btn-primary w-full text-base py-3.5 disabled:opacity-50 disabled:cursor-not-allowed" data-testid="lead-form-submit-button">
           {loading ? <><Loader2 size={17} className="animate-spin" aria-hidden="true" /> Sending request...</> : step < STEP_COPY.length - 1 ? <>Continue <ArrowRight size={17} aria-hidden="true" /></> : <><Check size={17} aria-hidden="true" /> Request my free tour</>}
         </button>
-        <p className="text-center text-base leading-relaxed text-[var(--clr-text-muted)] mt-3">No membership commitment. The team will review your request and follow up.</p>
+        <p className="text-center text-base leading-relaxed text-[var(--clr-text-muted)] mt-3">No membership commitment and no card required. Someone from the gym will get back to you.</p>
         {step === 2 && (
           <p className="text-center text-base leading-relaxed mt-3 text-[var(--clr-text-muted)]">
             By submitting, you agree that Santa Cruz Strength may use the information provided to respond by phone or email. Optional SMS consent is controlled separately above.

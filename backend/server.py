@@ -33,7 +33,6 @@ try:
         ALLOW_SCHEDULERS,
         ALLOW_SEEDING,
         ALLOW_SMS_SENDS,
-        ALLOW_MAILERSEND_WEBHOOKS,
         ALLOW_RESEND_WEBHOOKS,
         ALLOW_TWILIO_WEBHOOKS,
         APP_ENV,
@@ -49,7 +48,6 @@ except ImportError:
         ALLOW_SCHEDULERS,
         ALLOW_SEEDING,
         ALLOW_SMS_SENDS,
-        ALLOW_MAILERSEND_WEBHOOKS,
         ALLOW_RESEND_WEBHOOKS,
         ALLOW_TWILIO_WEBHOOKS,
         APP_ENV,
@@ -358,159 +356,6 @@ async def send_resend_email(to: str, subject: str, html: str, reply_to: str = No
         logger.warning(f'[EMAIL] Resend failed to {to}: {e}')
         return False
 
-def _lead_confirmation_html(lead: dict) -> str:
-    lead = {key: escape_html(value) for key, value in lead.items()}
-    name = lead.get('first_name', 'there')
-    return f"""
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F7F5F0;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5F0;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08);">
-        <!-- Header -->
-        <tr>
-          <td style="background:#0D5D3E;padding:28px 36px;">
-            <p style="margin:0;color:#CDE4DF;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength</p>
-            <p style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:800;letter-spacing:1px;">151 Harvey West Blvd · Santa Cruz, CA</p>
-          </td>
-        </tr>
-        <!-- Body -->
-        <tr>
-          <td style="padding:36px 36px 28px;">
-            <p style="margin:0 0 16px;font-size:17px;font-weight:700;color:#1a1a1a;">Hey {name},</p>
-            <p style="margin:0 0 14px;font-size:15px;color:#444;line-height:1.65;">
-              Thanks for reaching out to Santa Cruz Strength. We're stoked you're interested in checking out the space.
-            </p>
-            <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.65;">
-              Someone from the team will reach out shortly to set up a quick tour and answer any questions.
-            </p>
-            <!-- CTA -->
-            <table cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="background:#FA5A5C;border-radius:8px;">
-                  <a href="https://santacruzstrength.com" style="display:inline-block;padding:13px 28px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.3px;">
-                    Visit Our Website →
-                  </a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <!-- Details recap -->
-        <tr>
-          <td style="padding:0 36px 28px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5F0;border-radius:8px;padding:16px 20px;">
-              <tr><td style="padding:4px 0;font-size:12px;color:#666;"><strong style="color:#1a1a1a;">Interest:</strong> {lead.get('interest_type','General Membership')}</td></tr>
-              <tr><td style="padding:4px 0;font-size:12px;color:#666;"><strong style="color:#1a1a1a;">Timeline:</strong> {lead.get('start_timeline','Just exploring')}</td></tr>
-            </table>
-          </td>
-        </tr>
-        <!-- Footer -->
-        <tr>
-          <td style="border-top:1px solid #eee;padding:20px 36px;background:#fafaf9;">
-            <p style="margin:0;font-size:12px;color:#999;line-height:1.6;">
-              Santa Cruz Strength · 151 Harvey West Blvd Ste D, Santa Cruz CA 95060<br>
-              <a href="tel:+14083376709" style="color:#0D5D3E;text-decoration:none;">(408) 337-6709</a> ·
-              <a href="https://www.instagram.com/santacruzstrength/" style="color:#0D5D3E;text-decoration:none;">@santacruzstrength</a>
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>"""
-
-def _staff_notification_html(lead: dict) -> str:
-    lead = {key: escape_html(value) for key, value in lead.items()}
-    created = lead.get('created_at', '')[:16].replace('T', ' at ') if lead.get('created_at') else 'just now'
-    rows = [
-        ('Name', f"{lead.get('first_name','')} {lead.get('last_name','')}"),
-        ('Phone', lead.get('phone', ' - ')),
-        ('Email', lead.get('email', ' - ')),
-        ('Interest', lead.get('interest_type', ' - ')),
-        ('Timeline', lead.get('start_timeline', ' - ')),
-        ('Goals', lead.get('training_goals', ' - ') or ' - '),
-        ('Source', lead.get('lead_source', ' - ')),
-        ('Preferred Contact', lead.get('preferred_contact', ' - ')),
-        ('Submitted', created),
-    ]
-    rows_html = ''.join(
-        f"<tr style='background:{'#1a2a1f' if i%2==0 else '#141e19'};'>"
-        f"<td style='padding:10px 16px;color:#8FBF9F;font-size:12px;font-weight:600;width:140px;'>{k}</td>"
-        f"<td style='padding:10px 16px;color:#e8f5ee;font-size:13px;font-weight:500;'>{v}</td>"
-        f"</tr>"
-        for i, (k, v) in enumerate(rows)
-    )
-    name = f"{lead.get('first_name','')} {lead.get('last_name','')}".strip()
-    crm_url = 'https://santacruzstrength.com/staff/leads'
-    return f"""
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#0f1a14;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1a14;padding:32px 20px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#111f16;border-radius:12px;overflow:hidden;border:1px solid #1e3327;">
-        <!-- Header -->
-        <tr>
-          <td style="background:#0D5D3E;padding:22px 28px;">
-            <p style="margin:0;color:#CDE4DF;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Santa Cruz Strength CRM</p>
-            <p style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:800;">🔔 New Lead: {name}</p>
-          </td>
-        </tr>
-        <!-- Table -->
-        <tr>
-          <td style="padding:0;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              {rows_html}
-            </table>
-          </td>
-        </tr>
-        <!-- CTA -->
-        <tr>
-          <td style="padding:24px 28px;border-top:1px solid #1e3327;">
-            <table cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="background:#0D5D3E;border-radius:8px;">
-                  <a href="{crm_url}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:13px;font-weight:700;text-decoration:none;">
-                    Open in CRM →
-                  </a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>"""
-
-async def send_lead_emails(lead: dict):
-    """Send a transactional lead acknowledgement and an internal staff alert."""
-    name = safe_sms_text(lead.get('first_name', 'there'), 100).strip()
-    lead_email = lead.get('email', '')
-    tasks = []
-    if lead_email:
-        tasks.append(send_resend_email(
-            to=lead_email,
-            subject=f"Hey {name} - you're on our radar at Santa Cruz Strength",
-            html=_lead_confirmation_html(lead),
-            message_kind='transactional',
-            reply_to='management@santacruzstrength.com'
-        ))
-    tasks.append(send_resend_email(
-        to=STAFF_EMAIL,
-        subject=safe_sms_text(f"New Lead: {lead.get('first_name','')} {lead.get('last_name','')} - {lead.get('interest_type','General Membership')}", 220),
-        html=_staff_notification_html(lead),
-        message_kind='internal',
-        cc=[c for c in [CC_EMAIL] if c and c != STAFF_EMAIL],
-    ))
-    await asyncio.gather(*tasks, return_exceptions=True)
-
 
 def _verified_consumer_unsubscribe(token: str) -> dict:
     secret = os.environ.get('UNSUBSCRIBE_SECRET', '')
@@ -557,11 +402,6 @@ async def consumer_unsubscribe(token: str = Query(..., min_length=20, max_length
         media_type='text/html',
     )
 
-# --------------- SMS (MailerSend) ---------------
-
-MAILERSEND_API_KEY = os.environ.get('MAILERSEND_API_KEY', '')
-MAILERSEND_FROM   = os.environ.get('MAILERSEND_FROM_NUMBER', '')
-
 # ── Twilio Config ──────────────────────────────────────────────────────────────
 TWILIO_ACCOUNT_SID  = os.environ.get('TWILIO_ACCOUNT_SID', '')
 TWILIO_AUTH_TOKEN   = os.environ.get('TWILIO_AUTH_TOKEN', '')
@@ -575,7 +415,7 @@ def _get_twilio_client():
         _twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     return _twilio_client
 
-# ── Core send (Twilio primary, MailerSend fallback) ────────────────────────────
+# ── Core send (Twilio, the only SMS provider) ──────────────────────────────────
 async def send_sms(
     to_numbers: list,
     text: str,
@@ -617,7 +457,7 @@ async def send_sms(
                 logger.info(f'[SMS-TWILIO] Sent to {number} (SID: {msg.sid})')
             return True
         except Exception as e:
-            logger.warning(f'[SMS-TWILIO] Failed: {e} - falling back to MailerSend')
+            logger.warning(f'[SMS-TWILIO] Failed: {e}')
 
     logger.info(f'[SMS] Twilio unavailable or failed - skipping to {valid}')
     if lead_info:
@@ -656,50 +496,6 @@ async def get_sms_staff_numbers() -> list:
     return seed
 
 # ── Immediate flows ───────────────────────────────────────────────────────────
-async def send_lead_sms(lead: dict):
-    """Two immediate texts: confirmation to lead + alert to staff."""
-    name      = lead.get('first_name', 'there')
-    interest  = lead.get('interest_type', 'General Membership')
-    timeline  = lead.get('start_timeline', '')
-    lead_phone = lead.get('phone', '').strip()
-    staff_nums = await get_sms_staff_numbers()
-
-    digits = ''.join(character for character in lead_phone if character.isdigit())
-    if len(digits) == 10:
-        lead_phone_e164 = f'+1{digits}'
-    elif len(digits) == 11 and digits.startswith('1'):
-        lead_phone_e164 = f'+{digits}'
-    else:
-        lead_phone_e164 = ''
-
-    tasks = []
-
-    # A) Confirmation to lead
-    operational_sms_allowed = bool(
-        lead.get('sms_operational_opt_in') is True
-        or lead.get('sms_consent') is True
-    )
-    if operational_sms_allowed and not lead.get('sms_opted_out') and lead_phone_e164:
-        msg = (
-            f"Hey {name}, Santa Cruz Strength here! "
-            f"Stoked you reached out. Someone from our team will hit you up shortly "
-            f"to set up a quick tour. Questions? Call (408) 337-6709. - SCS"
-        )
-        tasks.append(send_sms([lead_phone_e164], msg))
-
-    # B) Alert to staff
-    if staff_nums:
-        full_name = f"{lead.get('first_name','')} {lead.get('last_name','')}".strip()
-        staff_msg = (
-            f"New SCS Lead: {full_name} | "
-            f"{lead_phone} | {interest}"
-            f"{' | ' + timeline if timeline else ''} | "
-            f"CRM: https://santacruzstrength.com/staff/dashboard"
-        )
-        tasks.append(send_sms(staff_nums, staff_msg))
-
-    await asyncio.gather(*tasks, return_exceptions=True)
-
 # ── Status-change triggered SMS ────────────────────────────────────────────────
 async def send_status_change_sms(lead: dict, new_status: str):
     """Fire a branded SMS when staff moves a lead to a milestone status."""
@@ -2229,13 +2025,6 @@ async def list_blog_posts(
     total = await db.blog.count_documents(query)
     posts = await db.blog.find(query, {'_id': 0, 'content': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
     return {'posts': posts, 'total': total}
-
-@api_router.get('/blog/:slug')
-async def get_blog_post_by_slug_param(slug: str):
-    post = await db.blog.find_one({'slug': slug, 'published': True}, {'_id': 0})
-    if not post:
-        raise HTTPException(status_code=404, detail='Post not found')
-    return post
 
 @api_router.get('/blog/post/{slug}')
 async def get_blog_post(slug: str):
@@ -4386,74 +4175,6 @@ async def twilio_status_webhook(request: Request):
     return {'ok': True}
 
 
-# --------------- MailerSend Inbound SMS Webhook ---------------
-
-async def _mailersend_inbound_background(from_number: str, message: str, msg_upper: str):
-    """Background task for all DB/email work after 200 is returned to MailerSend."""
-    try:
-        if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
-            lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
-            await _apply_sms_keyword_state(from_number, msg_upper)
-            logger.info(f'[MAILERSEND-BG] STOP processed for {from_number}')
-            await db.daily_bounce_log.insert_one({
-                'type': 'sms_optout',
-                'event': 'SMS STOP received (MailerSend)',
-                'phone': from_number,
-                'name': f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown',
-                'email': (lead or {}).get('email', ''),
-                'source': (lead or {}).get('lead_source', ''),
-                'timestamp': now_utc().isoformat(),
-                'date': now_utc().date().isoformat(),
-            })
-        elif msg_upper == 'START':
-            await _apply_sms_keyword_state(from_number, msg_upper)
-            logger.info(f'[MAILERSEND-BG] START/resubscribe processed for {from_number}')
-        else:
-            lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
-            lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
-            safe_from = escape_html(from_number)
-            safe_name = escape_html(lead_name)
-            safe_message = escape_html(message)
-            html = f"""<div style="font-family:sans-serif;background:#111;color:#fff;padding:24px;border-radius:8px;">
-<h3 style="color:#7FCCA6;">SMS Reply Received</h3>
-<p style="color:#aaa;">From: <strong style="color:#fff;">{safe_from}</strong> ({safe_name})</p>
-<p style="color:#aaa;">Message:</p>
-<p style="background:#1B1B1B;padding:12px;border-radius:6px;color:#fff;font-size:15px;">"{safe_message}"</p>
-<p style="color:#666;font-size:12px;margin-top:12px;">Auto-reply was sent via MailerSend. Follow up via Google Voice: voice.google.com</p>
-</div>"""
-            await send_resend_email(to=STAFF_EMAIL, subject=safe_sms_text(f'SMS Reply from {from_number} ({lead_name})', 220), html=html, message_kind='internal')
-            if lead:
-                await db.leads.update_one(
-                    {'phone': from_number},
-                    {'$push': {'activity_log': {
-                        'action': 'sms_reply',
-                        'note': f'Replied via SMS: "{message[:100]}"',
-                        'timestamp': now_utc().isoformat(),
-                    }}}
-                )
-            logger.info(f'[MAILERSEND-BG] Reply from {from_number} ({lead_name}): {message[:80]} - forwarded')
-    except Exception as e:
-        logger.error(f'[MAILERSEND-BG] Background processing failed for {from_number}: {e}')
-
-
-@api_router.get('/webhooks/mailersend-sms')
-async def mailersend_sms_health():
-    """Report that the unsigned MailerSend route is intentionally unavailable."""
-    raise HTTPException(status_code=503, detail='MailerSend webhooks are disabled pending verified signature support')
-
-
-@api_router.post('/webhooks/mailersend-sms')
-async def mailersend_sms_webhook():
-    """Fail closed until a verified MailerSend signature validator is installed."""
-    raise HTTPException(status_code=503, detail='MailerSend webhooks are disabled pending verified signature support')
-
-
-@api_router.post('/webhooks/mailersend-sms-status')
-async def mailersend_sms_status_webhook():
-    """Fail closed until a verified MailerSend signature validator is installed."""
-    raise HTTPException(status_code=503, detail='MailerSend webhooks are disabled pending verified signature support')
-
-
 # --------------- Media Upload ---------------
 
 import base64 as _base64
@@ -5032,6 +4753,12 @@ async def startup():
         # Home Page
         {'key': 'home_hero_headline', 'value': 'SERIOUS\nSTRENGTH\nTRAINING.'},
         {'key': 'home_hero_subtitle', 'value': 'A focused gym for athletes, lifters, and people who believe strength matters.'},
+        # Home.js reads the _v2 keys. The unsuffixed pair above is still seeded
+        # because other pages read it, so editing one never changes the other.
+        # Values match the fallbacks in Home.js so the editor opens populated
+        # with the copy that is actually on screen rather than blank.
+        {'key': 'home_hero_headline_v2', 'value': 'A Santa Cruz strength gym you can see before you join.'},
+        {'key': 'home_hero_subtitle_v2', 'value': 'See the racks, platforms, training floor, and access setup before you choose a membership.'},
         {'key': 'home_hero_subtext', 'value': 'Real training environment. Real community. Santa Cruz.'},
         {'key': 'home_benefits_headline', 'value': 'STRENGTH WITHOUT THE NOISE.'},
         {'key': 'home_benefits_subtitle', 'value': 'No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.'},

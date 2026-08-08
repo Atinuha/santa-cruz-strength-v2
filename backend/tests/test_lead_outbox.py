@@ -311,6 +311,59 @@ class LeadOutboxTests(unittest.TestCase):
         self.assertEqual(second['attempt_count'], 2)
         self.assertIsNone(stale_commit)
 
+    def test_a_lost_lease_race_cannot_become_a_second_provider_call(self):
+        """Bound the documented worker clock limit in claim_due_job.
+
+        Two workers with skewed clocks can both claim one job. What must never
+        follow is two sends, so the loser has to fail at the delivery boundary
+        rather than at the commit that happens after the provider was called.
+        """
+        collection = MemoryCollection()
+        self.run_async(enqueue_outbox_job(
+            collection,
+            idempotency_key='lead-1:sms:ack',
+            lead_id='lead-1',
+            event_type='lead.acknowledgement.requested',
+            channel='sms',
+            created_at=NOW,
+        ))
+        first = self.run_async(claim_due_job(
+            collection, worker_id='worker-1', now=NOW, lease_seconds=15
+        ))
+        second = self.run_async(claim_due_job(
+            collection, worker_id='worker-2', now=NOW + timedelta(seconds=16)
+        ))
+
+        stale_begin = self.run_async(mark_delivery_begun(
+            collection,
+            job_id=first['id'],
+            worker_id='worker-1',
+            reservation_token=first['delivery_reservation_token'],
+            now=NOW + timedelta(seconds=16),
+        ))
+        winner_begin = self.run_async(mark_delivery_begun(
+            collection,
+            job_id=second['id'],
+            worker_id='worker-2',
+            reservation_token=second['delivery_reservation_token'],
+            now=NOW + timedelta(seconds=17),
+        ))
+        stale_begin_after_winner = self.run_async(mark_delivery_begun(
+            collection,
+            job_id=first['id'],
+            worker_id='worker-1',
+            reservation_token=first['delivery_reservation_token'],
+            now=NOW + timedelta(seconds=18),
+        ))
+
+        self.assertIsNone(stale_begin)
+        self.assertIsNone(stale_begin_after_winner)
+        self.assertEqual(winner_begin['delivery_state'], 'begun')
+        self.assertEqual(
+            collection.documents[0]['delivery_begun_at'],
+            (NOW + timedelta(seconds=17)).isoformat(),
+        )
+
     def test_maxed_out_expired_job_is_terminalized_and_cannot_be_reclaimed(self):
         collection = MemoryCollection()
         self.run_async(enqueue_outbox_job(

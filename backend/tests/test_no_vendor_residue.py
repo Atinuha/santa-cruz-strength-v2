@@ -65,6 +65,48 @@ class NoVendorResidueTests(unittest.TestCase):
     def test_platform_deploy_config_is_gone(self):
         self.assertFalse((REPO / '.emergent').exists(), '.emergent/ came back')
 
+    def test_no_operational_mailersend_surface_remains(self):
+        """MailerSend was removed as a provider. Nothing may still accept its traffic.
+
+        The send path went first and the inbound routes outlived it, which left
+        the project claiming a provider was gone while three of its webhooks were
+        still published. Inbound only matters during a transition, and the
+        transition ended when the send path was deleted.
+
+        Prose is deliberately not checked. send_sms carries a comment explaining
+        why the fallback was removed, and that history is worth keeping. What is
+        checked is anything operational: symbols, env vars, the API host, and the
+        published route table, because a route is the part that can accept a
+        request.
+        """
+        operational = ('MAILERSEND_API_KEY', 'MAILERSEND_FROM', 'api.mailersend.com',
+                       'ALLOW_MAILERSEND_WEBHOOKS', 'mailersend-sms')
+        offenders = []
+        for path in list(BACKEND.glob('*.py')) + [BACKEND / '.env.example']:
+            text = path.read_text(encoding='utf-8', errors='replace')
+            offenders += [f'{path.name} -> {token}' for token in operational if token in text]
+        self.assertEqual(offenders, [], f'MailerSend surface returned: {offenders}')
+
+        # The route table is the authority. This FastAPI version keeps an
+        # included router as one entry with an empty path, so app.routes shows
+        # no API route at all and any assertion over it would pass vacuously.
+        sys.path.insert(0, str(BACKEND))
+        import os
+        for key in [k for k in os.environ if k.startswith('ALLOW_')]:
+            del os.environ[key]
+        os.environ.update({
+            'MONGO_URL': 'mongodb://localhost:27017', 'DB_NAME': 'scs_residue_test',
+            'FRONTEND_URL': 'http://localhost:3000', 'CORS_ORIGINS': 'http://localhost:3000',
+            'JWT_SECRET': 'x' * 40, 'UNSUBSCRIBE_SECRET': 'y' * 40,
+        })
+        for module in [m for m in list(sys.modules) if m in ('server', 'runtime_safety')]:
+            del sys.modules[module]
+        import server
+
+        published = server.app.openapi()['paths']
+        self.assertEqual([p for p in published if 'mailersend' in p.lower()], [])
+        self.assertIn('/api/webhooks/twilio-sms', published)
+
 
 if __name__ == '__main__':
     unittest.main()

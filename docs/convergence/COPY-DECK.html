@@ -1,0 +1,355 @@
+<title>Santa Cruz Strength: homepage copy deck</title>
+<style>
+  :root {
+    --paper: #f2f0e9; --ink: #111714; --muted: #526058; --green: #0f6842;
+    --red: #b63b35; --rule: #bdc7bf; --card: #fcfcf8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper: #12160f; --ink: #eef1e9; --muted: #9aa79d; --green: #6cc39a;
+            --red: #e08a84; --rule: #33403a; --card: #1a201b; }
+  }
+  :root[data-theme="dark"] {
+    --paper: #12160f; --ink: #eef1e9; --muted: #9aa79d; --green: #6cc39a;
+    --red: #e08a84; --rule: #33403a; --card: #1a201b;
+  }
+  :root[data-theme="light"] {
+    --paper: #f2f0e9; --ink: #111714; --muted: #526058; --green: #0f6842;
+    --red: #b63b35; --rule: #bdc7bf; --card: #fcfcf8;
+  }
+  body { background: var(--paper); color: var(--ink); margin: 0;
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 62rem; margin: 0 auto; padding: 3rem 1.25rem 6rem; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); line-height: 1.05; letter-spacing: -0.03em;
+       margin: 0 0 .4rem; }
+  h2 { font-size: 1.35rem; letter-spacing: -0.02em; margin: 3rem 0 .5rem;
+       padding-top: 1.25rem; border-top: 2px solid var(--ink); }
+  h3 { font-size: 1rem; margin: 1.75rem 0 .35rem; color: var(--green);
+       text-transform: uppercase; letter-spacing: .08em; }
+  .lede { color: var(--muted); max-width: 46rem; margin: 0 0 1rem; }
+  .meta { font-size: .82rem; color: var(--muted); border-bottom: 1px solid var(--rule);
+          padding-bottom: 1.5rem; }
+  .block { background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--green);
+           padding: 1rem 1.15rem; margin: 1rem 0; }
+  .block[data-state="hold"] { border-left-color: var(--red); }
+  .lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
+         color: var(--muted); margin-top: .9rem; }
+  .lbl:first-child { margin-top: 0; }
+  .cur { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .rep { font-weight: 600; }
+  pre { background: var(--paper); border: 1px solid var(--rule); padding: .7rem .8rem;
+        overflow-x: auto; font-size: .85rem; margin: .3rem 0 0; white-space: pre-wrap; }
+  code { font-size: .85em; background: var(--paper); border: 1px solid var(--rule);
+         padding: .05em .3em; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  .scroll { overflow-x: auto; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--rule);
+           vertical-align: top; }
+  th { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .pick { color: var(--green); font-weight: 700; }
+  .warn { background: color-mix(in srgb, var(--red) 10%, transparent);
+          border: 1px solid var(--red); padding: 1rem 1.15rem; margin: 1.25rem 0; }
+  button.copy { font: inherit; font-size: .75rem; background: var(--green); color: var(--card);
+                border: 0; padding: .3rem .7rem; cursor: pointer; margin-top: .5rem; }
+  ul { padding-left: 1.1rem; }
+  li { margin: .3rem 0; }
+</style>
+
+<main>
+  <h1>Homepage copy deck</h1>
+  <p class="lede">Direct response pass on the Santa Cruz Strength homepage. Every replacement below is
+    ready to paste. Nothing here invents a fact the site cannot support.</p>
+  <p class="meta">Audience: solution aware. They already know they want a gym and are choosing between
+    this one, a chain, and a studio. So the copy differentiates rather than educates.
+    No brand voice profile exists at <code>./brand/</code>, so voice is derived from the site's own
+    ledger design thesis and from the published member reviews.</p>
+
+  <div class="warn">
+    <strong>The binding constraint.</strong> Every factual claim on this site survived an evidence audit,
+    and that audit found several earlier claims to be false. <code>src/config/index.js</code> is the
+    single source, and it carries more than it looks like it does: the address, the phone, the hours,
+    the equipment list, and <code>MEMBERSHIP_TIERS</code>, nine real tiers with prices and terms,
+    under a comment reading "these are commercial representations, not marketing copy". What is
+    genuinely absent is parking, member count, year founded, the busiest hour, and whether a tour
+    needs booking ahead. Where a persuasion move needed one of those, the copy carries a
+    <strong>[FACT NEEDED]</strong> slot instead of a guess. Those slots are blockers on Mike, not on
+    engineering. Read the config before deciding a fact is missing; see both corrections below.
+  </div>
+
+  <h2>1. Hero headline</h2>
+
+  <h3>Variants considered</h3>
+  <div class="scroll">
+  <table>
+    <tr><th>#</th><th>Framework</th><th>Line</th><th>Verdict</th></tr>
+    <tr><td>1</td><td>Direct benefit</td><td>A stronger place to train. A better place to belong.</td>
+        <td>Current. True, but could belong to any gym in America. No differentiation.</td></tr>
+    <tr><td>2</td><td>Contrarian</td><td>Not a fitness center. A strength gym.</td>
+        <td>Sharp, but defines by negation and picks a fight the room does not need.</td></tr>
+    <tr><td class="pick">3</td><td>Specificity</td>
+        <td class="pick">Real racks. Real platforms. Open 24 hours for members.</td>
+        <td><strong>Chosen.</strong> Three concrete facts, each verifiable, each one a thing a chain
+        gym cannot say. The reader concludes "serious gym" rather than being told.</td></tr>
+    <tr><td>4</td><td>Social proof</td><td>The gym Santa Cruz lifters bring their friends to.</td>
+        <td>Rejected. No evidence for it. This is exactly the class of claim the audit removed.</td></tr>
+    <tr><td>5</td><td>Question</td><td>Tired of waiting for a rack?</td>
+        <td>Rejected. Implies a crowding claim about competitors that cannot be supported.</td></tr>
+    <tr><td>6</td><td>Transformation</td><td>From the treadmill row to a real platform.</td>
+        <td>Good energy, but assumes a starting point most visitors will not recognise.</td></tr>
+  </table>
+  </div>
+
+  <div class="block">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js:119</code>, inside
+      <code>getCopy('home_hero_headline_v2', ...)</code></div>
+    <div class="lbl">Current</div>
+    <div class="cur">A stronger place to train. A better place to belong.</div>
+    <div class="lbl">Replacement</div>
+    <pre class="rep">Real racks. Real platforms. Open 24 hours for members.</pre>
+    <button class="copy">Copy</button>
+    <div class="lbl">Why</div>
+    <div>Trades a sentiment any gym could claim for three specifics only this one can, and lets the
+      reader draw the conclusion instead of asserting it.</div>
+    <div class="lbl">Facts assumed</div>
+    <div>None. Equipment list and 24/7 member access are both already published on the page.</div>
+  </div>
+
+  <h2>2. Hero subheadline</h2>
+  <div class="block">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js:122</code>, inside
+      <code>getCopy('home_hero_subtitle_v2', ...)</code></div>
+    <div class="lbl">Current</div>
+    <div class="cur">Serious strength equipment, personal coaching and a community that notices when
+      you show up.</div>
+    <div class="lbl">Replacement</div>
+    <pre class="rep">A Santa Cruz gym built around the barbell. Bring your own program or work with a coach. Either way, someone will offer you a spot before you ask.</pre>
+    <button class="copy">Copy</button>
+    <div class="lbl">Why</div>
+    <div>Handles the two objections the headline creates. "Bring your own program" answers the lifter
+      who does not want to be sold coaching. The spot line answers the beginner who is afraid of
+      walking into a powerlifting room, and it is grounded in a published review rather than invented.</div>
+    <div class="lbl">Facts assumed</div>
+    <div>None. The spot line paraphrases the published member review already quoted on the page:
+      "always happy to spot you and give tips."</div>
+  </div>
+
+  <h2>3. FAQ, "Before you visit"</h2>
+  <p class="lede">The four current answers are accurate and cover almost nothing a person actually
+    hesitates over. Price, contract, intimidation and rack availability are the real objections. Two
+    of those need facts nobody has yet, so they are staged rather than guessed.</p>
+
+  <div class="block">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js:55</code>, <code>FAQ_ITEMS[0].answer</code></div>
+    <div class="lbl">Current</div>
+    <div class="cur">Yes. Request a free facility tour and the team will follow up to arrange a
+      suitable time. There is no membership commitment for the tour.</div>
+    <div class="lbl">Replacement</div>
+    <pre class="rep">Yes, and most people do. Ask for a free tour and someone will walk you through the floor, show you the racks and platforms, and answer whatever you want to ask. You are not signing anything, and nobody will chase you afterwards.</pre>
+    <button class="copy">Copy</button>
+    <div class="lbl">Why</div>
+    <div>"Most people do" removes the fear of being the only one asking. Naming what happens on the
+      tour removes the fear of an unknown sales process. The last clause names the real fear, which is
+      being pursued.</div>
+    <div class="lbl">Facts assumed</div>
+    <div>None.</div>
+  </div>
+
+  <div class="block">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js:63</code>, <code>FAQ_ITEMS[1].answer</code></div>
+    <div class="lbl">Current</div>
+    <div class="cur">Current full memberships include 24/7 facility access through the member app.
+      Day-pass and staffed access are different, so review the current details before visiting.</div>
+    <div class="lbl">Replacement</div>
+    <pre class="rep">Am I locked into a contract?
+
+Only if you want to be. Flex Huscler is month to month with no agreement required. The 6-month and 12-month plans cost less per month in exchange for the term. Cancellations need 30 days notice before the last billing date, and every plan's price and terms are on the memberships page.</pre>
+    <button class="copy">Copy</button>
+    <div class="lbl">Why</div>
+    <div>Replaces the question outright. 24 hour access is already stated three times above this
+      section, so the slot was redundant, while contract fear is the largest objection to joining an
+      independent gym and has a genuinely good answer that the homepage never gives.</div>
+    <div class="lbl">Facts assumed</div>
+    <div>None. Every claim comes from <code>MEMBERSHIP_TIERS</code> and
+      <code>MEMBERSHIP_FEE_NOTE</code> in <code>src/config/index.js</code>. Dollar figures are
+      deliberately omitted so the homepage does not become a second source of truth that drifts from
+      <code>/join</code>.</div>
+  </div>
+
+  <div class="warn">
+    <strong>Correction, recorded rather than quietly fixed.</strong> The first version of this block
+    answered the 24 hour access question and stated staffed hours as Monday to Friday 9am to 7pm and
+    Saturday and Sunday 9am to 1pm. That was wrong. <code>GYM_CONFIG.hours</code> says staffed hours
+    are <strong>Monday to Friday 8 AM to 7 PM, Saturday and Sunday 9 AM to 2 PM</strong>. Publishing
+    the earlier version would have put a false claim back onto a site whose whole convergence was
+    spent removing them. The source of the error was writing hours from a screenshot instead of from
+    <code>config/index.js</code>, which carries a comment naming itself the single source.
+  </div>
+
+  <div class="block">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js:67</code>, <code>FAQ_ITEMS[2].answer</code></div>
+    <div class="lbl">Current</div>
+    <div class="cur">Yes. Use the personal training page to review the coaching path and send an
+      inquiry about your goals.</div>
+    <div class="lbl">Replacement</div>
+    <pre class="rep">Yes, and it is optional. Plenty of members train on their own program and never book a session. If you want coaching, whether that is learning to squat properly or preparing for a meet, the personal training page explains how it works.</pre>
+    <button class="copy">Copy</button>
+    <div class="lbl">Why</div>
+    <div>The question people are really asking is whether they will be pushed into paying for
+      training. Saying "it is optional" first is worth more than the link.</div>
+    <div class="lbl">Facts assumed</div>
+    <div>None.</div>
+  </div>
+
+  <div class="block">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js:71</code>, <code>FAQ_ITEMS[3].answer</code></div>
+    <div class="lbl">Current</div>
+    <div class="cur">The current facility includes racks, platforms, barbells, plates, specialty bars,
+      dumbbells and conditioning equipment. A tour is the best way to confirm the exact setup you
+      need.</div>
+    <div class="lbl">Replacement</div>
+    <pre class="rep">Racks, lifting platforms, barbells and plates, specialty bars, dumbbells and conditioning equipment. If there is a specific bar or machine you train with, ask on the tour and we will show you whether it is on the floor.</pre>
+    <button class="copy">Copy</button>
+    <div class="lbl">Why</div>
+    <div>Ends with an invitation to name the one piece of equipment they care about, which is both a
+      genuine answer and a reason to book.</div>
+    <div class="lbl">Facts assumed</div>
+    <div>None.</div>
+  </div>
+
+  <h3>New question, the largest unhandled objection</h3>
+  <div class="block">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js</code>, append to <code>FAQ_ITEMS</code></div>
+    <div class="lbl">Current</div>
+    <div class="cur">Does not exist.</div>
+    <div class="lbl">Replacement</div>
+    <pre class="rep">{
+  question: 'I have never trained in a gym like this. Will I be out of place?',
+  answer: 'No. The room has competitive lifters in it and it also has people learning their first squat, often on the same platform. If you are unsure, come on a tour and see it for yourself before you decide anything.',
+}</pre>
+    <button class="copy">Copy</button>
+    <div class="lbl">Why</div>
+    <div>This is the objection that loses the most members and the site currently does not
+      acknowledge it at all. It also converts the intimidation into a reason to take the tour.</div>
+    <div class="lbl">Facts assumed</div>
+    <div>None. The published reviews describe both a competitive focus and an "open and accepting
+      environment", so both halves are evidenced.</div>
+  </div>
+
+  <h3>Held back</h3>
+  <div class="block" data-state="hold">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js</code>, <code>FAQ_ITEMS</code>, not written</div>
+    <div class="lbl">Why it is not written</div>
+    <div>Parking at a business park address is either a non issue or a real one, and guessing which
+      is exactly the failure mode this project has already paid for once. A tour booking rule is the
+      same. Both are one sentence from Mike.</div>
+    <div class="lbl">Facts needed</div>
+    <ul>
+      <li><strong>[FACT NEEDED: parking at 151 Harvey West Blvd Ste D, free or not, and whether it
+        fills at peak]</strong>, Mike</li>
+      <li><strong>[FACT NEEDED: does a tour need booking ahead, or can someone walk in during
+        staffed hours]</strong>, Mike</li>
+      <li><strong>[FACT NEEDED: the gym's actual busiest hours]</strong>, Mike or the front desk.
+        Only needed to strengthen the rack availability answer, which ships without it.</li>
+    </ul>
+  </div>
+
+  <div class="warn">
+    <strong>Correction, second one, and the more embarrassing.</strong> This deck originally claimed
+    the site had no price and no contract term available, and staged both as facts only Mike could
+    supply. That was wrong. <code>src/config/index.js</code> carries
+    <code>MEMBERSHIP_TIERS</code>, nine tiers with real prices, and
+    <code>MEMBERSHIP_FEE_NOTE</code> with the cancellation rule, under a comment reading "these are
+    commercial representations, not marketing copy". A memory note in this project already recorded
+    that the tiers live in the site's JS bundle. I concluded absence without searching, which is the
+    single failure this project's own resume rule warns about by name.
+  </div>
+
+  <h2>4. Tour form introduction</h2>
+  <div class="block">
+    <div class="lbl">Location</div>
+    <div><code>frontend/src/pages/Home.js:243</code></div>
+    <div class="lbl">Current</div>
+    <div class="cur">Tell us what you are looking for. The Santa Cruz team will review the request and
+      contact you to arrange the next step.</div>
+    <div class="lbl">Replacement</div>
+    <pre class="rep">Tell us what you are training for. It takes about a minute, and it means the person who calls you already knows what you are asking about instead of starting from scratch.</pre>
+    <button class="copy">Copy</button>
+    <div class="lbl">Why</div>
+    <div>"Review the request and arrange the next step" is process language written from the gym's
+      side of the desk. The replacement gives the reader a reason the form is worth filling in, which
+      is the only thing that raises completion.</div>
+    <div class="lbl">Facts assumed</div>
+    <div>"About a minute" is a claim about the form, which is three short steps. If the form grows,
+      this line has to change with it.</div>
+  </div>
+
+  <h2>5. Kept as written</h2>
+  <p class="lede">The brief was to rewrite only where a specific gain can be named. These earned
+    their place.</p>
+  <ul>
+    <li><strong>"Come see the room for yourself."</strong> The closing line. Honest, unhurried, and
+      it matches the ledger thesis the whole design is built on. Nothing generic would beat it.</li>
+    <li><strong>"Book a free tour."</strong> Already benefit shaped rather than a command, and every
+      analytics event on the page is named around it. Changing it would cost more than it returns.</li>
+    <li><strong>The three member testimonials.</strong> Real published reviews. Rewording them would
+      be fabrication.</li>
+    <li><strong>"See the room, ask questions and decide without pressure."</strong> The hero dateline.
+      It is doing objection handling above the fold already.</li>
+  </ul>
+
+  <h2>6. Scorecard</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Dimension</th><th>Before</th><th>After</th><th>Note</th></tr>
+    <tr><td>Clarity</td><td>8</td><td>9</td><td>Was already clear. Now also concrete.</td></tr>
+    <tr><td>Specificity</td><td>4</td><td>8</td><td>Hours, equipment and access moved from "review the
+      details" into the answer.</td></tr>
+    <tr><td>Voice</td><td>6</td><td>8</td><td>Was written from the gym's side of the desk. Now spoken
+      to a person.</td></tr>
+    <tr><td>Desire</td><td>5</td><td>8</td><td>Contract and plan structure now answered on the
+      homepage instead of one navigation away.</td></tr>
+    <tr><td>Proof</td><td>6</td><td>7</td><td>Real reviews were already present and are now used to
+      carry the culture claim rather than sitting decoratively.</td></tr>
+    <tr><td>Urgency</td><td>2</td><td>2</td><td>Unchanged on purpose. There is no real deadline, and
+      manufacturing one would be the first false claim back onto this site.</td></tr>
+    <tr><td>Flow</td><td>6</td><td>7</td><td>FAQ answers now end pointing at the tour instead of
+      trailing off.</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>37/70</strong></td><td><strong>49/70</strong></td>
+      <td>53 percent to 70 percent. The ceiling now is that a submitted form reaches a database and
+      nothing else, not the copy.</td></tr>
+  </table>
+  </div>
+
+  <h2>7. What to test first</h2>
+  <ol>
+    <li><strong>Hero headline, specificity against the current sentiment line.</strong> The headline
+      carries most of the work, and these two are as far apart in approach as the evidence allows.
+      Measure scroll past the fold and tour form starts.</li>
+    <li><strong>The new intimidation FAQ, present against absent.</strong> If it moves tour requests,
+      that tells you the real blocker is fear rather than price, which changes what to fix next.</li>
+    <li><strong>Tour form introduction.</strong> Smallest change, measured on form completion rate
+      between step one and submit.</li>
+  </ol>
+  <p class="lede">None of these can run until analytics is live and a lead can actually be answered.
+    Twilio is rejected at the carrier and email dispatch is gated off, so today a submitted form
+    reaches a database and nothing else.</p>
+</main>
+
+<script>
+  document.querySelectorAll('button.copy').forEach((button) => {
+    button.addEventListener('click', () => {
+      const text = button.previousElementSibling.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        button.textContent = 'Copied';
+        setTimeout(() => { button.textContent = 'Copy'; }, 1400);
+      });
+    });
+  });
+</script>

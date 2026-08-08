@@ -80,5 +80,29 @@ class WriteGateHttpTests(unittest.TestCase):
             )
 
 
+class RoutePathSyntaxTests(unittest.TestCase):
+    """Express path syntax silently produces a dead route in FastAPI.
+
+    '/blog/:slug' declared a literal ':slug' segment, so the slug argument
+    became a required query parameter instead of a path parameter. The route
+    answered 422 to every real slug and could only be reached as
+    '/blog/:slug?slug=x'. It shipped because it sits next to a React Router
+    path that uses ':slug' correctly, and because a dead route breaks nothing
+    loudly. Assert against the real route table so the next copy paste fails
+    here rather than in the OpenAPI document.
+    """
+
+    def test_no_route_declares_an_express_style_path_parameter(self):
+        # Read the published paths, not app.routes. This FastAPI version keeps
+        # an included router as a single _IncludedRouter entry with an empty
+        # path, so iterating app.routes sees no API route at all and any
+        # assertion over it passes vacuously.
+        server = _load_app()
+        published = server.app.openapi()['paths']
+        offenders = sorted(path for path in published if ':' in path)
+        self.assertEqual(offenders, [])
+        self.assertIn('/api/blog/post/{slug}', published)
+
+
 if __name__ == '__main__':
     unittest.main()

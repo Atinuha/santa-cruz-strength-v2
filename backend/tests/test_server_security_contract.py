@@ -19,9 +19,9 @@ class ServerSecurityContractTests(unittest.TestCase):
         self.assertIn("RequestValidator", SOURCE)
         self.assertIn("db.webhook_receipts.insert_one", SOURCE)
         self.assertIn("Resend webhooks are disabled pending verified signature support", SOURCE)
-        self.assertGreaterEqual(
-            SOURCE.count("MailerSend webhooks are disabled pending verified signature support"), 2
-        )
+        # MailerSend was removed as a provider, inbound surface included, so the
+        # count that used to be asserted here is now zero by design. Absence of
+        # the whole surface is asserted in test_no_vendor_residue.
 
     def test_email_suppression_is_channel_specific(self):
         for field in ('email_opted_out', 'email_marketing_opt_in', 'email_bounced', 'email_complained'):

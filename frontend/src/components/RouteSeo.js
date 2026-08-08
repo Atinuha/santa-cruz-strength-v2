@@ -57,7 +57,14 @@ const updateCanonical = (canonical) => {
   canonicalLinks.slice(1).forEach((link) => link.remove());
 };
 
-const updateHomeSchema = (pathname) => {
+const updateSchema = (pathname) => {
+  // Blog posts are served with prerendered article schema in their head shell.
+  // A client-side navigation away from one must drop it, or the stale block
+  // keeps describing the previous article.
+  if (!pathname.startsWith('/blog/')) {
+    document.getElementById('article-schema')?.remove();
+  }
+
   const existing = document.getElementById('site-schema');
   if (pathname !== '/') {
     existing?.remove();
@@ -86,7 +93,7 @@ export default function RouteSeo() {
     upsertMeta('name', 'twitter:title', metadata.title);
     upsertMeta('name', 'twitter:description', metadata.description);
     updateCanonical(metadata.canonical);
-    updateHomeSchema(normalizePath(pathname));
+    updateSchema(normalizePath(pathname));
   }, [pathname]);
 
   return null;

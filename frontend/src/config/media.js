@@ -55,6 +55,12 @@ export const SCS_MEDIA = Object.freeze({
   heroFacility: `${ROOM}/facility.jpg`, // wide floor, wall seal, racks, platforms
   openGym: `${ROOM}/racks.jpg`,         // rack and bench area, plate storage
 
+  // The seal. Not a photograph, so no permission question, but it belongs here
+  // rather than as a literal in each component: the navbar, the footer, the
+  // hero watermark and the entity block all render it, and a missing key made
+  // every one of them an <img src={undefined}> until this was added.
+  logo: `${ROOM}/logo.png`,
+
   // No honest photograph exists. Pages render without these rather than
   // showing a different subject. See the note at the top of this file.
   loadedBar: null,      // no close-up of a loaded bar exists

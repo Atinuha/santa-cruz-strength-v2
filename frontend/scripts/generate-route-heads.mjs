@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,7 +13,87 @@ const registry = JSON.parse(
 const homeSchema = JSON.parse(
   await readFile(resolve(frontendRoot, 'src/seo/home-schema.json'), 'utf8')
 );
+const posts = JSON.parse(
+  await readFile(resolve(frontendRoot, 'src/seo/published-posts.json'), 'utf8')
+);
 const template = await readFile(resolve(buildRoot, 'index.html'), 'utf8');
+
+const lastModifiedBySlug = new Map(
+  posts.filter((post) => post.published).map((post) => [post.slug, post.lastModified])
+);
+
+// Article schema for blog posts. Only properties evidenced by the page or the
+// published-post record are encoded. datePublished, author and article image are
+// deliberately absent: none of the three is known at build time, and an invented
+// value is worse than an omitted one.
+const buildArticleGraph = (route) => {
+  const lastModified = lastModifiedBySlug.get(route.path.slice('/blog/'.length));
+  const article = {
+    '@type': 'BlogPosting',
+    '@id': `${route.canonical}#article`,
+    headline: route.h1 || route.title,
+    description: route.description,
+    url: route.canonical,
+    inLanguage: 'en-US',
+    isPartOf: { '@id': `${registry.site.origin}/#website` },
+    mainEntityOfPage: { '@id': route.canonical },
+    publisher: {
+      '@type': 'Organization',
+      name: registry.site.name,
+      url: `${registry.site.origin}/`,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${registry.site.origin}/assets/scs/logo.png`,
+        width: 480,
+        height: 486,
+      },
+    },
+  };
+  if (lastModified) article.dateModified = lastModified;
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      article,
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${route.canonical}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${registry.site.origin}/` },
+          { '@type': 'ListItem', position: 2, name: 'Articles', item: `${registry.site.origin}/blog` },
+          { '@type': 'ListItem', position: 3, name: route.h1 || route.title },
+        ],
+      },
+    ],
+  };
+};
+
+// Self hosted fonts are render blocking on first paint, so preload them. Read
+// the built stylesheet rather than the sources: it holds every @font-face from
+// every origin (src/index.css and the @fontsource packages alike) already
+// pointing at the hashed filenames webpack emitted, so nothing here can rot.
+// Only basic latin at the two text weights is worth the bytes; a cyrillic or
+// latin-ext subset would be fetched for glyphs this site never renders.
+const PAINT_WEIGHTS = new Set(['400', '600']);
+const isLatin = (face) => /u\+00\?\?|u\+0{1,4}-0{0,2}ff/i.test(face) || !/unicode-range/i.test(face);
+
+const cssDir = resolve(buildRoot, 'static/css');
+const builtCss = (await Promise.all(
+  (await readdir(cssDir))
+    .filter((name) => name.endsWith('.css'))
+    .map((name) => readFile(resolve(cssDir, name), 'utf8'))
+)).join('');
+
+const findFonts = async () => [...builtCss.matchAll(/@font-face\{([^}]*)\}/g)]
+  .map((match) => match[1])
+  .filter((face) => isLatin(face) && PAINT_WEIGHTS.has(face.match(/font-weight:\s*(\d+)/)?.[1]))
+  .map((face) => face.match(/url\((\/[^)]+\.woff2)\)/)?.[1])
+  .filter(Boolean);
+
+const fontPreloads = (await findFonts())
+  .map((href) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="${href}" />`)
+  .join('\n    ');
+if (!fontPreloads) console.warn('No latin woff2 subsets found in the build; skipping font preload.');
 
 const escapeHtml = (value) => String(value)
   .replaceAll('&', '&amp;')
@@ -79,11 +159,20 @@ const renderHead = (metadata) => {
     html = html.replace('</head>', `    <link rel="canonical" href="${escapeHtml(canonical)}" />\n</head>`);
   }
 
+  html = html.replace(/<link[^>]+rel=["']preload["'][^>]+as=["']font["'][^>]*>\s*/gi, '');
+  if (fontPreloads) html = html.replace('</head>', `    ${fontPreloads}\n</head>`);
+
   html = html.replace(/<script[^>]+id=["']site-schema["'][^>]*>[\s\S]*?<\/script>\s*/gi, '');
+  html = html.replace(/<script[^>]+id=["']article-schema["'][^>]*>[\s\S]*?<\/script>\s*/gi, '');
   if (metadata.path === '/') {
     html = html.replace(
       '</head>',
       `    <script id="site-schema" type="application/ld+json">${JSON.stringify(homeSchema)}</script>\n</head>`
+    );
+  } else if (metadata.path.startsWith('/blog/') && metadata.indexable && canonical) {
+    html = html.replace(
+      '</head>',
+      `    <script id="article-schema" type="application/ld+json">${JSON.stringify(buildArticleGraph(metadata))}</script>\n</head>`
     );
   }
 

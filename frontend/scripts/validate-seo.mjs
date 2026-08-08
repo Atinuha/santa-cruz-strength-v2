@@ -1,4 +1,5 @@
 import { readFile, readdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,17 +36,114 @@ check(
   `sitemap matches ${expectedLocations.length} indexable routes`
 );
 check(new Set(sitemapLocations).size === sitemapLocations.length, 'sitemap locations are unique');
+// Every published post is in the sitemap unless it is consolidated into another
+// post, in which case the winner carries it.
+const orphanedPosts = posts.filter((post) => post.published).filter((post) => {
+  const route = registry.routes.find((candidate) => candidate.path === `/blog/${post.slug}`);
+  if (route?.consolidatedInto) return !sitemapLocations.includes(route.canonical);
+  return !sitemapLocations.includes(`${registry.site.origin}/blog/${post.slug}`);
+});
 check(
-  posts.filter((post) => post.published).every((post) => sitemapLocations.includes(`${registry.site.origin}/blog/${post.slug}`)),
-  'all published posts appear in sitemap'
+  !orphanedPosts.length,
+  `all published posts are in the sitemap or consolidated into one that is${orphanedPosts.length ? `: ${orphanedPosts.map((post) => post.slug).join(', ')}` : ''}`
+);
+// Compare a route's own URL, not its canonical. A consolidated duplicate points
+// its canonical at the winner, which is legitimately in the sitemap.
+check(
+  registry.routes
+    .filter((route) => !route.indexable)
+    .every((route) => !sitemapLocations.includes(`${registry.site.origin}${route.path}`)),
+  'no route excluded from indexing appears in sitemap'
+);
+
+// A cross canonical must land on a page that is itself indexable and canonical
+// to itself, or the signal dead ends in a chain.
+const consolidated = registry.routes.filter((route) => route.consolidatedInto);
+const brokenConsolidations = consolidated.filter((route) => {
+  const target = registry.routes.find((candidate) => candidate.path === route.consolidatedInto);
+  return !target
+    || !target.indexable
+    || target.canonical !== `${registry.site.origin}${target.path}`
+    || route.canonical !== target.canonical;
+});
+check(
+  !brokenConsolidations.length,
+  `every consolidated route canonicals to an indexable self-canonical page${brokenConsolidations.length ? `: ${brokenConsolidations.map((route) => route.path).join(', ')}` : ''}`
 );
 check(
-  registry.routes.filter((route) => !route.indexable).every((route) => !sitemapLocations.includes(route.canonical)),
-  'no noindex route appears in sitemap'
+  consolidated.every((route) => !/noindex/.test(route.robots || '')),
+  'consolidated routes stay crawlable so the canonical can be read'
+);
+
+const indexable = registry.routes.filter((route) => route.indexable);
+const overLongTitles = indexable.filter((route) => route.title.length > 60).map((route) => `${route.path} (${route.title.length})`);
+const overLongDescriptions = indexable.filter((route) => route.description.length > 160).map((route) => `${route.path} (${route.description.length})`);
+const missingH1 = registry.routes.filter((route) => !route.h1).map((route) => route.path);
+const duplicate = (key) => {
+  const counts = new Map();
+  indexable.forEach((route) => counts.set(route[key], (counts.get(route[key]) || 0) + 1));
+  return [...counts.entries()].filter(([, count]) => count > 1).map(([value]) => value);
+};
+const duplicateTitles = duplicate('title');
+const duplicateDescriptions = duplicate('description');
+
+check(!overLongTitles.length, `every indexable title is 60 characters or fewer${overLongTitles.length ? `: ${overLongTitles.join(', ')}` : ''}`);
+check(!overLongDescriptions.length, `every indexable description is 160 characters or fewer${overLongDescriptions.length ? `: ${overLongDescriptions.join(', ')}` : ''}`);
+check(!duplicateTitles.length, `indexable titles are unique${duplicateTitles.length ? `: ${duplicateTitles.join(', ')}` : ''}`);
+check(!duplicateDescriptions.length, `indexable descriptions are unique${duplicateDescriptions.length ? `: ${duplicateDescriptions.join(', ')}` : ''}`);
+check(!missingH1.length, `every route records the heading its page renders${missingH1.length ? `: ${missingH1.join(', ')}` : ''}`);
+
+// Social preview images are asserted by absolute URL, so a rename silently ships
+// a broken card. Resolve every referenced asset back to a file on disk.
+const referencedImages = [...publicIndex.matchAll(/(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*content=["']([^"']+)["']/g)]
+  .map((match) => match[1]);
+const brokenImages = [];
+for (const url of referencedImages) {
+  const path = url.replace(registry.site.origin, '');
+  if (!existsSync(resolve(frontendRoot, `public${path}`))) brokenImages.push(url);
+}
+check(
+  referencedImages.length > 0 && !brokenImages.length,
+  `social preview images resolve to real files${brokenImages.length ? `: missing ${brokenImages.join(', ')}` : ''}`
 );
 
 check(publicIndex.includes('<link rel="canonical" href="https://santacruzstrength.com/"'), 'homepage has self-canonical');
 check(publicIndex.includes('id="site-schema"'), 'homepage schema has a stable script identifier');
+
+// public/index.html carries an inline copy of the homepage graph so the shell is
+// correct before the build rewrites it. Two copies drift; this pins them together.
+const homeSchema = JSON.parse(await readFile(resolve(frontendRoot, 'src/seo/home-schema.json'), 'utf8'));
+const inlineSchemaText = publicIndex.match(/id="site-schema"[^>]*>([\s\S]*?)<\/script>/)?.[1];
+let inlineSchema = null;
+try {
+  inlineSchema = JSON.parse(inlineSchemaText);
+} catch {
+  inlineSchema = null;
+}
+check(
+  inlineSchema !== null && JSON.stringify(inlineSchema) === JSON.stringify(homeSchema),
+  'inline homepage schema matches src/seo/home-schema.json'
+);
+
+const faqNode = homeSchema['@graph'].find((node) => node['@type'] === 'FAQPage');
+check(
+  faqNode?.mainEntity?.length > 0
+    && faqNode.mainEntity.every((entry) => entry.name && entry.acceptedAnswer?.text),
+  'homepage FAQ schema carries a question and answer for every entry'
+);
+
+// FAQ schema may only assert what the homepage actually renders. If the visible
+// copy is edited and the schema is not, this fails rather than shipping a claim
+// the page does not make.
+const homeSource = await readFile(resolve(frontendRoot, 'src/pages/Home.js'), 'utf8');
+const faqBlock = homeSource.match(/const FAQ_ITEMS = \[([\s\S]*?)\n\];/)?.[1] ?? '';
+const renderedFaq = [...faqBlock.matchAll(/\bq:\s*'((?:[^'\\]|\\.)*)',\s*a:\s*'((?:[^'\\]|\\.)*)'/g)]
+  .map((match) => [match[1], match[2]]);
+const encodedFaq = (faqNode?.mainEntity ?? []).map((entry) => [entry.name, entry.acceptedAnswer.text]);
+check(
+  renderedFaq.length > 0 && JSON.stringify(renderedFaq) === JSON.stringify(encodedFaq),
+  `homepage FAQ schema mirrors the questions the page renders (page ${renderedFaq.length}, schema ${encodedFaq.length})`
+);
 check(!publicIndex.includes('openingHoursSpecification'), 'schema omits unverified hours');
 check(appSource.includes('<RouteSeo />'), 'route SEO manager is mounted');
 check(appSource.includes('<Route path="*" element={<NotFound />} />'), 'client fallback is a real not-found view');

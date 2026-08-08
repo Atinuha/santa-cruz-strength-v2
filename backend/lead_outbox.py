@@ -209,6 +209,21 @@ async def claim_due_job(
 ) -> Optional[Dict[str, Any]]:
     if not str(worker_id or "").strip():
         raise ValueError("worker_id is required")
+    # Known limit: lease expiry is judged against the clock of whichever worker
+    # calls this, so it is only exactly correct with a single worker or with
+    # workers whose clocks agree. A fast worker can rule a lease expired while
+    # the holder still believes it owns the job, and both would then claim it.
+    # A database side clock would remove the assumption, but every timestamp in
+    # this collection is stored as an ISO string and MongoDB orders a string
+    # against $$NOW by BSON type, not chronologically, so $$NOW would compare
+    # wrongly until available_at, locked_until, and the sibling timestamps are
+    # migrated to BSON dates. That migration cannot be proven correct without a
+    # live database, so it is deliberately not attempted here.
+    # What bounds the damage meanwhile: a double claim cannot become a double
+    # send. The loser's reservation token no longer matches, so its
+    # mark_delivery_begun below fails and the dispatcher returns before it ever
+    # reaches the provider. Run one dispatch worker, or keep worker clocks in
+    # sync, until the timestamps become real dates.
     current = now or utc_now()
     now_iso = iso_timestamp(current)
     locked_until = iso_timestamp(current + timedelta(seconds=max(1, int(lease_seconds))))

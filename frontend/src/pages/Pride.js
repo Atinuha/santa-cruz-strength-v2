@@ -1,25 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { GYM_CONFIG, abcGuestUrl } from '../config';
-import { createLead as submitLead } from '../lib/api';
-import PreviewNotice from '../components/PreviewNotice';
-import { PREVIEW_MODE } from '../utils/previewSafety';
-import { getLeadAttribution } from '../utils/attribution';
-import { buildMemberLeadPayload, createLeadRequestId } from '../utils/leadContracts';
-import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { GYM_CONFIG } from '../config';
 import { SCS_MEDIA } from '../config/media';
+import api from '../lib/api';
+import { toast } from 'sonner';
 import {
   CheckCircle2, ChevronRight, ChevronLeft, Loader2,
   Dumbbell, Calendar, Users, ArrowRight, MapPin, Phone,
 } from 'lucide-react';
 
 const EXPIRY = new Date('2026-08-01T00:00:00');
-const ABC_GUEST_LINK = abcGuestUrl();
-const HERO_IMG = SCS_MEDIA.heroFacility;
+const ABC_GUEST_LINK = 'https://onlinejoin.abcfitness.com/guest/plan?club=31691';
+const HERO_IMG = SCS_MEDIA.openGym;
 
 const GOALS = [
-  { id: 'day_pass', label: 'Free Day Pass', desc: 'Try us out - no commitment, no catch.', icon: Dumbbell, bg: '#EBF5F0', border: '#3A7D5C', color: '#3A7D5C' },
-  { id: 'membership', label: "I'm Ready to Join", desc: "Let's do this - show me membership options.", icon: Users, bg: '#FFF0ED', border: '#E8614D', color: '#E8614D' },
+  { id: 'day_pass', label: 'Free Day Pass', desc: 'Try the gym for a day and see if it fits.', icon: Dumbbell, bg: '#EBF5F0', border: '#3A7D5C', color: '#3A7D5C' },
+  { id: 'membership', label: "I'm Ready to Join", desc: "Show me membership options.", icon: Users, bg: '#FFF0ED', border: '#E8614D', color: '#E8614D' },
   { id: 'tour', label: 'Book a Tour First', desc: 'I want to see the space before I commit.', icon: Calendar, bg: '#EEF2FF', border: '#3B82F6', color: '#3B82F6' },
 ];
 
@@ -29,48 +25,40 @@ const TOUR_STEPS = [
   { id: 'contact_pref', title: 'Best way for us to reach you?', options: ['Call me', 'Text me', 'Email me'] },
 ];
 
-function PrideBrandNav() {
-  return (
-    <nav aria-label="Pride campaign navigation" className="flex justify-center">
-      <Link to="/" className="font-display text-xl tracking-[0.25em]" style={{ color: 'var(--clr-charcoal)' }}>
-        Santa Cruz Strength
-      </Link>
-    </nav>
-  );
-}
-
 export default function Pride() {
   const navigate = useNavigate();
   const [expired] = useState(new Date() >= EXPIRY);
   const [step, setStep] = useState('info');
-  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', sms_consent: false });
+  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '' });
   const [tourData, setTourData] = useState({ goals: '', timeline: '', contact_pref: '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const inputRef = useRef(null);
-  const requestIdRef = useRef(null);
 
-  if (!requestIdRef.current) requestIdRef.current = createLeadRequestId();
 
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => { document.head.removeChild(meta); };
+  }, []);
   useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, [step]);
 
-  if (expired && !PREVIEW_MODE) {
+  if (expired) {
     return (
-      <div className="scs-site scs-readable-page min-h-screen flex flex-col" style={{ background: 'var(--clr-bg)' }}>
-        <header className="px-4 py-6"><PrideBrandNav /></header>
-        <main className="flex-1 flex items-center justify-center px-4">
-          <div className="text-center max-w-md">
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--clr-bg)' }}>
+        <div className="text-center max-w-md">
           <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: 'var(--clr-bg-green)' }}>
             <Dumbbell size={32} style={{ color: 'var(--clr-green)' }} />
           </div>
           <h1 className="font-display text-3xl tracking-wide mb-3" style={{ color: 'var(--clr-charcoal)' }}>THIS OFFER HAS ENDED</h1>
-          <p className="text-[var(--clr-text-muted)] text-sm mb-6 leading-relaxed">Thanks for checking us out! This promotion has expired, but we'd still love to have you.</p>
+          <p className="text-[var(--clr-text-muted)] text-sm mb-6 leading-relaxed">Thanks for checking us out! This promotion has expired, but we&apos;d still love to have you.</p>
           <a href="https://santacruzstrength.com" className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm">
             Visit Santa Cruz Strength <ArrowRight size={14} />
           </a>
-          </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -88,42 +76,21 @@ export default function Pride() {
 
   const createLead = async (interest, notes, extraFields = {}) => {
     const contactPrefMap = { 'Call me': 'call', 'Text me': 'text', 'Email me': 'email' };
-    const goalId = selectedGoal?.id
-      || (interest === 'Free Day Pass' ? 'day_pass' : interest === 'Tour Request' ? 'tour' : 'membership');
-    const payload = buildMemberLeadPayload({
-      form: {
-        first_name: form.first_name.trim(), last_name: form.last_name.trim() || '',
-        email: form.email.trim(), phone: form.phone.trim(),
-        interest_type: interest, lead_source: 'pride_2026', start_timeline: extraFields.timeline || 'Immediately',
-        training_goals: extraFields.goals || `Pride 2026 - ${interest}`,
-        preferred_contact: contactPrefMap[extraFields.contact_pref] || 'call',
-        notes, sms_consent: form.sms_consent,
-        location: GYM_CONFIG.location,
-      },
-      source: 'pride_2026',
-      attribution: getLeadAttribution(),
-      requestId: requestIdRef.current,
-      formId: 'pride_2026_interest',
-      offerId: goalId === 'day_pass' ? 'free_day_pass' : goalId === 'tour' ? 'free_facility_tour' : 'general_membership',
+    await api.post('/leads', {
+      first_name: form.first_name.trim(), last_name: form.last_name.trim() || '',
+      email: form.email.trim(), phone: form.phone.trim(),
+      interest_type: interest, lead_source: 'pride_2026', start_timeline: extraFields.timeline || 'Immediately',
+      training_goals: extraFields.goals || `Pride 2026: ${interest}`,
+      preferred_contact: contactPrefMap[extraFields.contact_pref] || 'call',
+      notes, sms_consent: true,
     });
-    if (PREVIEW_MODE) return { preview: true, payload };
-    const response = await submitLead(payload);
-    requestIdRef.current = createLeadRequestId();
-    return response;
   };
 
   const handleSelectGoal = async (goal) => {
     setSelectedGoal(goal); setLoading(true);
     try {
-      if (PREVIEW_MODE && goal.id !== 'tour') {
-        await createLead(goal.id === 'day_pass' ? 'Free Day Pass' : 'General Membership', `Preview selection: ${goal.label}`);
-        setForm({ first_name: '', last_name: '', email: '', phone: '', sms_consent: false });
-        setStep('done');
-        setLoading(false);
-        return;
-      }
-      if (goal.id === 'day_pass') { await createLead('Free Day Pass', 'Pride 2026 QR - Free Day Pass'); window.location.href = ABC_GUEST_LINK; return; }
-      if (goal.id === 'membership') { await createLead('General Membership', 'Pride 2026 QR - Ready to Join'); navigate('/join'); return; }
+      if (goal.id === 'day_pass') { await createLead('Free Day Pass', 'Pride 2026 QR: Free Day Pass'); window.location.href = ABC_GUEST_LINK; return; }
+      if (goal.id === 'membership') { await createLead('General Membership', 'Pride 2026 QR: Ready to Join'); navigate('/join'); return; }
       if (goal.id === 'tour') { setStep('tour_0'); setLoading(false); }
     } catch { toast.error('Something went wrong'); setLoading(false); }
   };
@@ -133,11 +100,8 @@ export default function Pride() {
     const updated = { ...tourData, [key]: value }; setTourData(updated);
     if (idx < TOUR_STEPS.length - 1) { setStep(`tour_${idx + 1}`); return; }
     setLoading(true);
-    createLead('Tour Request', `Pride 2026 QR - Tour | Goals: ${updated.goals} | Timeline: ${updated.timeline} | Contact: ${updated.contact_pref}`, updated)
-      .then(() => {
-        if (PREVIEW_MODE) setForm({ first_name: '', last_name: '', email: '', phone: '', sms_consent: false });
-        setStep('done');
-      }).catch(() => toast.error('Something went wrong')).finally(() => setLoading(false));
+    createLead('Tour Request', `Pride 2026 QR: Tour | Goals: ${updated.goals} | Timeline: ${updated.timeline} | Contact: ${updated.contact_pref}`, updated)
+      .then(() => setStep('done')).catch(() => toast.error('Something went wrong')).finally(() => setLoading(false));
   };
 
   const handleKeyDown = (e) => { if (e.key === 'Enter') { e.preventDefault(); goNextInfo(); } };
@@ -149,7 +113,7 @@ export default function Pride() {
   const currentStepNum = step === 'info' ? 0 : step === 'goal' ? 1 : step.startsWith('tour_') ? 2 + parseInt(step.split('_')[1]) : totalSteps;
 
   return (
-    <div className="scs-site scs-readable-page min-h-screen flex flex-col relative" style={{ background: 'var(--clr-bg)' }}>
+    <div className="min-h-screen flex flex-col relative" style={{ background: 'var(--clr-bg)' }}>
       {/* Hero background */}
       <div className="absolute inset-0 z-0">
         <img src={HERO_IMG} alt="" className="w-full h-full object-cover" style={{ opacity: 0.12 }} loading="eager" />
@@ -158,13 +122,11 @@ export default function Pride() {
 
       {/* Header */}
       <header className="relative z-10 pt-6 pb-3 px-4 text-center">
-        <PrideBrandNav />
-        <h1 className="sr-only">Pride 2026 at Santa Cruz Strength</h1>
+        <p className="font-display text-xl tracking-[0.25em] mb-2" style={{ color: 'var(--clr-charcoal)' }}>SANTA CRUZ STRENGTH</p>
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'var(--clr-bg-green)', border: '1px solid var(--clr-border-green)' }}>
           <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--clr-green)' }} />
           <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: 'var(--clr-green)' }}>Pride 2026 &middot; Free Day Pass</span>
         </div>
-        <PreviewNotice className="max-w-md mx-auto mt-4 text-left" testId="preview-pride-notice">This expired campaign is visible for interface review. No lead will be sent, no information will be stored, and no membership or guest-pass link will open.</PreviewNotice>
       </header>
 
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 pb-8">
@@ -184,45 +146,28 @@ export default function Pride() {
               <h2 className="font-display text-3xl sm:text-4xl tracking-wide mb-1 leading-[0.95]" style={{ color: 'var(--clr-charcoal)' }}>
                 WELCOME TO<br /><span style={{ color: 'var(--clr-green)' }}>THE STRENGTH.</span>
               </h2>
-              <p className="text-[var(--clr-text-muted)] text-sm mb-5">Drop your info - takes 30 seconds. We'll get you training.</p>
+              <p className="text-[var(--clr-text-muted)] text-sm mb-5">Enter your details to get started.</p>
 
               <div className="space-y-3" onKeyDown={handleKeyDown}>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="pride-first-name" className="sr-only">First name</label>
-                    <input id="pride-first-name" ref={inputRef} value={form.first_name} onChange={e => set('first_name', e.target.value)}
+                    <input ref={inputRef} value={form.first_name} onChange={e => set('first_name', e.target.value)}
                       className={inputCls} placeholder="First name *" data-testid="pride-first-name" />
                     {errors.first_name && <p className={errCls}>{errors.first_name}</p>}
                   </div>
-                  <label htmlFor="pride-last-name" className="sr-only">Last name</label>
-                  <input id="pride-last-name" value={form.last_name} onChange={e => set('last_name', e.target.value)}
+                  <input value={form.last_name} onChange={e => set('last_name', e.target.value)}
                     className={inputCls} placeholder="Last name" data-testid="pride-last-name" />
                 </div>
                 <div>
-                  <label htmlFor="pride-email" className="sr-only">Email address</label>
-                  <input id="pride-email" type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
                     className={inputCls} placeholder="Email *" data-testid="pride-email" />
                   {errors.email && <p className={errCls}>{errors.email}</p>}
                 </div>
                 <div>
-                  <label htmlFor="pride-phone" className="sr-only">Phone number</label>
-                  <input id="pride-phone" type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
+                  <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
                     className={inputCls} placeholder="Phone *" data-testid="pride-phone" />
                   {errors.phone && <p className={errCls}>{errors.phone}</p>}
                 </div>
-
-                <label className="flex items-start gap-3 text-left cursor-pointer">
-                  <input
-                    type="checkbox"
-                    aria-label="Allow optional operational text messages about this inquiry"
-                    checked={form.sms_consent}
-                    onChange={e => set('sms_consent', e.target.checked)}
-                    className="mt-0.5 w-5 h-5 shrink-0 accent-[var(--clr-green)]"
-                  />
-                  <span className="text-[11px] leading-relaxed text-[var(--clr-text-muted)]">
-                    Optional: I agree to receive automated operational texts from Santa Cruz Strength about this inquiry and visit. This does not enroll me in promotional marketing texts. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply <strong>STOP</strong> to cancel or <strong>HELP</strong> for help.
-                  </span>
-                </label>
 
                 <button onClick={goNextInfo} data-testid="pride-next-btn"
                   className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 text-sm font-bold mt-1">
@@ -230,28 +175,21 @@ export default function Pride() {
                 </button>
               </div>
 
-              {/* Social proof - bigger */}
+              {/* Location */}
               <div className="mt-6 p-4 rounded-2xl bg-white border" style={{ borderColor: 'var(--clr-border)', boxShadow: 'var(--shadow-sm)' }}>
-                {/* Real, attributed member review. No star rating and no
-                    ranking claim, because neither is verified. */}
-                <p className="text-xs text-[var(--clr-text-muted)] leading-relaxed italic">
-                  "Amazing gym! Has everything you need with a super open and accepting environment."
-                </p>
-                <p className="text-xs font-semibold mt-1.5" style={{ color: 'var(--clr-charcoal)' }}>
-                  Brooke Rodriguez <span className="font-normal text-[var(--clr-text-muted)]">- member</span>
-                </p>
-                <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid var(--clr-border)' }}>
+                <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
                     <MapPin size={12} style={{ color: 'var(--clr-green)' }} />
                     <span className="text-[11px] font-semibold text-[var(--clr-text-muted)]">151 Harvey West Blvd, Santa Cruz</span>
                   </div>
                   <span className="text-[11px] text-[var(--clr-text-light)]">&middot;</span>
-                  <span className="text-[11px] font-semibold text-[var(--clr-text-muted)]">24/7 Access</span>
+                  <span className="text-[11px] font-semibold text-[var(--clr-text-muted)]">Strength Gym</span>
                 </div>
               </div>
 
               <p className="text-center text-[9px] text-[var(--clr-text-light)] leading-relaxed mt-4">
-                By continuing, you agree that Santa Cruz Strength may use the information provided to respond by phone or email. Optional SMS consent is controlled separately above.{' '}
+                By continuing you agree to receive texts &amp; emails from Santa Cruz Strength.
+                Msg &amp; data rates may apply. Reply STOP to opt out.{' '}
                 <a href="/privacy" target="_blank" className="underline">Privacy</a> &amp;{' '}
                 <a href="/terms" target="_blank" className="underline">Terms</a>.
               </p>
@@ -340,17 +278,18 @@ export default function Pride() {
             );
           })()}
 
-          {/* DONE - Tour booked */}
+          {/* DONE: Tour booked */}
           {step === 'done' && (
             <div className="text-center animate-fade-in-up" data-testid="pride-tour-done">
               <div className="w-20 h-20 rounded-full mx-auto mb-5 flex items-center justify-center" style={{ background: 'var(--clr-bg-green)' }}>
                 <CheckCircle2 size={36} style={{ color: 'var(--clr-green)' }} />
               </div>
               <h2 className="font-display text-2xl sm:text-3xl tracking-wide mb-2" style={{ color: 'var(--clr-charcoal)' }}>
-                {PREVIEW_MODE ? 'PREVIEW TEST COMPLETE' : `WE'LL BE IN TOUCH, ${form.first_name.toUpperCase() || 'FRIEND'}!`}
+                WE&apos;LL BE IN TOUCH, {form.first_name.toUpperCase() || 'FRIEND'}!
               </h2>
               <p className="text-[var(--clr-text-muted)] text-sm mb-8 leading-relaxed max-w-sm mx-auto">
-                {PREVIEW_MODE ? 'No lead was sent, no form information was stored, and no external signup link was opened.' : "A member of our team will reach out within 24 hours to set up your tour. We're at 151 Harvey West Blvd and can't wait to show you around."}
+                We will follow up to schedule your tour.
+                We&apos;re at 151 Harvey West Blvd. Looking forward to showing you around.
               </p>
               <div className="flex flex-col gap-3">
                 <a href={`tel:${GYM_CONFIG.phone.replace(/[^\d+]/g, '')}`}
