@@ -10,7 +10,6 @@ export default function About() {
   const [trainers, setTrainers] = useState([]);
   const [content, setContent] = useState({});
   useEffect(() => {
-    document.title = 'About | Santa Cruz Strength';
     getTeamMembers().then(({ data }) => { setTeam(data.filter(m => m.category === 'team')); setTrainers(data.filter(m => m.category === 'trainer')); }).catch(() => {});
     getSiteContent().then(({ data }) => setContent(data)).catch(() => {});
   }, []);

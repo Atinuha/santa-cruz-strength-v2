@@ -888,7 +888,7 @@ PUBLISHED_ARTICLES = [
 
 <p>Most people price a membership per month and use it per week. If you train twice a week, a $75 plan costs you roughly $9 a session. At four times a week the same plan is about $4.30. This is the calculation that decides whether a membership was worth it, and almost nobody does it before signing.</p>
 
-<p>It is also why Weekend Warrior exists at $45 per month. If two sessions a week is the honest answer, pay for two sessions a week.</p>
+<p>It is also why Weekend Warrior exists at $45 per month, with Friday through Sunday access. If the weekend is the honest answer, pay for the weekend.</p>
 
 <h2>The costs the headline number leaves out</h2>
 
@@ -910,14 +910,14 @@ PUBLISHED_ARTICLES = [
 
 <ul>
 <li><strong>Day Pass, $20.</strong> One day, no membership, no commitment.</li>
-<li><strong>Weekend Warrior, from $45 per month</strong> on twelve months. Built for two sessions a week.</li>
+<li><strong>Weekend Warrior, from $45 per month</strong> on twelve months. Friday through Sunday access only, so it fits a weekend training week and nothing else.</li>
 <li><strong>Annual paid in full, $825</strong> covering thirteen months, which works out around $63 per month.</li>
 <li><strong>Huscler, $75 per month</strong> on twelve months, or $82 on six.</li>
 <li><strong>Couples, from $120 per month</strong> for two people.</li>
 <li><strong>Flex, $120 per month</strong> month to month with no agreement required.</li>
 </ul>
 
-<p>Universal to every tier: a $50 annual enhancement fee, a 30 day cancellation notice, and commitment memberships auto renewing to month to month. Those three lines sit next to the prices on the join page, not underneath them in small type.</p>
+<p>Universal to every membership, though not to the day pass: a $50 annual enhancement fee, a 30 day cancellation notice, and commitment memberships auto renewing to month to month. Those three lines sit next to the prices on the join page, not underneath them in small type.</p>
 
 <h2>Is a strength gym worth more than a chain?</h2>
 
@@ -991,7 +991,7 @@ PUBLISHED_ARTICLES = [
 
 <h2>What the chains publish about their own terms</h2>
 
-<p>These are the companies' own published statements, quoted and linked so you can check them.</p>
+<p>These are the companies' own published statements, quoted here so you can check them against the agreement you are handed.</p>
 
 <p><strong>Anytime Fitness</strong> states on its own FAQ page that "All cancellation policies are outlined in the membership agreement for each location," that "Some gyms offer 6, 12 and 18-month options, but you'll need to check with your local Anytime Fitness," and that "Each of our locations are independently owned and operated." In practice that means there is no single Anytime Fitness cancellation policy you can read before you visit a specific club. You have to get the agreement from the Santa Cruz location itself. Source: their published FAQs.</p>
 
@@ -1007,7 +1007,7 @@ PUBLISHED_ARTICLES = [
 
 <ul>
 <li><strong>Flex, $120 per month.</strong> Month to month. No agreement required.</li>
-<li><strong>Commitment tiers.</strong> Huscler at $75 per month on twelve months or $82 on six. Weekend Warrior at $45 on twelve or $55 on six. Couples at $120 on twelve or $136 on six. Annual paid in full at $825 covering thirteen months.</li>
+<li><strong>Commitment tiers.</strong> Huscler at $75 per month on twelve months or $82 on six. Weekend Warrior at $45 on twelve or $55 on six, Friday through Sunday access only. Couples at $120 on twelve or $136 on six. Annual paid in full at $825 covering thirteen months.</li>
 <li><strong>Cancellation notice: 30 days.</strong> Applies to every tier.</li>
 <li><strong>Annual enhancement fee: $50.</strong> Charged yearly, on top of monthly dues.</li>
 <li><strong>Commitment memberships auto renew to month to month</strong> at the end of the term. They do not silently roll into a second fixed term.</li>
@@ -1050,10 +1050,10 @@ PUBLISHED_ARTICLES = [
 <p>30 days written notice on every tier. Commitment memberships auto renew to month to month rather than into a new fixed term. A $50 annual enhancement fee applies to all memberships.</p>
 
 <h3>Can I cancel a 24 Hour Fitness commitment membership early?</h3>
-<p>24 Hour Fitness publishes that commitment memberships are non cancelable and non refundable within the commitment term except as provided in the membership agreement, and that a cancellation fee may apply. Check your own agreement and their their published member policies.</p>
+<p>24 Hour Fitness publishes that commitment memberships are non cancelable and non refundable within the commitment term except as provided in the membership agreement, and that a cancellation fee may apply. Check your own agreement and their published member policies.</p>
 
 <h3>What is the Anytime Fitness cancellation policy in Santa Cruz?</h3>
-<p>Anytime Fitness states that cancellation policies are set in the membership agreement for each location and that clubs are independently owned and operated, so you need the agreement from the Santa Cruz club itself. See their their published FAQs.</p>
+<p>Anytime Fitness states that cancellation policies are set in the membership agreement for each location and that clubs are independently owned and operated, so you need the agreement from the Santa Cruz club itself. See their published FAQs.</p>
 
 <h3>How do I cancel a gym membership in California?</h3>
 <p>Read your agreement's cancellation clause, send notice in writing with a date, count the notice period forward, keep the confirmation, and check your statements for two billing cycles afterwards.</p>

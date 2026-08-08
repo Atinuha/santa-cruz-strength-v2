@@ -33,10 +33,10 @@ const MORE_PLANS = [
     features: ['Includes 2 members', 'Full facility access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'] },
   { id: 'couples-6', name: 'Couples 6-Month', subtitle: '2 Members', price: '$136', per: '/mo', extra: '$68/person',
     features: ['Includes 2 members', 'Full facility access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'] },
-  { id: 'weekend-12', name: 'Weekend Warrior 12-Mo', subtitle: 'Fri\u2013Sun only', price: '$45', per: '/mo', savings: 'Save 63%',
-    features: ['Friday\u2013Sunday access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'] },
-  { id: 'weekend-6', name: 'Weekend Warrior 6-Mo', subtitle: 'Fri\u2013Sun only', price: '$55', per: '/mo', savings: 'Save 54%',
-    features: ['Friday\u2013Sunday access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'] },
+  { id: 'weekend-12', name: 'Weekend Warrior 12-Mo', subtitle: 'Fri to Sun only', price: '$45', per: '/mo', savings: 'Save 63%',
+    features: ['Friday to Sunday access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'] },
+  { id: 'weekend-6', name: 'Weekend Warrior 6-Mo', subtitle: 'Fri to Sun only', price: '$55', per: '/mo', savings: 'Save 54%',
+    features: ['Friday to Sunday access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'] },
 ];
 
 function PlanCard({ plan }) {
@@ -89,7 +89,7 @@ function MobileCarousel({ children }) {
 export default function Join() {
   const [showMore, setShowMore] = useState(false);
   const [showFaq, setShowFaq] = useState(null);
-  useEffect(() => { document.title = 'Membership | Santa Cruz Strength'; window.scrollTo(0, 0); }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const faqs = [
     { q: 'What is the $50 Annual Enhancement Fee?', a: 'A $50 fee applied once per year to all memberships. It supports equipment maintenance and facility upkeep.' },

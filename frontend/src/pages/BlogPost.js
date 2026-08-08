@@ -70,8 +70,12 @@ export default function BlogPost() {
   // temporal dead zone error, which is exactly what blanked this page once.
   useEffect(() => {
     if (!post?.title) return;
-    const prefix = (isDraft || post?.review_status) ? '[Draft] ' : '';
-    document.title = `${prefix}${stripSuffix(sanitizeDashes(post.seo_title || post.title))} | Santa Cruz Strength`;
+    // Only drafts. On a published post this used to run too, re-appending
+    // " | Santa Cruz Strength" to a title route metadata had already trimmed to
+    // fit, which pushed fourteen rendered article titles past 60 characters.
+    // The comment above always said drafts were the exception; the code did not.
+    if (!(isDraft || post?.review_status)) return;
+    document.title = `[Draft] ${stripSuffix(sanitizeDashes(post.seo_title || post.title))} | Santa Cruz Strength`;
   }, [post, isDraft]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--scs-bg)' }}><div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--scs-charcoal)', borderTopColor: 'transparent' }} /></div>;

@@ -61,7 +61,11 @@ const buildArticleGraph = (route) => {
   // to government and health sites in 2023, so this is a machine-readability
   // measure, not a rich-result play. The pairs are mirrored from the rendered
   // article and pinned to it by validate-seo.mjs, so schema cannot outlive copy.
-  const faq = blogFaq[slug];
+  // Belt and braces against the leak that shipped ten editorial placeholders as
+  // machine readable answers. The source file is clean and the validator now
+  // excludes them, so this should never filter anything. It is here so that a
+  // marker pasted back into the JSON cannot reach a crawler.
+  const faq = (blogFaq[slug] ?? []).filter((entry) => !entry.answer.includes('[FACT NEEDED'));
   const faqNode = faq?.length ? {
     '@type': 'FAQPage',
     '@id': `${route.canonical}#faq`,

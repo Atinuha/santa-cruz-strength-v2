@@ -79,14 +79,6 @@
       "answer": "Yes. A $20 day pass at Santa Cruz Strength gives you access to the training floor for the day with no agreement and no card on file."
     },
     {
-      "question": "What hours can I use the day pass?",
-      "answer": "Published facility hours list day passes as 9am to 6pm, while the day pass tier's terms describe access during staffed hours. Those disagree, so call (408) 337-6709 to confirm before you come. [FACT NEEDED: whether the day pass runs 9am to 6pm or the full staffed window, confirmed by the owner]"
-    },
-    {
-      "question": "Do I need to book a day pass in advance?",
-      "answer": "[FACT NEEDED: whether day passes require advance booking or can be purchased on arrival, confirmed by the owner] Calling ahead is the safe approach either way."
-    },
-    {
       "question": "Is there a drop in gym in Santa Cruz for visitors?",
       "answer": "Santa Cruz Strength takes drop ins on a $20 day pass. It is in the Harvey West Business Park at 151 Harvey West Blvd Ste D, a short drive from downtown."
     },
@@ -119,10 +111,6 @@
     {
       "question": "What extra fees should I ask about?",
       "answer": "Enrolment fee, annual fee, cancellation fee, freeze policy and the renewal rate. Santa Cruz Strength charges a $50 annual enhancement fee and publishes it alongside the prices."
-    },
-    {
-      "question": "Does the $20 day pass count toward a membership if I join?",
-      "answer": "[FACT NEEDED: whether the $20 day pass credits toward a membership when the person joins, confirmed by the owner]"
     }
   ],
   "gym-no-contract-santa-cruz": [
@@ -136,11 +124,11 @@
     },
     {
       "question": "Can I cancel a 24 Hour Fitness commitment membership early?",
-      "answer": "24 Hour Fitness publishes that commitment memberships are non cancelable and non refundable within the commitment term except as provided in the membership agreement, and that a cancellation fee may apply. Check your own agreement and their their published member policies."
+      "answer": "24 Hour Fitness publishes that commitment memberships are non cancelable and non refundable within the commitment term except as provided in the membership agreement, and that a cancellation fee may apply. Check your own agreement and their published member policies."
     },
     {
       "question": "What is the Anytime Fitness cancellation policy in Santa Cruz?",
-      "answer": "Anytime Fitness states that cancellation policies are set in the membership agreement for each location and that clubs are independently owned and operated, so you need the agreement from the Santa Cruz club itself. See their their published FAQs."
+      "answer": "Anytime Fitness states that cancellation policies are set in the membership agreement for each location and that clubs are independently owned and operated, so you need the agreement from the Santa Cruz club itself. See their published FAQs."
     },
     {
       "question": "How do I cancel a gym membership in California?",
@@ -155,22 +143,6 @@
     {
       "question": "Where can I deadlift in Santa Cruz?",
       "answer": "Santa Cruz Strength at 151 Harvey West Blvd Ste D has lifting platforms built for deadlifting. Take a $20 day pass and use one before you decide anything."
-    },
-    {
-      "question": "Are there gyms that allow dropping weights in Santa Cruz?",
-      "answer": "Dropping policy is a house rule and varies by gym even when platforms are present. [FACT NEEDED: whether controlled dropping onto the platforms is permitted at Santa Cruz Strength, confirmed by the owner] Call (408) 337-6709 and ask directly."
-    },
-    {
-      "question": "Does Santa Cruz Strength have squat racks?",
-      "answer": "Yes. Racks are part of the standing equipment. The exact count is not published here because it is not owner confirmed. [FACT NEEDED: exact count of squat racks and power racks, confirmed by the owner]"
-    },
-    {
-      "question": "Is there a gym in Santa Cruz with a safety squat bar?",
-      "answer": "Specialty bars are on the floor at Santa Cruz Strength. Whether a safety squat bar specifically is among them is worth confirming by phone before you visit. [FACT NEEDED: names of the specialty bars on the floor, confirmed by the owner]"
-    },
-    {
-      "question": "Is chalk allowed?",
-      "answer": "[FACT NEEDED: whether chalk is allowed, and whether liquid chalk only, confirmed by the owner] This is a top three question for serious lifters and it deserves a confirmed answer rather than an assumption."
     },
     {
       "question": "Can I see the equipment before joining?",
@@ -239,10 +211,6 @@
   ],
   "personal-training-cost-santa-cruz": [
     {
-      "question": "How much does a personal trainer cost in Santa Cruz?",
-      "answer": "Rates are set per session and drop when sessions are bought in packages. Local trainers and gyms rarely publish figures, so you will need to ask directly. For rates at Santa Cruz Strength, [FACT NEEDED: personal training session rates and package structure, confirmed by the owner]."
-    },
-    {
       "question": "Are personal training packages cheaper than single sessions?",
       "answer": "Nearly always, yes. The per session price falls as the package size rises. The trade is that you pay up front, so check the expiry date and the cancellation terms before you buy."
     },
@@ -253,10 +221,6 @@
     {
       "question": "How many sessions do I need with a trainer?",
       "answer": "For a beginner, roughly eight to twelve sessions is usually enough to learn the main lifts and understand how a program progresses. After that most people train independently and book occasional check ins."
-    },
-    {
-      "question": "Do I need a gym membership as well as personal training?",
-      "answer": "It depends on the provider, and it is one of the first things to ask, because it can double the real cost. [FACT NEEDED: whether personal training at Santa Cruz Strength requires an active membership, confirmed by the owner]."
     },
     {
       "question": "Can I train with a coach and on my own in the same week?",
@@ -369,10 +333,6 @@
     {
       "question": "Does lifting weights stunt growth?",
       "answer": "There is no good evidence that it does, and the major pediatric and sports medicine organisations do not support the idea. Any specific concern about your child's growth belongs with their pediatrician."
-    },
-    {
-      "question": "What age can a teen start lifting weights?",
-      "answer": "Readiness is usually described in terms of maturity rather than age: can they follow instruction, accept coaching, and behave safely around equipment. Separately, each gym sets its own minimum age. [FACT NEEDED: minimum age for membership or supervised training at Santa Cruz Strength, and whether a parent must be present, confirmed by the owner]."
     },
     {
       "question": "How often should a high school athlete lift?",

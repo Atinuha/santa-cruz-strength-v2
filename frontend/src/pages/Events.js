@@ -40,7 +40,7 @@ export default function Events() {
   const [rsvpEvent, setRsvpEvent] = useState(null);
   const [catFilter, setCatFilter] = useState('All');
 
-  useEffect(() => { document.title = 'Events | Santa Cruz Strength'; fetch(`${BACKEND}/api/events?upcoming=${filter === 'upcoming'}`).then(r => r.json()).then(setEvents).catch(() => setEvents([])).finally(() => setLoading(false)); }, [filter]);
+  useEffect(() => { fetch(`${BACKEND}/api/events?upcoming=${filter === 'upcoming'}`).then(r => r.json()).then(setEvents).catch(() => setEvents([])).finally(() => setLoading(false)); }, [filter]);
   const cats = [...new Set(events.map(e => e.category))].filter(Boolean);
   const shown = catFilter === 'All' ? events : events.filter(e => e.category === catFilter);
 

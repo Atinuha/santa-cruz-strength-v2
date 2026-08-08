@@ -1,12 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { GYM_CONFIG } from '../config';
 
 export default function NotFound() {
-  useEffect(() => { document.title = 'Page Not Found | Santa Cruz Strength'; }, []);
-
   return (
     <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>
       <Navbar />

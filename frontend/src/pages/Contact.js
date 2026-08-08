@@ -10,7 +10,6 @@ import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 export default function Contact() {
   const [c, setC] = useState({});
   useEffect(() => {
-    document.title = 'Book a Free Facility Tour | Santa Cruz Strength';
     getSiteContent().then(({ data }) => setC(data)).catch(() => {});
   }, []);
 

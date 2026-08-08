@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { getBlogPosts } from '../lib/api';
+import { withoutConsolidated } from '../seo/consolidatedSlugs';
 import { Calendar, ArrowRight, Clock, FileText, AlertTriangle } from 'lucide-react';
 
 const sanitize = (s) => (s || '').replace(/[\u2013\u2014]/g, ',');
@@ -82,7 +83,6 @@ export default function Blog() {
   const isStaff = !!localStorage.getItem('token');
 
   useEffect(() => {
-    document.title = 'Blog | Santa Cruz Strength';
     setLoading(true);
     // The API defaults to 20 and caps at 50 (server.py:2020). The index asked
     // for neither, so it silently showed the first 20 of 27 articles and seven
@@ -103,14 +103,7 @@ export default function Blog() {
     }
   }, [isStaff]);
 
-  // Two slugs are deliberately non indexable and cross canonical to the
-  // articles that absorbed them. They must receive no internal links at all, or
-  // the canonical is fighting a link the site itself keeps handing Google. The
-  // index was not only linking to one, it was featuring it in the hero slot.
-  // They stay reachable by URL so the canonical can still be read.
-  const CONSOLIDATED = ['why-surfers-in-santa-cruz-should-lift-weights',
-                        'how-many-days-a-week-should-you-lift'];
-  const listed = posts.filter(post => !CONSOLIDATED.includes(post.slug));
+  const listed = withoutConsolidated(posts);
 
   const featured = listed[0];
   const rest = listed.slice(1);
@@ -157,7 +150,7 @@ export default function Blog() {
             <>
               {featured && cat === 'All' && <div className="mb-8"><PostCard post={featured} featured /></div>}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {(cat === 'All' ? rest : posts).map(p => <PostCard key={p.id} post={p} />)}
+                {(cat === 'All' ? rest : listed).map(p => <PostCard key={p.id} post={p} />)}
               </div>
             </>
           )}

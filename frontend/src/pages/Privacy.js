@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import { GYM_CONFIG } from '../config';
 
 export default function Privacy() {
-  useEffect(() => { window.scrollTo(0, 0); document.title = 'Privacy Policy | Santa Cruz Strength'; }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
   const updated = 'April 2026';
 
   return (

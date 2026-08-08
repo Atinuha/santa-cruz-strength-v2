@@ -11,7 +11,6 @@ export default function ThankYou() {
   const source = state?.source || 'website_form';
 
   useEffect(() => {
-    document.title = 'Tour Request Saved | Santa Cruz Strength';
     trackThankYouPageView();
   }, []);
 

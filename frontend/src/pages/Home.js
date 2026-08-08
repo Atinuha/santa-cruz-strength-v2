@@ -7,6 +7,7 @@ import { GYM_CONFIG } from '../config';
 import { SCS_MEDIA } from '../config/media';
 import MapEmbed from '../components/MapEmbed';
 import { getSiteContent, getBlogPosts } from '../lib/api';
+import { withoutConsolidated } from '../seo/consolidatedSlugs';
 import { trackBookTourClick, trackPhoneClick } from '../utils/analytics';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { ArrowRight, MapPin, Phone, Clock, Calendar } from 'lucide-react';
@@ -39,9 +40,12 @@ export default function Home() {
   const [blogPosts, setBlogPosts] = useState([]);
 
   useEffect(() => {
-    document.title = 'Santa Cruz Strength: Strength Training Gym, Santa Cruz CA';
     getSiteContent().then(({ data }) => setC(data)).catch(() => {});
-    getBlogPosts({ limit: 3 }).then(r => setBlogPosts((r.data.posts || []).slice(0, 3))).catch(() => {});
+    // Ask for more than three, drop the consolidated ones, then take three.
+    // Unfiltered, the homepage could link both cross canonical duplicates:
+    // every post shares one seed timestamp, so the sort tie break is
+    // arbitrary and those two are the first rows the seeder inserts.
+    getBlogPosts({ limit: 8 }).then(r => setBlogPosts(withoutConsolidated(r.data.posts || []).slice(0, 3))).catch(() => {});
   }, []);
 
   return (

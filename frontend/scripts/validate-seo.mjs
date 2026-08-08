@@ -174,7 +174,15 @@ for (const path of articleSourcePaths) {
     const faqStart = body.indexOf('Frequently Asked Questions');
     if (faqStart < 0) continue;
     const pairs = [...body.slice(faqStart).matchAll(/<h3>([\s\S]*?)<\/h3>\s*<p>([\s\S]*?)<\/p>/g)]
-      .map((match) => ({ question: stripTags(match[1]), answer: stripTags(match[2]) }));
+      .map((match) => ({ question: stripTags(match[1]), answer: stripTags(match[2]) }))
+      // A [FACT NEEDED] marker is an editorial note to the gym owner. It is
+      // correct in prose, where a reader can see the site declining to guess,
+      // and wrong in schema, where it becomes the machine readable answer an
+      // answer engine quotes. Ten of these were being served as the canonical
+      // answer to questions like whether chalk is allowed. Excluded on both
+      // sides of the mirror, so the check keeps its teeth without enforcing
+      // the leak it was previously enforcing.
+      .filter((pair) => !pair.answer.includes('[FACT NEEDED'));
     if (pairs.length) renderedBlogFaq[segments[index]] = pairs;
   }
 }
@@ -219,6 +227,22 @@ for (const path of textFiles) {
   if (/[\u2013\u2014]/u.test(text)) dashFiles.push(path.slice(frontendRoot.length + 1));
 }
 check(!dashFiles.length, `no en dash or em dash characters${dashFiles.length ? `: ${dashFiles.join(', ')}` : ''}`);
+// That check scans for the literal characters, which Join.js sidestepped by
+// writing them as \u2013 escapes: invisible to the scan, rendered as en dashes by
+// the browser. Four shipped on the membership page while the check passed.
+// Only string literals count. Several pages carry the same escape inside a
+// character class, in the regexes that strip dashes out of API copy, and those
+// are the fix rather than the defect.
+const escapedDashFiles = [];
+for (const path of textFiles) {
+  // Drop the dash-stripping character class first. Several pages sanitise API
+  // copy with /[\u2013\u2014]/g, which necessarily contains the escape and is
+  // the remedy rather than the defect. Whatever escape survives that removal is
+  // an escape somebody typed into content.
+  const text = (await readFile(path, 'utf8')).replaceAll('[\\u2013\\u2014]', '');
+  if (/\\u201[34]/.test(text)) escapedDashFiles.push(path.slice(frontendRoot.length + 1));
+}
+check(!escapedDashFiles.length, `no escaped en dash or em dash sequences${escapedDashFiles.length ? `: ${escapedDashFiles.join(', ')}` : ''}`);
 
 if (failures.length) {
   console.error('\nSEO VALIDATION FAILED');

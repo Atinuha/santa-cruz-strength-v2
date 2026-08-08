@@ -14,7 +14,6 @@ export default function PersonalTraining() {
   const [trainers, setTrainers] = useState([]);
   const [c, setC] = useState({});
   useEffect(() => {
-    document.title = 'Personal Training | Santa Cruz Strength';
     getTeamMembers().then(({ data }) => setTrainers(data.filter(m => m.category === 'trainer'))).catch(() => {});
     getSiteContent().then(({ data }) => setC(data)).catch(() => {});
   }, []);
