@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { GYM_CONFIG, joinUrl } from '../config';
 import { SCS_MEDIA } from '../config/media';
 import api from '../lib/api';
+import { buildMemberLeadPayload, createLeadRequestId } from '../utils/leadContracts';
+import { getLeadAttribution } from '../utils/attribution';
 import { toast } from 'sonner';
 import {
   CheckCircle2, ChevronRight, ChevronLeft, Loader2,
@@ -46,6 +48,13 @@ export default function Pride() {
   }, []);
   useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, [step]);
 
+  // Same defect the corporate form carried: this posted a bare object with no
+  // request id, so the endpoint rejected it 422 before storing anything. The
+  // page is behind an expiry gate today, which is the only reason nobody saw
+  // it, and an expiry gate is not a fix.
+  const leadRequestIdRef = useRef(null);
+  if (!leadRequestIdRef.current) leadRequestIdRef.current = createLeadRequestId();
+
   if (expired) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--clr-bg)' }}>
@@ -76,14 +85,23 @@ export default function Pride() {
 
   const createLead = async (interest, notes, extraFields = {}) => {
     const contactPrefMap = { 'Call me': 'call', 'Text me': 'text', 'Email me': 'email' };
-    await api.post('/leads', {
-      first_name: form.first_name.trim(), last_name: form.last_name.trim() || '',
-      email: form.email.trim(), phone: form.phone.trim(),
-      interest_type: interest, lead_source: 'pride_2026', start_timeline: extraFields.timeline || 'Immediately',
-      training_goals: extraFields.goals || `Pride 2026: ${interest}`,
-      preferred_contact: contactPrefMap[extraFields.contact_pref] || 'call',
-      notes, sms_consent: true,
+    const payload = buildMemberLeadPayload({
+      form: {
+        first_name: form.first_name.trim(), last_name: form.last_name.trim() || '',
+        email: form.email.trim(), phone: form.phone.trim(),
+        interest_type: interest, start_timeline: extraFields.timeline || 'Immediately',
+        training_goals: extraFields.goals || `Pride 2026: ${interest}`,
+        preferred_contact: contactPrefMap[extraFields.contact_pref] || 'call',
+        notes, sms_consent: true,
+      },
+      source: 'pride_2026',
+      attribution: getLeadAttribution(),
+      requestId: leadRequestIdRef.current,
+      formId: 'pride_2026_interest',
+      offerId: 'free_day_pass',
     });
+    await api.post('/v1/leads', payload, { headers: { 'Idempotency-Key': payload.request_id } });
+    leadRequestIdRef.current = createLeadRequestId();
   };
 
   const handleSelectGoal = async (goal) => {

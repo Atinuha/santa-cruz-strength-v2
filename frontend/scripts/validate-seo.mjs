@@ -254,6 +254,10 @@ const dashFiles = [];
 for (const path of textFiles) {
   const relative = path.slice(frontendRoot.length + 1);
   if (DASH_EXEMPT.has(relative)) continue;
+  // Tournament candidates carry design documentation in markdown. That prose is
+  // never rendered to a visitor, so the shipped-copy rule does not reach it.
+  // Their .js is still scanned, because that does ship.
+  if (relative.startsWith('src/tournament/') && relative.endsWith('.md')) continue;
   const text = await readFile(path, 'utf8');
   if (/[\u2013\u2014]/u.test(text)) dashFiles.push(relative);
 }

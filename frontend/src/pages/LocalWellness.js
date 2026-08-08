@@ -4,6 +4,8 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { GYM_CONFIG } from '../config';
 import api from '../lib/api';
+import { buildCorporateLeadPayload, createLeadRequestId } from '../utils/leadContracts';
+import { getLeadAttribution } from '../utils/attribution';
 import { toast } from 'sonner';
 import {
   Building2, Users, Percent, HandCoins, HelpCircle,
@@ -100,16 +102,28 @@ export default function LocalWellness() {
 
   const goBack = () => { setErrors({}); setStep(s => Math.max(0, s - 1)); };
 
+  const requestIdRef = useRef(null);
+  if (!requestIdRef.current) requestIdRef.current = createLeadRequestId();
+
   const handleSubmit = async () => {
     const errs = validateStep();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
-      await api.post('/corporate-leads', {
-        ...form,
-        employee_count: parseInt(form.employee_count) || 0,
-        estimated_enrolled: parseInt(form.estimated_enrolled) || 0,
+      // The member forms were migrated to the v1 lead contract and this one was
+      // not, so every corporate submission was rejected 422 "Unsupported form
+      // schema version" and no B2B lead ever reached the database. The builder
+      // and its test already existed; this page simply never called it.
+      const payload = buildCorporateLeadPayload({
+        form,
+        attribution: getLeadAttribution(),
+        requestId: requestIdRef.current,
       });
+      await api.post('/corporate-leads', payload);
+      // A fresh identifier per successful submission, so a second genuine
+      // enquiry from the same visitor is not silently deduplicated into the
+      // first one, while a retry of a failed send keeps the old one.
+      requestIdRef.current = createLeadRequestId();
       setSubmitted(true);
       toast.success('Request submitted!');
     } catch (err) { toast.error(err.response?.data?.detail || 'Something went wrong'); }
