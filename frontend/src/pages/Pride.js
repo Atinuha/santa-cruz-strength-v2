@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GYM_CONFIG } from '../config';
+import { GYM_CONFIG, abcGuestUrl } from '../config';
 import { SCS_MEDIA } from '../config/media';
 import api from '../lib/api';
 import { toast } from 'sonner';
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 const EXPIRY = new Date('2026-08-01T00:00:00');
-const ABC_GUEST_LINK = 'https://onlinejoin.abcfitness.com/guest/plan?club=31691';
+const ABC_GUEST_LINK = abcGuestUrl();
 const HERO_IMG = SCS_MEDIA.openGym;
 
 const GOALS = [

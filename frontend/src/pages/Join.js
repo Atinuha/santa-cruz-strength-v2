@@ -3,43 +3,44 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import { ArrowRight, CheckCircle2, Clock, Users, Zap, Calendar, Star, CreditCard, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { abcJoinUrl } from '../config';
 
 const PRIMARY_PLANS = [
   { id: 'daypass', name: 'Day Pass', price: '$20', per: '', highlight: false, tag: 'Try Us Out',
     features: ['Valid for same-day use', 'Staffed hours only'], terms: [],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=50837530f58641c38108fea62255030b', cta: 'Get a Day Pass' },
+    link: abcJoinUrl('50837530f58641c38108fea62255030b'), cta: 'Get a Day Pass' },
   { id: 'huscler-12', name: 'Huscler', subtitle: '12-Month', price: '$75', per: '/mo', highlight: true, tag: 'Most Popular',
     savings: 'Save 38%', compareText: 'vs. $120/mo month-to-month',
     features: ['Full facility access', 'Unlimited open gym', 'All available equipment'],
     terms: ['12-month agreement', 'Auto-renews month-to-month', '30-day cancellation notice', '$50 Annual Enhancement Fee'],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=823263ef0c354fd29bade28c18f280f2', cta: 'Join Now' },
+    link: abcJoinUrl('823263ef0c354fd29bade28c18f280f2'), cta: 'Join Now' },
   { id: 'annual', name: 'Annual Huscler', subtitle: 'Paid in Full', price: '$825', per: ' one-time', highlight: false, tag: 'Best Value',
     savings: 'Save 47%', monthlyEquiv: '$63/mo effective',
     features: ['Full facility access', '13 months total', 'Unlimited open gym'],
     terms: ['Paid in full at signup', 'Auto-renews month-to-month', '30-day cancellation notice', '$50 Annual Enhancement Fee'],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=7a1dd8cec5cd4f30af82429e4f5957c5', cta: 'Get 13 Months' },
+    link: abcJoinUrl('7a1dd8cec5cd4f30af82429e4f5957c5'), cta: 'Get 13 Months' },
 ];
 
 const MORE_PLANS = [
   { id: 'flex', name: 'Flex Huscler', subtitle: 'Month-to-Month', price: '$120', per: '/mo',
     features: ['Full facility access', 'No agreement required'],
     terms: ['Billed monthly', '30-day cancellation notice', '$50 Annual Enhancement Fee'],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=a772569e9c38408c90fab7b9bda49fca' },
+    link: abcJoinUrl('a772569e9c38408c90fab7b9bda49fca') },
   { id: 'huscler-6', name: 'Huscler 6-Month', subtitle: '6-Month', price: '$82', per: '/mo', savings: 'Save 32%',
     features: ['Full facility access'], terms: ['6-month agreement', 'Auto-renews month-to-month', '$50 Annual Enhancement Fee'],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=5efa1abd3436408a99c4ce18c6216be2' },
+    link: abcJoinUrl('5efa1abd3436408a99c4ce18c6216be2') },
   { id: 'couples-12', name: 'Couples 12-Month', subtitle: '2 Members', price: '$120', per: '/mo', extra: '$60/person', savings: 'Save 50%',
     features: ['Includes 2 members', 'Full facility access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=fdf12470797b47a1a6ac3c11c764d46e' },
+    link: abcJoinUrl('fdf12470797b47a1a6ac3c11c764d46e') },
   { id: 'couples-6', name: 'Couples 6-Month', subtitle: '2 Members', price: '$136', per: '/mo', extra: '$68/person',
     features: ['Includes 2 members', 'Full facility access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=5d08a9e72aef4c8da136ab822f550eca' },
+    link: abcJoinUrl('5d08a9e72aef4c8da136ab822f550eca') },
   { id: 'weekend-12', name: 'Weekend Warrior 12-Mo', subtitle: 'Fri\u2013Sun only', price: '$45', per: '/mo', savings: 'Save 63%',
     features: ['Friday\u2013Sunday access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=11b156f6da6e43289a145de648034aa9' },
+    link: abcJoinUrl('11b156f6da6e43289a145de648034aa9') },
   { id: 'weekend-6', name: 'Weekend Warrior 6-Mo', subtitle: 'Fri\u2013Sun only', price: '$55', per: '/mo', savings: 'Save 54%',
     features: ['Friday\u2013Sunday access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'],
-    link: 'https://onlinejoin.abcfitness.com/signup/plan?club=31691&planId=4383e794de444449b5a1dd4b5160a6b4' },
+    link: abcJoinUrl('4383e794de444449b5a1dd4b5160a6b4') },
 ];
 
 function PlanCard({ plan }) {

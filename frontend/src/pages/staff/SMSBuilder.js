@@ -117,7 +117,7 @@ export default function SMSBuilder() {
     .replace(/\{\{first_name\}\}/g, 'Alex')
     .replace(/\{\{last_name\}\}/g, 'Johnson')
     .replace(/\{\{gym_name\}\}/g, 'Santa Cruz Strength')
-    .replace(/\{\{join_url\}\}/g, 'https://onlinejoin.abcfitness.com/...')
+    .replace(/\{\{join_url\}\}/g, abcJoinUrl())
     .replace(/\{\{gym_phone\}\}/g, '(408) 337-6709');
 
   const segs = segmentCount(smsText.length);
