@@ -160,14 +160,14 @@ export default function Join() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-6">
             <h2 className="font-display text-lg mb-2" style={{ color: 'var(--scs-charcoal)' }}>Start With a Visit</h2>
-            <p className="text-sm" style={{ color: 'var(--scs-text-muted)' }}>See the room, ask your questions, and set up your membership with a coach in person.</p>
+            <p className="text-sm" style={{ color: 'var(--scs-text-muted)' }}>See the space, ask your questions, and set up your membership with a coach in person.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-testid="how-joining-works">
             {[
               { n: '1', h: 'Tell us about you', b: 'Answer a few questions below. It takes about a minute.' },
               { n: '2', h: 'We reach out', b: 'A coach contacts you to agree a time that works.' },
-              { n: '3', h: 'Visit and join', b: 'Walk the room, then set up the plan that fits. We handle the paperwork.' },
+              { n: '3', h: 'Visit and join', b: 'Walk the space, then set up the plan that fits. We handle the paperwork.' },
             ].map(s => (
               <div key={s.n} className="p-4" style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }} data-testid={`joining-step-${s.n}`}>
                 <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--scs-clay)' }}>Step {s.n}</span>

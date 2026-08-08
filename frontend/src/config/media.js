@@ -27,7 +27,7 @@
 // shot; a slot promising one subject must not show another.
 
 const REAL = '/assets/scs/real';
-const ROOM = '/assets/scs';
+const SCS_ASSETS = '/assets/scs';
 
 export const SCS_MEDIA = Object.freeze({
   // Real, clean, publishable.
@@ -52,14 +52,14 @@ export const SCS_MEDIA = Object.freeze({
 
   // The building itself. No people in either frame, so both publish now
   // without waiting on likeness permission.
-  heroFacility: `${ROOM}/facility.jpg`, // wide floor, wall seal, racks, platforms
-  openGym: `${ROOM}/racks.jpg`,         // rack and bench area, plate storage
+  heroFacility: `${SCS_ASSETS}/facility.jpg`, // wide floor, wall seal, racks, platforms
+  openGym: `${SCS_ASSETS}/racks.jpg`,         // rack and bench area, plate storage
 
   // The seal. Not a photograph, so no permission question, but it belongs here
   // rather than as a literal in each component: the navbar, the footer, the
   // hero watermark and the entity block all render it, and a missing key made
   // every one of them an <img src={undefined}> until this was added.
-  logo: `${ROOM}/logo.png`,
+  logo: `${SCS_ASSETS}/logo.png`,
 
   // No honest photograph exists. Pages render without these rather than
   // showing a different subject. See the note at the top of this file.
@@ -79,8 +79,8 @@ export const SCS_MEDIA_PENDING = Object.freeze([
 // Real photographs held back only for written likeness permission, not for
 // want of an asset. Wire these the day permission lands.
 export const SCS_MEDIA_AWAITING_PERMISSION = Object.freeze({
-  entrance: `${ROOM}/coach.jpeg`,      // storefront and signage, one person
-  benchPress: `${ROOM}/lift.jpeg`,     // clean action, unwatermarked, two people
-  medalists: `${ROOM}/podium.jpeg`,    // three lifters at the wall seal
-  meetCrowd: `${ROOM}/community.jpeg`, // meet day, many people
+  entrance: `${SCS_ASSETS}/coach.jpeg`,      // storefront and signage, one person
+  benchPress: `${SCS_ASSETS}/lift.jpeg`,     // clean action, unwatermarked, two people
+  medalists: `${SCS_ASSETS}/podium.jpeg`,    // three lifters at the wall seal
+  meetCrowd: `${SCS_ASSETS}/community.jpeg`, // meet day, many people
 });

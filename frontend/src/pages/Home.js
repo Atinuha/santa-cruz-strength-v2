@@ -22,7 +22,7 @@ const HERO_IMG = SCS_MEDIA.heroFacility;        // wide training floor, wall sea
 const COACHING_IMG = SCS_MEDIA.coachingFloor;   // coaching crew on the platform
 const COMMUNITY_IMG = SCS_MEDIA.communityFloor; // members, branded backdrop
 const EQUIP_IMG = SCS_MEDIA.openGym;            // racks, benches, plate storage
-const WALKTHROUGH_IMG = SCS_MEDIA.openGym;      // the room a tour actually walks
+const WALKTHROUGH_IMG = SCS_MEDIA.openGym;      // the space a tour actually walks
 const LOGO_URL = SCS_MEDIA.logo;
 
 const FAQ_ITEMS = [
@@ -48,7 +48,7 @@ export default function Home() {
     <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>
       <Navbar />
 
-      {/* 1. ROOM-FIRST HERO */}
+      {/* 1. SPACE-FIRST HERO */}
       <section data-testid="home-hero" className="relative pt-16" style={{ backgroundColor: 'var(--scs-carbon)' }}>
         <div className="relative min-h-[440px] sm:min-h-[62vh] lg:min-h-[66vh] max-h-[680px] flex items-end">
           <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_IMG})`, backgroundSize: 'cover', backgroundPosition: 'center 78%', filter: 'saturate(0.55) contrast(1.08) brightness(0.62)' }} />
@@ -102,9 +102,9 @@ export default function Home() {
               <img src={WALKTHROUGH_IMG} alt="Racks, benches and plate storage on the Santa Cruz Strength training floor" className="w-full h-64 sm:h-80 object-cover" style={{ objectPosition: 'center 60%' }} loading="lazy" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--scs-stone)' }}>Walk the room</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--scs-stone)' }}>Walk the space</p>
               <h2 className="font-display text-2xl sm:text-3xl mb-4" style={{ color: 'var(--scs-charcoal)' }}>
-                Walk through the room. Ask how access works. Leave with a clear answer.
+                Walk through the space. Ask how access works. Leave with a clear answer.
               </h2>
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--scs-text-muted)' }}>
                 A facility tour lets you see every part of the gym, see the equipment and ask what is available, and talk to staff before you decide anything.

@@ -20,7 +20,7 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--scs-stone)' }}>
-              A serious room.<br />Clear support.<br />Built for every lift.
+              A serious space.<br />Clear support.<br />Built for every lift.
             </p>
           </div>
 
