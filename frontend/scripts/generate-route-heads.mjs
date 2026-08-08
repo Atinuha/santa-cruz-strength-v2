@@ -97,6 +97,24 @@ const buildArticleGraph = (route) => {
   };
 };
 
+// Breadcrumbs for the ordinary pages: everything indexable that is neither the
+// homepage nor an article. Two levels, because this site is two levels deep.
+// The final item deliberately carries no `item` property, per schema.org: the
+// last crumb is the current page and linking a page to itself is noise.
+const buildPageGraph = (route) => ({
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${route.canonical}#breadcrumb`,
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${registry.site.origin}/` },
+        { '@type': 'ListItem', position: 2, name: route.h1 || route.title },
+      ],
+    },
+  ],
+});
+
 // Self hosted fonts are render blocking on first paint, so preload them. Read
 // the built stylesheet rather than the sources: it holds every @font-face from
 // every origin (src/index.css and the @fontsource packages alike) already
@@ -202,6 +220,18 @@ const renderHead = (metadata) => {
     html = html.replace(
       '</head>',
       `    <script id="article-schema" type="application/ld+json">${JSON.stringify(buildArticleGraph(metadata))}</script>\n</head>`
+    );
+  } else if (metadata.indexable && canonical) {
+    // Everything else that a crawler is allowed to index. Before this branch
+    // existed the chain was home, then articles, then nothing, so /about,
+    // /join, /contact, /personal-training, /events, /blog, /privacy and /terms
+    // all shipped with no structured data at all. The approved build carried a
+    // breadcrumb on each of them through a client side injector, which was
+    // removed on the correct reasoning that a build time tag is better and the
+    // incorrect assumption that the generator already emitted one.
+    html = html.replace(
+      '</head>',
+      `    <script id="page-schema" type="application/ld+json">${JSON.stringify(buildPageGraph(metadata))}</script>\n</head>`
     );
   }
 

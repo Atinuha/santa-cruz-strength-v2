@@ -203,6 +203,28 @@ check(
   `blog FAQ schema is only encoded for indexable articles${faqOnNonIndexable.length ? `: ${faqOnNonIndexable.join(', ')}` : ''}`
 );
 
+// Structured data is written into the built shells, not the sources, so this is
+// the only place it can be checked. Skipped when no build exists, because the
+// validator is also run standalone before one has been produced.
+//
+// This exists because every indexable page except the homepage and the articles
+// shipped with no JSON-LD at all, and nothing noticed. The client side injectors
+// that used to carry a breadcrumb were removed in favour of build time tags, and
+// the generator only ever emitted for two of the three route families.
+const buildDir = resolve(frontendRoot, 'build');
+if (existsSync(buildDir)) {
+  const shellless = [];
+  for (const route of registry.routes.filter((candidate) => candidate.indexable)) {
+    const shell = resolve(buildDir, route.path === '/' ? 'index.html' : `${route.path.slice(1)}/index.html`);
+    if (!existsSync(shell)) { shellless.push(`${route.path} (no shell)`); continue; }
+    if (!(await readFile(shell, 'utf8')).includes('application/ld+json')) shellless.push(route.path);
+  }
+  check(
+    !shellless.length,
+    `every indexable route ships structured data${shellless.length ? `: missing on ${shellless.join(', ')}` : ` (${registry.routes.filter((r) => r.indexable).length} routes)`}`,
+  );
+}
+
 check(!publicIndex.includes('openingHoursSpecification'), 'schema omits unverified hours');
 check(appSource.includes('<RouteSeo />'), 'route SEO manager is mounted');
 check(appSource.includes('<Route path="*" element={<NotFound />} />'), 'client fallback is a real not-found view');
