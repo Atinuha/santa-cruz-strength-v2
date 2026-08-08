@@ -1,0 +1,283 @@
+<title>Santa Cruz Strength: Project Status</title>
+<style>
+:root{
+  --bg:#F7F5F0; --surface:#FFFFFF; --muted:#CDEAE0; --line:rgba(13,93,62,.16);
+  --ink:#1C1C1C; --dim:#475569; --green:#0D5D3E; --coral:#FA5A5C;
+  --ok:#0D5D3E; --warn:#B45309; --stop:#B91C1C;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1210; --surface:#161B18; --muted:#1B2A24; --line:rgba(205,234,224,.16);
+  --ink:#E8E6E1; --dim:#9AA7A0; --green:#5FBF92; --coral:#FF7B7D;
+  --ok:#5FBF92; --warn:#E0A356; --stop:#F1736B;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1210; --surface:#161B18; --muted:#1B2A24; --line:rgba(205,234,224,.16);
+  --ink:#E8E6E1; --dim:#9AA7A0; --green:#5FBF92; --coral:#FF7B7D;
+  --ok:#5FBF92; --warn:#E0A356; --stop:#F1736B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+h1{font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0 0 6px;letter-spacing:-.02em}
+h2{font-size:clamp(19px,2.4vw,25px);margin:44px 0 12px;padding-top:18px;border-top:2px solid var(--line);letter-spacing:-.01em}
+h3{font-size:16px;margin:24px 0 8px;color:var(--green)}
+p{margin:0 0 12px}
+.sub{color:var(--dim);font-size:14px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
+.grid{display:grid;gap:12px}
+@media(min-width:720px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.stat b{display:block;font-size:26px;line-height:1.1;color:var(--green)}
+.stat span{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+table{width:100%;border-collapse:collapse;font-size:14px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:12px 0}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);font-weight:700;white-space:nowrap}
+code,kbd{font-family:var(--mono);font-size:12.5px;background:var(--muted);padding:1px 5px;border-radius:5px}
+pre{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.55}
+.pill{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.done{background:rgba(13,93,62,.14);color:var(--ok)}
+.wip{background:rgba(180,83,9,.14);color:var(--warn)}
+.block{background:rgba(185,28,28,.13);color:var(--stop)}
+.who{font-size:11px;color:var(--dim)}
+ul,ol{margin:0 0 12px;padding-left:20px}
+li{margin-bottom:5px}
+.lede{font-size:16px;border-left:3px solid var(--coral);padding-left:14px;margin:16px 0}
+.flow{font-family:var(--mono);font-size:12px;line-height:1.7;white-space:pre;overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.foot{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);color:var(--dim);font-size:12.5px}
+</style>
+
+<div class="wrap">
+
+<h1>Santa Cruz Strength</h1>
+<p class="sub">Project status, architecture and route to live &middot; compiled 2026-08-08 &middot; every number below was measured today, not carried forward</p>
+
+<div class="lede">
+<strong>The single source of truth is <code>~/SantaCruzrepo</code>, branch <code>convergence/t1-backend</code>.</strong>
+Everything else on this machine is reference material or a dead end. Nothing has been pushed to GitHub. Nothing is deployed.
+</div>
+
+<div class="grid g4">
+  <div class="stat"><b>132</b><span>Backend tests pass</span></div>
+  <div class="stat"><b>32</b><span>Frontend tests pass</span></div>
+  <div class="stat"><b>17</b><span>SEO checks pass</span></div>
+  <div class="stat"><b>0</b><span>Failing modules</span></div>
+</div>
+
+<h2>1. Where everything lives</h2>
+
+<p>Four trees exist on this machine. Only one is real.</p>
+
+<div class="scroll"><table>
+<tr><th>Path</th><th>Role</th><th>Use it?</th></tr>
+<tr><td><code>~/SantaCruzrepo</code></td><td><strong>Canonical.</strong> Full app, 132 backend and 32 frontend tests, SEO tooling, docs, ticket state. Remote <code>Atinuha/santa-cruz-strength-site</code></td><td><span class="pill done">Yes, only this</span></td></tr>
+<tr><td><code>~/SantaCruzrepo-new</code></td><td>Content donor. No <code>node_modules</code>, cannot build. Holds the 1,402-record lead CSV in history</td><td><span class="pill block">Read only</span></td></tr>
+<tr><td><code>~/Mike Lucero Strategy_Muhammad Atif</code></td><td>6.8 GB strategy and research archive. Master plan, PRDs, mockups, authority packet, brand corpus</td><td><span class="pill wip">Reference</span></td></tr>
+<tr><td><code>growth-implementation/new-build/</code></td><td>Greenfield Next.js 16 scaffold. Deferred by decision, not cancelled. Its authority packet still governs facts</td><td><span class="pill wip">Governs facts</span></td></tr>
+</table></div>
+
+<p>The live preview at <code>http://127.0.0.1:3100</code> is served from <code>~/SantaCruzrepo/frontend/build</code> by a small static server. It is the canonical tree.</p>
+
+<h3>Key files</h3>
+<pre>~/SantaCruzrepo/
+  frontend/src/config/index.js        business facts, membership model, one joinUrl()
+  frontend/src/pages/                 Home Join PersonalTraining Contact About Events Blog Pride
+  frontend/src/components/RouteSeo.js per-route metadata and canonicals
+  frontend/src/seo/                   route-metadata.json, home-schema.json
+  frontend/scripts/                   generate-route-heads, generate-sitemap, validate-seo
+  backend/server.py                   API, lead capture, campaigns, staff CRM
+  backend/lead_outbox.py              durable outbox, idempotency, leases, quarantine
+  backend/crm_boundary.py             records intended CRM writes, cannot perform them
+  backend/gymmaster_adapter.py        prospect creation, defaults to refusing
+  docs/convergence/TICKETS.md         durable slice state, T-0 to T-9
+  docs/PROJECT-STATUS.html            this file</pre>
+
+<h2>2. Verified today</h2>
+
+<pre>backend   132 tests pass, 15 modules, 0 failures
+frontend   32 tests pass, 12 suites,  0 failures
+seo        17 checks pass, including the no dash rule
+build      preview build green, 29 route shells plus 404.html, 24 sitemap URLs
+bundle     zero abcfitness strings remain
+live       / /join /about /blog /contact all return 200 with correct per-route titles</pre>
+
+<p>Backend tests need <code>PYTHONPATH</code> to include <code>backend</code> and <code>backend/tests</code>, otherwise four modules fail on sibling imports. That is a harness quirk, not a defect.</p>
+
+<h2>3. Architecture</h2>
+
+<div class="grid g2">
+<div class="card"><h3>Frontend</h3>
+React 19, react-router-dom 7.13, Tailwind 3.4, shadcn/ui, craco on react-scripts 5.<br>
+Public marketing routes plus a protected staff CRM. Per-route head shells are generated at build time, so titles, canonicals and schema are correct for search engines.
+</div>
+<div class="card"><h3>Backend</h3>
+FastAPI on Python, MongoDB via motor. Twelve stage lead lifecycle, durable outbox with deterministic idempotency, leased claims, bounded retry and quarantine. Every outbound capability defaults to off.
+</div>
+</div>
+
+<div class="scroll"><table>
+<tr><th>Provider</th><th>Role</th><th>Code</th><th>Live</th></tr>
+<tr><td><strong>GymMaster Online</strong></td><td>CRM, prospects and members</td><td>Adapter written, refuses without config</td><td><span class="pill block">Empty, no products</span></td></tr>
+<tr><td><strong>Resend</strong></td><td>Transactional email</td><td>Outbox adapter, idempotency key</td><td><span class="pill wip">Added in Emergent</span></td></tr>
+<tr><td><strong>Twilio</strong></td><td>SMS, sole provider</td><td>Adapter, signature validation, STOP and START</td><td><span class="pill block">A2P rejected</span></td></tr>
+<tr><td>ABC Fitness</td><td>Retired</td><td>Removed from the entire codebase</td><td><span class="pill done">Gone</span></td></tr>
+<tr><td>MailerSend</td><td>Retired</td><td>Removed, was an SMS fallback</td><td><span class="pill done">Gone</span></td></tr>
+</table></div>
+
+<h2>4. The lead sequence, end to end</h2>
+
+<div class="flow">Visitor lands on a marketing route
+  |
+  v
+Quiz or form. Consent is three separate choices:
+service, email marketing, SMS marketing. Never bundled.
+  |
+  v
+POST to backend. Lead is persisted FIRST with attribution,
+request id and consent, BEFORE success returns and BEFORE
+any provider is contacted.
+  |
+  v
+Outbox creates inert delivery intents. Nothing sends from
+the request path.
+  |
+  v
+Dispatcher, fail closed. Allowlist, suppression, consent
+check, Pacific quiet hours, bounded retry, quarantine on
+ambiguous outcomes.
+  |         |                    |
+  v         v                    v
+Resend    Twilio SMS         GymMaster prospect
+ack mail  (consent only)     (dry run contract today)
+  |
+  v
+Staff work the lead in the CRM through twelve stages:
+new, acknowledged, contact_attempted, contacted,
+tour_booked, tour_confirmed, attended, no_show, trial,
+membership, lost, reactivation_eligible
+  |
+  v
+Visit. A coach completes signup in person.
+Memberships are not sold online.</div>
+
+<div class="card">
+<strong>Two rules the code enforces that most systems get wrong.</strong>
+<ol>
+<li>An automated acknowledgement is <em>not</em> human contact. Recording contact requires an explicit staff event.</li>
+<li>A tour form records a <em>request</em>, not a booking. It becomes an appointment only when staff and visitor agree a time.</li>
+</ol>
+</div>
+
+<h2>5. Progress, start to now</h2>
+
+<div class="scroll"><table>
+<tr><th>ID</th><th>Slice</th><th>State</th><th>Commit</th></tr>
+<tr><td>T-0</td><td>Remote push target set to no_push</td><td><span class="pill done">Done</span></td><td><code>ed0a2e1</code></td></tr>
+<tr><td>T-1</td><td>Backend converged from engineering donor</td><td><span class="pill done">Done</span></td><td><code>ed0a2e1</code></td></tr>
+<tr><td>T-2</td><td>Frontend converged, lead capture restored</td><td><span class="pill done">Done</span></td><td><code>7f8923c</code></td></tr>
+<tr><td>T-3</td><td>Hero uses the real gym, alt text corrected</td><td><span class="pill done">Done</span></td><td><code>652cb9a</code></td></tr>
+<tr><td>T-4</td><td>Ten long form articles imported, corpus 7 to 17</td><td><span class="pill done">Done</span></td><td><code>4e22717</code></td></tr>
+<tr><td>T-5</td><td>Twilio sole SMS provider, MailerSend removed</td><td><span class="pill done">Done</span></td><td><code>fa6c49b</code></td></tr>
+<tr><td>T-6</td><td>Vendor residue removed, zero remote hosts in source</td><td><span class="pill done">Done</span></td><td><code>6f71ffb</code></td></tr>
+<tr><td>T-7</td><td>CRM boundary records intended writes, cannot send</td><td><span class="pill done">Done</span></td><td><code>48f061b</code></td></tr>
+<tr><td>T-8</td><td>Rotate the disclosed owner credential</td><td><span class="pill block">Yours</span></td><td></td></tr>
+<tr><td>T-9</td><td>Final integrated review</td><td><span class="pill done">Done</span></td><td>REVIEW-T9.html</td></tr>
+<tr><td>T-10</td><td>Checkpoint: preserve in-progress convergence work</td><td><span class="pill done">Done</span></td><td><code>aaea9c6</code></td></tr>
+<tr><td>T-11</td><td>Every join link routed through one helper</td><td><span class="pill done">Done</span></td><td><code>d0c2260</code></td></tr>
+<tr><td>T-12</td><td>Memberships sold in person, ABC checkout retired</td><td><span class="pill done">Done</span></td><td><code>6e2cdd9</code></td></tr>
+</table></div>
+
+<h2>6. What is not done</h2>
+
+<h3>Blocked on Mike or a vendor. No code will unblock these.</h3>
+<div class="scroll"><table>
+<tr><th>Item</th><th>Why it blocks</th><th>Owner</th></tr>
+<tr><td><strong>GymMaster is empty</strong></td><td>Zero members, no membership products, no payment gateway. Verified 2026-08-08. Signup portal says "There are no memberships available"</td><td class="who">Mike and GymMaster</td></tr>
+<tr><td><strong>ABC member import</strong></td><td>Must run, then reconcile counts, before GymMaster is trustworthy</td><td class="who">Mike and GymMaster</td></tr>
+<tr><td><strong>GymMaster API key and companyid</strong></td><td>Adapter refuses to construct without them. <code>167488</code> is a candidate, unconfirmed</td><td class="who">GymMaster support</td></tr>
+<tr><td><strong>Prospect saving is off</strong></td><td><code>mp_signup_saves_prospect: false</code>. Leads sent to GymMaster would be discarded</td><td class="who">Mike</td></tr>
+<tr><td><strong>Twilio A2P rejected</strong></td><td>All three numbers messaging-disabled. No SMS can send</td><td class="who">Mike and carrier</td></tr>
+<tr><td><strong>Business facts unapproved</strong></td><td>Hours, day pass rules, coach names and credentials, equipment, which reviews may be published, legal entity name</td><td class="who">Mike and Teresa</td></tr>
+<tr><td><strong>Likeness permissions</strong></td><td>Four frames await written permission</td><td class="who">Mike</td></tr>
+<tr><td><strong>Lead CSV in git history</strong></td><td>1,402 real records with dates of birth and home addresses, in <code>SantaCruzrepo-new</code>. Private but permanent until purged</td><td class="who">You and Mike</td></tr>
+<tr><td><strong>Credential rotation</strong></td><td>T-8 and B-11. Includes the GymMaster password shared today</td><td class="who">You</td></tr>
+</table></div>
+
+<h3>Ours to build</h3>
+<div class="scroll"><table>
+<tr><th>Item</th><th>What it takes</th></tr>
+<tr><td><strong>AI crawlers see an empty page</strong></td><td>Route heads are correct so Google is fine, but body content is client rendered and GPTBot and PerplexityBot execute no JavaScript. Prerender the built routes, roughly a day, or move public routes to Next.js later</td></tr>
+<tr><td><strong>Voice conflict unresolved</strong></td><td>The repo design guidelines want witty microcopy; the dated approved voice profile says humour never interrupts clarity. Reconcile with <code>/brand-voice</code>, then write with <code>/direct-response-copy</code></td></tr>
+<tr><td><strong>Consent banner overlaps the FAQ</strong></td><td>Visible on <code>/join</code>. Cosmetic but reads as broken</td></tr>
+<tr><td><strong>"Find your plan" headline is now wrong</strong></td><td>You cannot pick a plan on that page any more. Rename to match what it does</td></tr>
+<tr><td><strong>Day pass friction</strong></td><td>A $20 drop-in now needs a tour booking and a callback. Probably should be phone or walk-in, stated on the card</td></tr>
+<tr><td><strong>Privacy page names ABC</strong></td><td>Now inaccurate. Legal text, so Mike and a reviewer, not a silent edit</td></tr>
+<tr><td><strong>CRM dedup is in memory</strong></td><td>Exactly-once does not survive a restart. No live impact today because nothing enqueues a CRM job. Close before wiring a real CRM</td></tr>
+<tr><td><strong>Remaining visual system</strong></td><td>About, Events, Blog Post and utility routes still need the finished look. CSS consolidation, font packaging</td></tr>
+</table></div>
+
+<h2>7. Route to live</h2>
+
+<p>The existing site was built inside Emergent with Stripe, Resend and Twilio connected there. The plan is to push this repo to GitHub, then fork it into Emergent so it replaces the current app.</p>
+
+<div class="scroll"><table>
+<tr><th>#</th><th>Step</th><th>Gate before it</th></tr>
+<tr><td>1</td><td>Purge or accept the lead CSV in <code>SantaCruzrepo-new</code> history</td><td>Your decision, with Mike</td></tr>
+<tr><td>2</td><td>Rotate credentials, T-8</td><td>None. Do it now</td></tr>
+<tr><td>3</td><td>Mike ratifies in-person membership sales</td><td>Show him <code>/join</code> locally</td></tr>
+<tr><td>4</td><td>Close the business facts: hours, coaches, reviews, day pass</td><td>Mike and Teresa</td></tr>
+<tr><td>5</td><td>Finish visual system, fix the four UI defects above</td><td>Step 3</td></tr>
+<tr><td>6</td><td>Prerender for AI crawlers</td><td>None. Independent</td></tr>
+<tr><td>7</td><td>Push to GitHub</td><td>Steps 1 and 2</td></tr>
+<tr><td>8</td><td>Fork into Emergent, wire Resend and Twilio there</td><td>Step 7</td></tr>
+<tr><td>9</td><td>Staging verification against real providers</td><td>Twilio A2P approved</td></tr>
+<tr><td>10</td><td>Point the GoDaddy domain, controlled release, rollback watch</td><td>Mike approves the release unit</td></tr>
+<tr><td>11</td><td>GymMaster prospect sync switched on</td><td>Import done, API key issued, prospect saving enabled</td></tr>
+</table></div>
+
+<h3>Honest timeline</h3>
+<div class="scroll"><table>
+<tr><th>Milestone</th><th>Working days</th><th>Depends on</th></tr>
+<tr><td>Website finished and reviewable locally</td><td>3 to 5</td><td>Us, plus Mike's fact approvals</td></tr>
+<tr><td>Pushed to GitHub and forked into Emergent</td><td>1</td><td>CSV decision and credential rotation</td></tr>
+<tr><td>Live with email working, no SMS, no CRM sync</td><td>2 to 3 after the above</td><td>Mike approving release</td></tr>
+<tr><td>SMS live</td><td>Unknown</td><td>Twilio carrier registration, outside our control</td></tr>
+<tr><td>GymMaster sync live, source to member reporting</td><td>Unknown</td><td>ABC import and GymMaster configuration</td></tr>
+</table></div>
+
+<p><strong>A fully live system this week is not available at any price</strong>, because Twilio and GymMaster are both blocked outside our control. A finished, reviewed, fact-approved website that captures leads and sends acknowledgement email <em>is</em> achievable. Treat SMS and CRM sync as fast-follow switches, since the adapters are written and disabled rather than missing.</p>
+
+<h2>8. Skills and framework in use</h2>
+
+<div class="grid g2">
+<div class="card"><h3>Governing the work</h3>
+<ul>
+<li><code>/prd-authority-pack</code> produced the PRD, evidence ledger and tension gates</li>
+<li><code>/promptcraft</code> and the NovaKit advice file for anything model facing</li>
+<li><code>/impeccable</code> governs interface quality</li>
+<li><code>/ponytail</code> keeps the diffs small, <code>/codex</code> for a second opinion</li>
+</ul>
+</div>
+<div class="card"><h3>Producing the content</h3>
+<ul>
+<li><code>/brand-voice</code> owns the voice ruling, still to run</li>
+<li><code>/direct-response-copy</code> and <code>/positioning-angles</code> for page copy</li>
+<li><code>/sxo-geo-search-architect</code>, <code>/keyword-research-seo</code>, <code>/seo-content</code> for search and AI visibility</li>
+<li><code>/content-atomizer</code> and <code>/influencer-pack</code> for distribution after launch</li>
+</ul>
+</div>
+</div>
+
+<h2>9. The next three things</h2>
+<ol>
+<li><strong>Rotate credentials.</strong> Costs minutes, unblocks the GitHub push, and one of them was shared in a chat today.</li>
+<li><strong>Decide the lead CSV.</strong> Purge history or accept it in writing. This gates the push.</li>
+<li><strong>Send Mike one message</strong> with the fact list and the in-person selling question. Every remaining content decision hangs off it.</li>
+</ol>
+
+<p class="foot">Compiled from the working tree at <code>6e2cdd9</code> on branch <code>convergence/t1-backend</code>. Test counts, route counts and provider states were measured on 2026-08-08, not carried forward from earlier documents. Where a fact was unverified it is labelled as such rather than smoothed over.</p>
+
+</div>

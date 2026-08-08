@@ -18,6 +18,11 @@ Donors are read-only: `../SantaCruzrepo-new` (content), `../scs-build` (engineer
 | T-7 | CRM boundary: records intended writes, cannot send | DONE | 48f061b |
 | T-8 | Rotate the disclosed owner credential (human action) | **NEXT**, yours | |
 | T-9 | Final integrated review | DONE | see REVIEW-T9.html |
+| T-10 | Checkpoint: preserve in-progress convergence work | DONE | aaea9c6 |
+| T-11 | Every join link routed through one config helper | DONE | d0c2260 |
+| T-12 | Memberships sold in person, ABC checkout retired | DONE | 6e2cdd9 |
+| T-13 | Prerender public routes so AI crawlers see body content | **NEXT**, ours | |
+| T-14 | Voice ruling between repo guidelines and approved profile | OPEN, ours | |
 
 T-5 and T-6 touch disjoint files and may run in either order.
 
@@ -26,8 +31,9 @@ T-5 and T-6 touch disjoint files and may run in either order.
 Everything below passed at the last commit. Re-run before trusting it.
 
 ```
-cd backend   && for t in tests/test_*.py; do python -m unittest "tests.$(basename $t .py)"; done   # 95 tests, 14 modules  (verified at T-9)
-cd frontend  && CI=true npx craco test --watchAll=false                                            # 20 tests, 8 suites
+cd backend   && export PYTHONPATH="$PWD:$PWD/tests" \
+             && for t in tests/test_*.py; do python -m unittest "tests.$(basename $t .py)"; done   # 132 tests, 15 modules (verified 2026-08-08)
+cd frontend  && CI=true npx craco test --watchAll=false                                            # 32 tests, 12 suites  (verified 2026-08-08)
 cd frontend  && node scripts/validate-seo.mjs                                                      # 17 checks
 cd frontend  && npx craco build                                                                    # green
 ```
@@ -57,6 +63,7 @@ Current state of these lives in `LOCAL-SAFETY.md`.
 | B-04 | CRM credentials, field mapping, idempotency key, cutover date | Owner and vendor |
 | ~~B-05~~ | ~~Email provider precedence~~ CLOSED. It was never two email providers; MailerSend was an SMS fallback and is removed | closed |
 | B-11 | Rotate the disclosed owner credential. Now actually sticks, since the startup force-reset is gone | User |
+| B-GYMMASTER | GymMaster inspected 2026-08-08: zero members, no membership products, no payment gateway, prospect saving off. Cannot receive leads or buyers | Mike and vendor |
 | B-CRM | CRM recording dedup lives in process memory, so exactly-once does not survive a restart. Close before the channel is wired to a real CRM. No live impact today: nothing enqueues a crm job yet | Engineering |
 | B-LLM | `EMERGENT_LLM_KEY` still powers the staff blog idea generator via the platform's model proxy. A working feature behind a vendor key, not residue. Swap to a direct provider key or retire the feature | User |
 | B-02b | Higher resolution, better framed facility photographs. Quality request, not a blocker | Owner |
