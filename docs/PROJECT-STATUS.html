@@ -202,7 +202,7 @@ Memberships are not sold online.</div>
 <tr><td><strong>Twilio A2P rejected</strong></td><td>All three numbers messaging-disabled. No SMS can send</td><td class="who">Mike and carrier</td></tr>
 <tr><td><strong>Business facts unapproved</strong></td><td>Hours, day pass rules, coach names and credentials, equipment, which reviews may be published, legal entity name</td><td class="who">Mike and Teresa</td></tr>
 <tr><td><strong>Likeness permissions</strong></td><td>Four frames await written permission</td><td class="who">Mike</td></tr>
-<tr><td><strong>Lead CSV in git history</strong></td><td>1,402 real records with dates of birth and home addresses, in <code>SantaCruzrepo-new</code>. Private but permanent until purged</td><td class="who">You and Mike</td></tr>
+<tr><td><strong>Lead CSV in git history</strong></td><td>1,402 real records, 1,339 emails, 1,329 dates of birth, 1,312 home addresses. Tracked in <strong>both</strong> repos, including this one at <code>508457a</code>. Untracked and ignored as of <code>a817a1e</code>, but still permanent in history. This is the tree bound for GitHub and Emergent</td><td class="who">You and Mike</td></tr>
 <tr><td><strong>Credential rotation</strong></td><td>T-8 and B-11. Includes the GymMaster password shared today</td><td class="who">You</td></tr>
 </table></div>
 
@@ -231,12 +231,21 @@ Memberships are not sold online.</div>
 <tr><td>4</td><td>Close the business facts: hours, coaches, reviews, day pass</td><td>Mike and Teresa</td></tr>
 <tr><td>5</td><td>Finish visual system, fix the four UI defects above</td><td>Step 3</td></tr>
 <tr><td>6</td><td>Prerender for AI crawlers</td><td>None. Independent</td></tr>
-<tr><td>7</td><td>Push to GitHub</td><td>Steps 1 and 2</td></tr>
+<tr><td>7</td><td>Push to GitHub</td><td><strong>Hard gate.</strong> Steps 1 and 2. The CSV is in this repo's history</td></tr>
 <tr><td>8</td><td>Fork into Emergent, wire Resend and Twilio there</td><td>Step 7</td></tr>
 <tr><td>9</td><td>Staging verification against real providers</td><td>Twilio A2P approved</td></tr>
 <tr><td>10</td><td>Point the GoDaddy domain, controlled release, rollback watch</td><td>Mike approves the release unit</td></tr>
 <tr><td>11</td><td>GymMaster prospect sync switched on</td><td>Import done, API key issued, prospect saving enabled</td></tr>
 </table></div>
+
+<div class="card"><h3>Emergent build model</h3>
+The donor's <code>.emergent/emergent.yml</code> names the container image
+<code>fastapi_react_mongo_shadcn_base_image_cloud_arm</code>, so Emergent rebuilds
+inside a managed container rather than deploying a local artifact. Assume no
+Chrome in that image. Any prerender step must therefore either run locally with
+its output committed, or degrade to the current route-head shells without
+failing the build. Confirm the model before relying on it.
+</div>
 
 <h3>Honest timeline</h3>
 <div class="scroll"><table>
