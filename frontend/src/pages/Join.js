@@ -3,44 +3,37 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import { ArrowRight, CheckCircle2, Clock, Users, Zap, Calendar, Star, CreditCard, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
-import { abcJoinUrl } from '../config';
 
 const PRIMARY_PLANS = [
   { id: 'daypass', name: 'Day Pass', price: '$20', per: '', highlight: false, tag: 'Try Us Out',
     features: ['Valid for same-day use', 'Staffed hours only'], terms: [],
-    link: abcJoinUrl('50837530f58641c38108fea62255030b'), cta: 'Get a Day Pass' },
+    cta: 'Get a Day Pass' },
   { id: 'huscler-12', name: 'Huscler', subtitle: '12-Month', price: '$75', per: '/mo', highlight: true, tag: 'Most Popular',
     savings: 'Save 38%', compareText: 'vs. $120/mo month-to-month',
     features: ['Full facility access', 'Unlimited open gym', 'All available equipment'],
     terms: ['12-month agreement', 'Auto-renews month-to-month', '30-day cancellation notice', '$50 Annual Enhancement Fee'],
-    link: abcJoinUrl('823263ef0c354fd29bade28c18f280f2'), cta: 'Join Now' },
+    cta: 'Join Now' },
   { id: 'annual', name: 'Annual Huscler', subtitle: 'Paid in Full', price: '$825', per: ' one-time', highlight: false, tag: 'Best Value',
     savings: 'Save 47%', monthlyEquiv: '$63/mo effective',
     features: ['Full facility access', '13 months total', 'Unlimited open gym'],
     terms: ['Paid in full at signup', 'Auto-renews month-to-month', '30-day cancellation notice', '$50 Annual Enhancement Fee'],
-    link: abcJoinUrl('7a1dd8cec5cd4f30af82429e4f5957c5'), cta: 'Get 13 Months' },
+    cta: 'Get 13 Months' },
 ];
 
 const MORE_PLANS = [
   { id: 'flex', name: 'Flex Huscler', subtitle: 'Month-to-Month', price: '$120', per: '/mo',
     features: ['Full facility access', 'No agreement required'],
-    terms: ['Billed monthly', '30-day cancellation notice', '$50 Annual Enhancement Fee'],
-    link: abcJoinUrl('a772569e9c38408c90fab7b9bda49fca') },
+    terms: ['Billed monthly', '30-day cancellation notice', '$50 Annual Enhancement Fee'] },
   { id: 'huscler-6', name: 'Huscler 6-Month', subtitle: '6-Month', price: '$82', per: '/mo', savings: 'Save 32%',
-    features: ['Full facility access'], terms: ['6-month agreement', 'Auto-renews month-to-month', '$50 Annual Enhancement Fee'],
-    link: abcJoinUrl('5efa1abd3436408a99c4ce18c6216be2') },
+    features: ['Full facility access'], terms: ['6-month agreement', 'Auto-renews month-to-month', '$50 Annual Enhancement Fee'] },
   { id: 'couples-12', name: 'Couples 12-Month', subtitle: '2 Members', price: '$120', per: '/mo', extra: '$60/person', savings: 'Save 50%',
-    features: ['Includes 2 members', 'Full facility access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'],
-    link: abcJoinUrl('fdf12470797b47a1a6ac3c11c764d46e') },
+    features: ['Includes 2 members', 'Full facility access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'] },
   { id: 'couples-6', name: 'Couples 6-Month', subtitle: '2 Members', price: '$136', per: '/mo', extra: '$68/person',
-    features: ['Includes 2 members', 'Full facility access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'],
-    link: abcJoinUrl('5d08a9e72aef4c8da136ab822f550eca') },
+    features: ['Includes 2 members', 'Full facility access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'] },
   { id: 'weekend-12', name: 'Weekend Warrior 12-Mo', subtitle: 'Fri\u2013Sun only', price: '$45', per: '/mo', savings: 'Save 63%',
-    features: ['Friday\u2013Sunday access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'],
-    link: abcJoinUrl('11b156f6da6e43289a145de648034aa9') },
+    features: ['Friday\u2013Sunday access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'] },
   { id: 'weekend-6', name: 'Weekend Warrior 6-Mo', subtitle: 'Fri\u2013Sun only', price: '$55', per: '/mo', savings: 'Save 54%',
-    features: ['Friday\u2013Sunday access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'],
-    link: abcJoinUrl('4383e794de444449b5a1dd4b5160a6b4') },
+    features: ['Friday\u2013Sunday access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'] },
 ];
 
 function PlanCard({ plan }) {
@@ -63,8 +56,8 @@ function PlanCard({ plan }) {
         {plan.features.map((f, i) => <li key={`f-${plan.id}-${i}`} className="flex items-start gap-2 text-xs" style={{ color: 'var(--scs-text)' }}><CheckCircle2 size={13} className="shrink-0 mt-0.5" style={{ color: 'var(--scs-charcoal)' }} />{f}</li>)}
       </ul>
       {plan.terms?.length > 0 && <div className="pt-2 mb-3" style={{ borderTop: '1px solid var(--scs-border)' }}>{plan.terms.map((t, i) => <p key={`t-${plan.id}-${i}`} className="text-[10px] leading-relaxed" style={{ color: 'var(--scs-text-light)' }}>{t}</p>)}</div>}
-      <a href={plan.link} target="_blank" rel="noopener noreferrer" data-testid={`join-${plan.id}`}
-        className={`w-full py-3 text-sm text-center block font-semibold transition-colors duration-180 ${pop ? 'btn-clay' : 'btn-primary'}`}>{plan.cta}</a>
+      <a href="#book-a-tour" data-testid={`join-${plan.id}`}
+        className={`w-full py-3 text-sm text-center block font-semibold transition-colors duration-180 ${pop ? 'btn-clay' : 'btn-primary'}`}>Book a tour</a>
     </div>
   );
 }
@@ -135,7 +128,7 @@ export default function Join() {
                   {p.extra && <p className="text-xs font-semibold mb-1" style={{ color: 'var(--scs-charcoal)' }}>{p.extra}</p>}
                   {p.savings && <span className="text-[10px] font-semibold uppercase px-2 py-0.5 inline-block mb-2 self-start" style={{ background: 'var(--scs-clay)', color: 'white', borderRadius: 'var(--scs-radius)' }}>{p.savings}</span>}
                   <p className="text-[10px] mb-auto" style={{ color: 'var(--scs-text-light)' }}>{p.terms?.[0]}</p>
-                  <a href={p.link} target="_blank" rel="noopener noreferrer" data-testid={`join-${p.id}`} className="btn-primary w-full text-center text-sm py-2.5 mt-3 block">Get Started</a>
+                  <a href="#book-a-tour" data-testid={`join-${p.id}`} className="btn-primary w-full text-center text-sm py-2.5 mt-3 block">Book a tour</a>
                 </div>
               ))}
               <p className="sm:col-span-2 lg:col-span-3 text-[10px] text-center mt-1" style={{ color: 'var(--scs-text-light)' }}>All memberships: $50 Annual Enhancement Fee. 30-day cancellation notice required.</p>
@@ -160,12 +153,27 @@ export default function Join() {
         </div>
       </section>
 
-      <section className="py-14" style={{ background: 'var(--scs-bg)' }}>
+      <section id="book-a-tour" className="py-14" style={{ background: 'var(--scs-bg)' }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-6">
-            <h2 className="font-display text-lg mb-2" style={{ color: 'var(--scs-charcoal)' }}>Not Sure Yet?</h2>
-            <p className="text-sm" style={{ color: 'var(--scs-text-muted)' }}>Book a free facility tour and see the gym first.</p>
+            <h2 className="font-display text-lg mb-2" style={{ color: 'var(--scs-charcoal)' }}>Start With a Visit</h2>
+            <p className="text-sm" style={{ color: 'var(--scs-text-muted)' }}>See the room, ask your questions, and set up your membership with a coach in person.</p>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-testid="how-joining-works">
+            {[
+              { n: '1', h: 'Tell us about you', b: 'Answer a few questions below. It takes about a minute.' },
+              { n: '2', h: 'We reach out', b: 'A coach contacts you to agree a time that works.' },
+              { n: '3', h: 'Visit and join', b: 'Walk the room, then set up the plan that fits. We handle the paperwork.' },
+            ].map(s => (
+              <div key={s.n} className="p-4" style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }} data-testid={`joining-step-${s.n}`}>
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--scs-clay)' }}>Step {s.n}</span>
+                <h3 className="font-display-medium text-sm mt-1 mb-1" style={{ color: 'var(--scs-charcoal)' }}>{s.h}</h3>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--scs-text-muted)' }}>{s.b}</p>
+              </div>
+            ))}
+          </div>
+
           <QuizForm source="membership_page" noAutoFocus />
         </div>
       </section>

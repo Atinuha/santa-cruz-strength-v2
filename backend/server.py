@@ -3327,11 +3327,16 @@ async def toggle_blacklist(lead_id: str, user=Depends(require_admin)):
     return {'blacklisted': new_val, 'message': action}
 
 # Campaign email templates
-# ABC Fitness owns the membership transaction. Club id is env-overridable so a
-# club change or a CRM migration does not require a code edit.
-ABC_BASE_URL = os.environ.get('ABC_BASE_URL', 'https://onlinejoin.abcfitness.com').rstrip('/')
-ABC_CLUB_ID = os.environ.get('ABC_CLUB_ID', '31691')
-JOIN_URL = f'{ABC_BASE_URL}/signup/plan?club={ABC_CLUB_ID}'
+# Memberships are sold in person, so every {{join_url}} in campaign email and
+# SMS points at the website's tour section rather than an external checkout.
+# Mirrors MEMBERSHIP in frontend/src/config/index.js. ABC Fitness is retired and
+# GymMaster has no membership products configured, so neither can receive
+# buyers. Restoring an online purchase path means setting MEMBERSHIP_JOIN_URL
+# here and sellsOnline in the frontend config together.
+JOIN_URL = os.environ.get(
+    'MEMBERSHIP_JOIN_URL',
+    'https://santacruzstrength.com/join#book-a-tour',
+)
 
 CAMPAIGN_SUBJECTS = [
     "We've been thinking about you.",

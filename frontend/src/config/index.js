@@ -1,17 +1,36 @@
 // Santa Cruz Strength - Business Configuration
 // Edit this file to update contact info, hours, links, etc.
 
-// ABC Fitness owns the membership transaction. Every join link in the app
-// derives from here, so a club change or a CRM migration is a one-line edit.
-export const ABC = {
-  base: 'https://onlinejoin.abcfitness.com',
-  clubId: '31691',
+// ---------------------------------------------------------------------------
+// MEMBERSHIP SALES MODEL
+//
+// Memberships are sold in person, not online. The website books a visit and a
+// coach completes signup on site through the CRM. Prices stay published so a
+// visitor can evaluate cost before touring; only the purchase buttons are gone.
+//
+// Why: ABC Fitness is being retired. GymMaster Online, verified 2026-08-08,
+// holds zero members, has no membership products configured and no payment
+// gateway, so its signup portal returns "There are no memberships available".
+// Pointing buyers at either system would send them to a dead end.
+//
+// Decision recorded 2026-08-08 by Muhammad, pending Mike's ratification.
+//
+// To reinstate online purchase: set sellsOnline true and give onlineJoinUrl the
+// provider's destination. Every join link in the app derives from joinUrl().
+// ---------------------------------------------------------------------------
+export const MEMBERSHIP = {
+  sellsOnline: false,
+  onlineJoinUrl: '',
+  tourUrl: 'https://santacruzstrength.com/join#book-a-tour',
 };
 
-export const abcJoinUrl = (planId) =>
-  `${ABC.base}/signup/plan?club=${ABC.clubId}${planId ? `&planId=${planId}` : ''}`;
-
-export const abcGuestUrl = () => `${ABC.base}/guest/plan?club=${ABC.clubId}`;
+// The single membership destination. Falls back to the tour whenever online
+// selling is off or unconfigured, so a half-finished migration cannot strand a
+// visitor on a provider that has nothing to sell.
+export const joinUrl = () =>
+  MEMBERSHIP.sellsOnline && MEMBERSHIP.onlineJoinUrl
+    ? MEMBERSHIP.onlineJoinUrl
+    : MEMBERSHIP.tourUrl;
 
 export const GYM_CONFIG = {
   name: 'Santa Cruz Strength',
@@ -27,8 +46,8 @@ export const GYM_CONFIG = {
   phone: '(408) 337-6709',
   phoneHref: 'tel:+14083376709',
   email: 'management@santacruzstrength.com',
-  // ABC Fitness signup link. Derived, never hardcoded.
-  joinUrl: abcJoinUrl(),
+  // Membership destination. Derived from MEMBERSHIP above, never hardcoded.
+  joinUrl: joinUrl(),
   // Hours - update these as needed
   // Hours as published by the business. This is the single source; no page may
   // state hours independently. Pending a dated owner confirmation that these
@@ -111,7 +130,9 @@ export const MEMBERSHIP_TIERS = [
     planId: '4383e794de444449b5a1dd4b5160a6b4', action: 'Choose weekend',
     terms: ['6-month initial agreement', 'Friday through Sunday access'],
   },
-].map((tier) => ({ ...tier, link: abcJoinUrl(tier.planId) }));
+  // planId is retained as provider reference data for a future migration.
+  // It builds no link while memberships are sold in person.
+].map((tier) => ({ ...tier, link: joinUrl() }));
 
 export const LEAD_SOURCES = [
   // Priority sources - most current, highest intent

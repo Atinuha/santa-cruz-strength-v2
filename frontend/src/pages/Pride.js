@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GYM_CONFIG, abcGuestUrl } from '../config';
+import { GYM_CONFIG, joinUrl } from '../config';
 import { SCS_MEDIA } from '../config/media';
 import api from '../lib/api';
 import { toast } from 'sonner';
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 const EXPIRY = new Date('2026-08-01T00:00:00');
-const ABC_GUEST_LINK = abcGuestUrl();
+const DAY_PASS_NEXT = joinUrl();
 const HERO_IMG = SCS_MEDIA.openGym;
 
 const GOALS = [
@@ -89,7 +89,7 @@ export default function Pride() {
   const handleSelectGoal = async (goal) => {
     setSelectedGoal(goal); setLoading(true);
     try {
-      if (goal.id === 'day_pass') { await createLead('Free Day Pass', 'Pride 2026 QR: Free Day Pass'); window.location.href = ABC_GUEST_LINK; return; }
+      if (goal.id === 'day_pass') { await createLead('Free Day Pass', 'Pride 2026 QR: Free Day Pass'); window.location.href = DAY_PASS_NEXT; return; }
       if (goal.id === 'membership') { await createLead('General Membership', 'Pride 2026 QR: Ready to Join'); navigate('/join'); return; }
       if (goal.id === 'tour') { setStep('tour_0'); setLoading(false); }
     } catch { toast.error('Something went wrong'); setLoading(false); }

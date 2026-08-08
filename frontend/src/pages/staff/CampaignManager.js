@@ -7,9 +7,9 @@ import {
   Clock, Mail, MessageSquare, Users, BarChart2, Zap, RefreshCw, Pencil, Eye, X
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { abcJoinUrl } from '../../config';
+import { joinUrl } from '../../config';
 
-const JOIN_URL = abcJoinUrl();
+const JOIN_URL = joinUrl();
 
 const SUBJECTS_DEFAULT = [
   "We've been thinking about you.",

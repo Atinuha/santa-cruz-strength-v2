@@ -4,7 +4,7 @@ import { ArrowLeft, Send, Save, Loader2, Check, Smartphone, RefreshCw } from 'lu
 import { toast } from 'sonner';
 import { MERGE_FIELDS } from '../../utils/emailBlocks';
 import api from '../../lib/api';
-import { abcJoinUrl } from '../../config';
+import { joinUrl } from '../../config';
 
 // TCPA-required opt-out footer
 const OPT_OUT_SUFFIX = ' Reply STOP to opt out.';
@@ -73,7 +73,7 @@ export default function SMSBuilder() {
   }, [campaignId]);
 
   function defaultSMS(c) {
-    const joinUrl = c?.join_url || abcJoinUrl();
+    const joinUrl = c?.join_url || joinUrl();
     return `Hey {{first_name}}, Santa Cruz Strength here. We've been thinking about you. Sign up for any committed membership and we'll give you 2 months free. No catch. ${joinUrl}${OPT_OUT_SUFFIX}`;
   }
 
@@ -117,7 +117,7 @@ export default function SMSBuilder() {
     .replace(/\{\{first_name\}\}/g, 'Alex')
     .replace(/\{\{last_name\}\}/g, 'Johnson')
     .replace(/\{\{gym_name\}\}/g, 'Santa Cruz Strength')
-    .replace(/\{\{join_url\}\}/g, abcJoinUrl())
+    .replace(/\{\{join_url\}\}/g, joinUrl())
     .replace(/\{\{gym_phone\}\}/g, '(408) 337-6709');
 
   const segs = segmentCount(smsText.length);

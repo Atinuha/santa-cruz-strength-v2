@@ -1,4 +1,4 @@
-import { abcJoinUrl } from '../config';
+import { joinUrl } from '../config';
 /**
  * Email Block System - block definitions, defaults, and HTML generator
  * Blocks are stored as JSON and rendered to email-safe HTML at send time.
@@ -21,7 +21,7 @@ export const DEFAULT_BLOCK = {
              align: 'left', size: '15', color: '#333333', bold: false, bgColor: '#ffffff' },
   image:   { type: 'image',   url: '', alt: '', width: '100', caption: '', rounded: true, bgColor: '#ffffff' },
   gif:     { type: 'gif',     url: '', alt: '', width: '100', bgColor: '#ffffff' },
-  button:  { type: 'button',  text: 'Join Now', url: abcJoinUrl(),
+  button:  { type: 'button',  text: 'Join Now', url: joinUrl(),
              bgColor: '#FA5A5C', textColor: '#ffffff', align: 'center' },
   divider: { type: 'divider', color: '#eeeeee', bgColor: '#ffffff' },
   spacer:  { type: 'spacer',  height: 24, bgColor: '#ffffff' },
@@ -41,7 +41,7 @@ export const MERGE_FIELDS = [
 
 export const DEFAULT_GYM_DATA = {
   gym_name:  'Santa Cruz Strength',
-  join_url:  abcJoinUrl(),
+  join_url:  joinUrl(),
   gym_phone: '(408) 337-6709',
 };
 
