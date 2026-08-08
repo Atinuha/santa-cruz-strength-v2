@@ -4807,15 +4807,15 @@ async def startup():
     # Seed site content - upsert missing keys (preserves existing edits)
     seed_content = [
         # About Page
-        {'key': 'about_mission', 'value': 'Come as you are, leave how you want!'},
+        {'key': 'about_mission', 'value': 'Rooted in strength. Built with heart.'},
         {'key': 'about_headline', 'value': 'THIS IS SANTA CRUZ STRENGTH'},
-        {'key': 'about_story', 'value': "Santa Cruz Strength isn't your average gym. We built this place for lifters, athletes, and anyone who's serious about getting stronger - on their own terms.\n\nWhether you're a first-time lifter or a seasoned competitor, you'll find the equipment, coaching, and community here to match your ambition. No ego. No gimmicks. Just iron, chalk, and people who give a damn.\n\nWe're locally owned, coach-led, and built around one idea: everyone deserves a gym that respects their goals."},
+        {'key': 'about_story', 'value': "Santa Cruz Strength has been part of this community for over 13 years.\n\nWe were originally built as a space for powerlifting, strongman, and Olympic weightlifting. It was a place for strength athletes deeply committed to their training who wanted to take it seriously.\n\nThat foundation still matters. It shaped how we train, the equipment we use, and the respect we have for strength as a practice.\n\nOver time, the gym became more than a place to train. People stayed, built relationships, and supported each other. For many, it became a space where they found a sense of belonging they hadn't experienced in other gyms.\n\nAs the community evolved, so did the space.\n\nToday, Santa Cruz Strength is a place where you can train hard and get stronger, whether you're experienced or just getting started.\n\nWe welcome people across all levels of experience, and we're proud that our community includes a strong base of women and queer members.\n\nYou'll find people here lifting heavy and training consistently, as well as people learning, returning, or building a new relationship with movement. All belong here.\n\nThis gym has always been about strength. Now, it's also about making that strength more accessible."},
         {'key': 'about_team_headline', 'value': 'MEET THE TEAM'},
         {'key': 'about_team_subtitle', 'value': 'The people behind the iron'},
         {'key': 'about_trainers_headline', 'value': 'MEET OUR TRAINERS'},
         {'key': 'about_trainers_subtitle', 'value': 'Expert coaching for every level'},
         {'key': 'about_cta_headline', 'value': 'COME SEE FOR YOURSELF'},
-        {'key': 'about_cta_text', 'value': "Drop in, take a look around, and meet the crew. No pressure - just good people and heavy weights."},
+        {'key': 'about_cta_text', 'value': "Come by, take a look around, and meet the crew. Good people, a supportive space, and a chance to get a feel for it."},
         # Home Page
         {'key': 'home_hero_headline', 'value': 'SERIOUS\nSTRENGTH\nTRAINING.'},
         {'key': 'home_hero_subtitle', 'value': 'A focused gym for athletes, lifters, and people who believe strength matters.'},

@@ -243,10 +243,19 @@ const walk = async (directory) => {
   }
 };
 await walk(frontendRoot);
+// One exemption, and only one. src/config/testimonials.js holds member quotes
+// transcribed verbatim from the live site, and two of them contain an em dash.
+// The no-dash rule governs copy this project writes. Editing the punctuation
+// out of a real customer's sentence to satisfy our own house style would be
+// altering a published review, which is a worse problem than the one the rule
+// exists to prevent.
+const DASH_EXEMPT = new Set(['src/config/testimonials.js']);
 const dashFiles = [];
 for (const path of textFiles) {
+  const relative = path.slice(frontendRoot.length + 1);
+  if (DASH_EXEMPT.has(relative)) continue;
   const text = await readFile(path, 'utf8');
-  if (/[\u2013\u2014]/u.test(text)) dashFiles.push(path.slice(frontendRoot.length + 1));
+  if (/[\u2013\u2014]/u.test(text)) dashFiles.push(relative);
 }
 check(!dashFiles.length, `no en dash or em dash characters${dashFiles.length ? `: ${dashFiles.join(', ')}` : ''}`);
 // That check scans for the literal characters, which Join.js sidestepped by

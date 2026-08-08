@@ -8,6 +8,7 @@ import { SCS_MEDIA } from '../config/media';
 import MapEmbed from '../components/MapEmbed';
 import { getSiteContent, getBlogPosts } from '../lib/api';
 import { withoutConsolidated } from '../seo/consolidatedSlugs';
+import { MEMBER_STORIES } from '../config/testimonials';
 import { trackBookTourClick, trackPhoneClick } from '../utils/analytics';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { ArrowRight, MapPin, Phone, Clock, Calendar } from 'lucide-react';
@@ -224,6 +225,26 @@ export default function Home() {
           <p className="text-sm leading-relaxed" style={{ color: 'var(--scs-text-muted)' }}>
             Coaching is available. Memberships range from day passes to annual plans. The best way to learn about the gym is to visit in person.
           </p>
+        </div>
+      </section>
+
+      {/* 9. MEMBER STORIES, transcribed verbatim from the live site */}
+      <section className="py-16 sm:py-20" style={{ background: 'var(--scs-bg)', borderTop: '1px solid var(--scs-border)' }} data-testid="home-testimonials-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <h2 className="font-display text-xl sm:text-2xl mb-2" style={{ color: 'var(--scs-charcoal)' }}>Hear It From The Members</h2>
+          <p className="text-sm mb-8" style={{ color: 'var(--scs-text-muted)' }}>Published on our site as written. Nothing edited.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {MEMBER_STORIES.map(story => (
+              <figure key={story.name} className="p-5 flex flex-col" data-testid={`home-testimonial-${story.name.split(' ')[0].toLowerCase()}`}
+                style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
+                <blockquote className="text-sm leading-relaxed flex-1" style={{ color: 'var(--scs-charcoal)' }}>{story.quote}</blockquote>
+                <figcaption className="mt-4 pt-4" style={{ borderTop: '1px solid var(--scs-border)' }}>
+                  <span className="text-sm font-semibold block" style={{ color: 'var(--scs-charcoal)' }}>{story.name}</span>
+                  <span className="text-xs" style={{ color: 'var(--scs-stone)' }}>{story.detail}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       </section>
 
