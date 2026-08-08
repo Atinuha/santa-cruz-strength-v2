@@ -109,3 +109,7 @@ frontend/node_modules/.cache/default-development/13.pack
 credentials.json
 *.key
 .credentials
+
+# Real customer lead exports. Never commit these.
+leads_export.csv
+*leads_export*.csv
