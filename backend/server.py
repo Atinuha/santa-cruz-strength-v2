@@ -34,6 +34,7 @@ try:
         ALLOW_SEEDING,
         ALLOW_SMS_SENDS,
         ALLOW_RESEND_WEBHOOKS,
+        ALLOW_THIRD_PARTY_RESEARCH,
         ALLOW_TWILIO_WEBHOOKS,
         APP_ENV,
         outbound_recipient_allowed,
@@ -49,6 +50,7 @@ except ImportError:
         ALLOW_SEEDING,
         ALLOW_SMS_SENDS,
         ALLOW_RESEND_WEBHOOKS,
+        ALLOW_THIRD_PARTY_RESEARCH,
         ALLOW_TWILIO_WEBHOOKS,
         APP_ENV,
         outbound_recipient_allowed,
@@ -1382,7 +1384,12 @@ async def export_leads_csv(status: Optional[str] = None, location: Optional[str]
     query = {}
     if status: query['status'] = status
     if location: query['location'] = location
-    leads = await db.leads.find(query, {'_id': 0}).sort('created_at', -1).to_list(5000)
+    # No cap. This used to stop at 5000 with no total and no paging, so the
+    # owner would have received a file that looked complete and silently ended.
+    # The existing export already runs to 2469 rows, so half the old ceiling was
+    # spent before anyone would have noticed. An export that drops records is
+    # worse than an export that is slow.
+    leads = await db.leads.find(query, {'_id': 0}).sort('created_at', -1).to_list(None)
     fieldnames = [
         'first_name', 'last_name', 'date_of_birth', 'email', 'phone',
         'address', 'city', 'state', 'zip_code',
@@ -2156,6 +2163,18 @@ async def _generate_blog_ideas_core():
     """Core generation logic - fetches trends + calls LLM, saves to cache."""
     import json as _json
 
+    # This function reaches two third parties: Google Trends, then an LLM. Both
+    # happen before any flag was consulted, so possessing EMERGENT_LLM_KEY was
+    # itself sufficient to send, which is the exact thing the flags exist to
+    # prevent. Google Trends went out even with no key at all, because the
+    # trend fetch preceded the key check.
+    if not ALLOW_THIRD_PARTY_RESEARCH:
+        logger.info(
+            '[BLOG IDEAS] Skipped. Third party research is disabled, so no '
+            'request was made to Google Trends or the model provider.'
+        )
+        return None
+
     # emergentintegrations is not on PyPI, so it is not a hard requirement and
     # any host outside Emergent's private index will not have it. Only this one
     # staff convenience feature needs it, so the absence degrades to a disabled
@@ -2770,6 +2789,15 @@ async def generate_proposal(lead_id: str, request: Request, user=Depends(require
 @api_router.get('/staff/corporate-leads/discover')
 async def discover_businesses(user=Depends(require_staff), category: str = 'cafe', radius: int = 3000):
     """Use Overpass API to find local businesses near Santa Cruz Strength."""
+    # Egress on a GET. The write gate only inspects the HTTP method, so a GET
+    # that performs an outbound POST passes straight through it and protected
+    # read-only mode does not actually hold. A flag is the only thing that can
+    # stop this one.
+    if not ALLOW_THIRD_PARTY_RESEARCH:
+        raise HTTPException(
+            status_code=503,
+            detail='Business discovery is disabled. It calls a third party service.',
+        )
     cat_map = {
         'cafe': '["amenity"="cafe"]',
         'restaurant': '["amenity"="restaurant"]',
@@ -2789,7 +2817,10 @@ async def discover_businesses(user=Depends(require_staff), category: str = 'cafe
         logger.info(f'[CORPORATE-DISCOVER] Overpass status={resp.status_code} len={len(resp.text)}')
         if resp.status_code != 200:
             logger.warning(f'[CORPORATE-DISCOVER] Overpass returned {resp.status_code}: {resp.text[:300]}')
-            return {'businesses': [], 'error': f'Overpass returned {resp.status_code}'}
+            raise HTTPException(
+                status_code=502,
+                detail=f'Business discovery upstream returned {resp.status_code}.',
+            )
         data = resp.json()
         logger.info(f'[CORPORATE-DISCOVER] Overpass returned {len(data.get("elements",[]))} elements for {category} r={radius}')
         existing_names = set()
@@ -2825,9 +2856,19 @@ async def discover_businesses(user=Depends(require_staff), category: str = 'cafe
             })
         logger.info(f'[CORPORATE-DISCOVER] Results: {len(businesses)} businesses, skipped_no_name={skipped_no_name}, skipped_existing={skipped_existing}')
         return {'businesses': businesses[:50], 'total_found': len(businesses)}
+    except HTTPException:
+        # The upstream-status branch above raises deliberately. Without this it
+        # would be caught below and flattened into the generic message.
+        raise
     except Exception as e:
+        # The exception text used to be returned to the client, which leaked
+        # internal detail including full outbound URLs. It belongs in the log,
+        # where staff can find it, and not in the response.
         logger.error(f'[CORPORATE-DISCOVER] Overpass error: {e}')
-        return {'businesses': [], 'error': str(e)}
+        raise HTTPException(
+            status_code=502,
+            detail='Business discovery upstream is unavailable. See server logs.',
+        )
 
 
 @api_router.post('/staff/corporate-leads/import-discovered')
@@ -3888,11 +3929,16 @@ def _feedback_email_html(name: str, rating: int, category: str, follow_up: str, 
 </table></body></html>"""
 
 @api_router.post('/review/request/{lead_id}')
-async def create_review_request(lead_id: str):
+async def create_review_request(lead_id: str, user=Depends(require_staff)):
     """Internal - called when lead status changes to Joined."""
+    # The docstring said internal and the endpoint was not. Anyone who could
+    # reach the API could mint a review token for any lead id and then read the
+    # member's name back through GET /review/{token}. Lead ids are UUID4 so it
+    # was not practically enumerable, which is the only reason this was not
+    # worse.
     lead = await db.leads.find_one({'id': lead_id})
     if not lead:
-        return {'message': 'Lead not found'}
+        raise HTTPException(status_code=404, detail='Lead not found')
     token = str(uuid.uuid4())
     expires = now_utc() + timedelta(days=30)
     await db.review_requests.insert_one({

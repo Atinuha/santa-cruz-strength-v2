@@ -31,6 +31,13 @@ ALLOW_RESEND_WEBHOOKS = env_flag("ALLOW_RESEND_WEBHOOKS")
 ALLOW_LEAD_OUTBOX_DISPATCH = env_flag("ALLOW_LEAD_OUTBOX_DISPATCH")
 ALLOW_LEAD_RESEND = env_flag("ALLOW_LEAD_RESEND")
 ALLOW_LEAD_TWILIO = env_flag("ALLOW_LEAD_TWILIO")
+# Staff research convenience calls that leave this network: Google Trends and the
+# LLM behind blog idea generation, and Overpass behind corporate lead discovery.
+# These carry no customer data, but they were the two paths where possessing a
+# key was itself the gate, which is the one thing every other flag here exists to
+# prevent. They are also the only egress that rides on GET requests, which the
+# write gate cannot see, so a flag is the only thing that can stop them.
+ALLOW_THIRD_PARTY_RESEARCH = env_flag("ALLOW_THIRD_PARTY_RESEARCH")
 
 
 def _allowlist(name: str) -> set[str]:
@@ -152,4 +159,5 @@ def runtime_summary() -> dict:
         "lead_outbox_dispatch": ALLOW_LEAD_OUTBOX_DISPATCH,
         "lead_resend": ALLOW_LEAD_RESEND,
         "lead_twilio": ALLOW_LEAD_TWILIO,
+        "third_party_research": ALLOW_THIRD_PARTY_RESEARCH,
     }
