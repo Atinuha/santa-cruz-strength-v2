@@ -5,23 +5,33 @@ Take a working local build of the Santa Cruz Strength site into production and w
 
 === WHERE THE CODE IS, START HERE ===
 
-  repository: https://github.com/Atinuha/santa-cruz-strength-site
-  branch:     convergence/t1-backend
-  commit:     3b88cf9
+  repository: https://github.com/Atinuha/santa-cruz-strength
+  branch:     main
 
-Clone that branch. Do not use main, which is an older state and deliberately
-untouched so a comparison remains possible.
+Clone it. That repository holds one branch and its history begins at the
+converged state, so there is no older tree to pick up by accident.
+
+Install the frontend with yarn, not npm:
+
+  cd frontend && yarn install
+
+Only yarn.lock is committed. There is no package-lock.json, so npm ci cannot
+run at all, and npm install resolves a broken ajv tree. Build with the npm
+script afterwards as described below; the script runner is not the problem,
+the dependency resolver is.
 
 === ALREADY HANDLED, DO NOT REDO ===
 
-Git history previously carried a 389 KB blob holding a real customer export:
-1329 email addresses with names, phone numbers, dates of birth, and home
-addresses. It was purged from all 131 commits with git filter-repo before this
-branch was ever pushed, and the purge was verified three ways: the blob sha is
-unreachable, no path matches the filename anywhere in history, and no blob in
-the repository begins with those column headers. The remote returns Not Found
-for that path. A full backup bundle of the pre-purge repository is held offline
-by Muhammad Atif.
+An earlier repository carried a 389 KB blob holding a real customer export:
+1324 real email addresses with names, phone numbers, dates of birth, and home
+addresses, including EU data subjects. That repository has been abandoned. The
+one you are cloning was created fresh and its history never contained the file.
+
+Verified before the first push, against the isolated clone that seeded it: 134
+commits, 1679 objects, the export's blob sha absent from the object store, the
+commit that introduced it absent, and no blob anywhere carrying those column
+headers. The GitHub API returns 404 for that blob by direct sha lookup on this
+repository.
 
 What this means for you: the history you clone is clean, and it must stay that
 way. Treat any reappearance of a customer export, a lead dump, or any file
