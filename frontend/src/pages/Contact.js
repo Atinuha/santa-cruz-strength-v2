@@ -56,7 +56,7 @@ export default function Contact() {
                   Contact us for current staffed hours and tour availability.
                 </p>
               </div>
-              <div className="mt-5 scs-map-light"><MapEmbed /></div>
+              <div className="mt-5"><MapEmbed className="h-[260px]" /></div>
             </div>
             <div className="p-6" style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
               <h2 className="font-display-medium text-base mb-1" style={{ color: 'var(--scs-charcoal)' }}>Request Your Free Facility Tour</h2>

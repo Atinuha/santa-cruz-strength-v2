@@ -51,22 +51,26 @@ describe('third party loading policy', () => {
     expect(body).not.toMatch(/url\(\/fonts\//);
   });
 
-  test('the only map frame in the app is the one behind the load button', () => {
+  test('the location map lives in exactly one component', () => {
     // Staff screens are excluded on purpose. Their frames render srcDoc email
     // previews from local strings, reach no third party, and sit behind auth.
+    //
+    // The map itself is no longer behind a load button: the owner asked for it
+    // to be visible on arrival, and that decision is recorded in MapEmbed.js.
+    // What still matters is that the frame has one home. A page that inlines
+    // its own <iframe> is a second copy that will drift from this one and will
+    // not be found when the privacy decision is next revisited.
     const publicFiles = files.filter((file) => !file.includes(`${path.sep}staff${path.sep}`));
     const withIframe = publicFiles.filter((file) => /<iframe/.test(fs.readFileSync(file, 'utf8')));
-    // MapEmbed renders its frame only after the visitor presses the button, so
-    // it is the single legitimate home for one. Any other file with an iframe
-    // is loading it on mount.
     expect(withIframe.map((file) => path.basename(file))).toEqual(['MapEmbed.js']);
   });
 
-  test('MapEmbed keeps the address and directions usable without the frame', () => {
+  test('the map frame is built from config, not a hardcoded address', () => {
+    // Home.js used to carry its own maps.google.com URL with the address typed
+    // into the query string. config/index.js is the single source for the
+    // address, so a move would have left that copy pointing at the old one.
     const body = fs.readFileSync(path.join(SRC, 'components', 'MapEmbed.js'), 'utf8');
-    expect(body).toMatch(/googleMapsUrl/);
-    expect(body).toMatch(/address\.street/);
-    // The frame must sit behind state, not render unconditionally.
-    expect(body).toMatch(/loaded \?/);
+    expect(body).toMatch(/GYM_CONFIG\.mapEmbedUrl/);
+    expect(body).not.toMatch(/https:\/\/(www\.)?maps\.google\.com/);
   });
 });

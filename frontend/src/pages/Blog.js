@@ -84,7 +84,12 @@ export default function Blog() {
   useEffect(() => {
     document.title = 'Blog | Santa Cruz Strength';
     setLoading(true);
-    const p = {};
+    // The API defaults to 20 and caps at 50 (server.py:2020). The index asked
+    // for neither, so it silently showed the first 20 of 27 articles and seven
+    // were unreachable except by direct URL. Ask for the maximum, and see the
+    // test in utils/blogIndexLimit.test.js which fails once the corpus outgrows
+    // the cap rather than letting articles disappear again.
+    const p = { limit: 50 };
     if (cat !== 'All') p.category = cat;
     // Always fetch published posts regardless of environment/preview mode
     getBlogPosts(p)
@@ -98,8 +103,17 @@ export default function Blog() {
     }
   }, [isStaff]);
 
-  const featured = posts[0];
-  const rest = posts.slice(1);
+  // Two slugs are deliberately non indexable and cross canonical to the
+  // articles that absorbed them. They must receive no internal links at all, or
+  // the canonical is fighting a link the site itself keeps handing Google. The
+  // index was not only linking to one, it was featuring it in the hero slot.
+  // They stay reachable by URL so the canonical can still be read.
+  const CONSOLIDATED = ['why-surfers-in-santa-cruz-should-lift-weights',
+                        'how-many-days-a-week-should-you-lift'];
+  const listed = posts.filter(post => !CONSOLIDATED.includes(post.slug));
+
+  const featured = listed[0];
+  const rest = listed.slice(1);
   const editorialDrafts = drafts.filter(d => d.review_status === 'editorial-review');
   const legacyDrafts = drafts.filter(d => d.review_status === 'legacy-review');
 

@@ -265,7 +265,7 @@ export default function Home() {
               </p>
               <QuizForm source="book_a_tour" noAutoFocus />
             </div>
-            <div className="flex flex-col justify-between">
+            <div className="flex flex-col">
               <div className="mb-6">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border" style={{ borderColor: 'rgba(232,225,214,0.12)', padding: '2px' }}>
@@ -292,7 +292,7 @@ export default function Home() {
                 <a href="https://maps.google.com/?q=151+Harvey+West+Blvd+Ste+D+Santa+Cruz+CA+95060" target="_blank" rel="noopener noreferrer" className="btn-outline px-5 py-2.5 text-sm mb-4 inline-flex items-center gap-2 w-full sm:w-auto justify-center" style={{ borderColor: 'rgba(232,225,214,0.2)', color: 'var(--scs-chalk)' }}>
                   <MapPin size={13} /> Get Directions
                 </a>
-                <MapEmbed testId="home-map-embed" />
+                <MapEmbed testId="home-map-embed" className="flex-1 min-h-[280px]" />
               </div>
             </div>
           </div>

@@ -253,6 +253,96 @@
       "indexable": true,
       "robots": "index,follow",
       "h1": "Gym Near UCSC: An Off-Campus Decision Guide"
+    },
+    {
+      "path": "/blog/gym-with-lifting-platforms-santa-cruz",
+      "title": "Gyms With Lifting Platforms | Santa Cruz Strength",
+      "description": "A gym with lifting platforms in Santa Cruz. Platforms, racks, barbells, plates and specialty bars at 151 Harvey West Blvd, sorted by the lift you want to do.",
+      "canonical": "https://santacruzstrength.com/blog/gym-with-lifting-platforms-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "Where to Actually Deadlift in Santa Cruz"
+    },
+    {
+      "path": "/blog/gym-membership-cost-santa-cruz",
+      "title": "Gym Membership Cost Santa Cruz | Santa Cruz Strength",
+      "description": "What a gym membership costs in Santa Cruz, what drives the price differences, and the nine Santa Cruz Strength tiers published in full with the fees included.",
+      "canonical": "https://santacruzstrength.com/blog/gym-membership-cost-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "What a Gym Membership Costs in Santa Cruz"
+    },
+    {
+      "path": "/blog/gym-no-contract-santa-cruz",
+      "title": "No Contract Gyms in Santa Cruz | Santa Cruz Strength",
+      "description": "Month to month gyms in Santa Cruz, what cancellation terms the chains publish, and the full Santa Cruz Strength terms including the 30 day notice.",
+      "canonical": "https://santacruzstrength.com/blog/gym-no-contract-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "Santa Cruz Gyms Without a Contract"
+    },
+    {
+      "path": "/blog/gym-day-pass-santa-cruz",
+      "title": "Gym Day Pass in Santa Cruz | Santa Cruz Strength",
+      "description": "A gym day pass in Santa Cruz costs $20 at Santa Cruz Strength, valid same day, no membership required. What it includes, what to bring and what to look for.",
+      "canonical": "https://santacruzstrength.com/blog/gym-day-pass-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "Gym Day Passes in Santa Cruz: What to Expect"
+    },
+    {
+      "path": "/blog/personal-training-cost-santa-cruz",
+      "title": "Personal Training Cost Santa Cruz | Santa Cruz Strength",
+      "description": "What personal training costs in Santa Cruz, what drives the price, how packages are structured, and how many sessions a beginner actually needs.",
+      "canonical": "https://santacruzstrength.com/blog/personal-training-cost-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "What Personal Training Costs in Santa Cruz"
+    },
+    {
+      "path": "/blog/women-strength-training-santa-cruz",
+      "title": "Weightlifting for Women Santa Cruz | Santa Cruz Strength",
+      "description": "Where women can actually train with a barbell in Santa Cruz, what to look for on a first visit, and honest answers on getting bulky and feeling out of place.",
+      "canonical": "https://santacruzstrength.com/blog/women-strength-training-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "Women Who Lift: Finding a Barbell Gym in Santa Cruz"
+    },
+    {
+      "path": "/blog/strength-training-for-mountain-bikers-santa-cruz",
+      "title": "Strength Training for Mountain Bikers | Santa Cruz Strength",
+      "description": "How Santa Cruz mountain bikers should lift: grip and forearm work for arm pump, bar control, single leg stability for technical descents, and crash resilience.",
+      "canonical": "https://santacruzstrength.com/blog/strength-training-for-mountain-bikers-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "Strength Training for Santa Cruz Mountain Bikers"
+    },
+    {
+      "path": "/blog/strength-training-high-school-athletes-santa-cruz",
+      "title": "High School Athlete Strength Training | Santa Cruz Strength",
+      "description": "Is weightlifting safe for teenagers? What the growth plate concern really is, what good supervision looks like, and what to ask a coach first.",
+      "canonical": "https://santacruzstrength.com/blog/strength-training-high-school-athletes-santa-cruz",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "Strength Training for High School Athletes"
+    },
+    {
+      "path": "/blog/return-to-lifting-after-injury",
+      "title": "Back to Lifting After an Injury | Santa Cruz Strength",
+      "description": "How to return to lifting after an injury: when to see a physical therapist first, how to deload, and what a gym and coach can and cannot do.",
+      "canonical": "https://santacruzstrength.com/blog/return-to-lifting-after-injury",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "Getting Back Under the Bar After an Injury"
+    },
+    {
+      "path": "/blog/first-powerlifting-meet-guide",
+      "title": "Your First Powerlifting Meet | Santa Cruz Strength",
+      "description": "How to enter your first powerlifting meet: federation membership, registration, weigh-in, flights, attempt selection, the commands, and what to bring.",
+      "canonical": "https://santacruzstrength.com/blog/first-powerlifting-meet-guide",
+      "indexable": true,
+      "robots": "index,follow",
+      "h1": "Your First Powerlifting Meet: A Practical Guide"
     }
   ],
   "dynamicRoutes": [

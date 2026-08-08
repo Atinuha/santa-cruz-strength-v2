@@ -1,0 +1,438 @@
+{
+  "beginner-strength-training-santa-cruz": [
+    {
+      "question": "Do I need to be in shape before I start lifting?",
+      "answer": "No. Strength training is how you get in shape. The program is scaled to your current ability, and the movements are taught progressively."
+    },
+    {
+      "question": "How many days per week should a beginner train?",
+      "answer": "Two to three days per week is effective for most beginners. Consistency over weeks and months matters more than daily frequency."
+    },
+    {
+      "question": "Will strength training make me bulky?",
+      "answer": "Significant muscle mass takes years of dedicated training and intentional caloric surplus to build. Initial changes are typically improved tone, posture, and functional strength."
+    },
+    {
+      "question": "Is strength training safe for older adults?",
+      "answer": "Research supports strength training for adults of all ages. Proper technique and appropriate load selection are important, and a coach can help with both."
+    },
+    {
+      "question": "What should I eat when starting strength training?",
+      "answer": "Adequate protein intake supports recovery and muscle development. A general guideline is 0.7 to 1.0 grams of protein per pound of body weight daily. Beyond that, eat enough to support your activity level."
+    }
+  ],
+  "first-powerlifting-meet-guide": [
+    {
+      "question": "Do I need a USAPL membership to compete?",
+      "answer": "Yes, for USA Powerlifting events. The rulebook states that lifters must have a current USA Powerlifting membership in order to compete in any USA Powerlifting event. Other federations set their own requirements, so check the rules of whichever one is sanctioning your meet."
+    },
+    {
+      "question": "How strong do I need to be to enter a local meet?",
+      "answer": "Entry is a matter of membership and registration rather than a strength standard. Some events do require a qualifying total, and the meet's entry information will say so. For an open local meet, there is generally nothing to qualify for."
+    },
+    {
+      "question": "What are the powerlifting meet rules for beginners?",
+      "answer": "They are the same rules as for everyone else, which is why reading the rulebook is the actual answer. The three that most affect a first timer are the commands for each lift, what apparel is permitted, and the weigh-in and equipment check deadlines relative to your session start."
+    },
+    {
+      "question": "What happens if I miss all three attempts on a lift?",
+      "answer": "You do not earn a total, since a successful attempt in all three lifts is required for one. You are not automatically finished, but you have to tell the scoring table whether you are withdrawing or continuing, and there is a deadline for that. Ask a meet official as soon as it happens."
+    },
+    {
+      "question": "Can my coach be with me on the floor?",
+      "answer": "At regional, national, international and pro championships, USA Powerlifting requires coaches to hold a current membership in order to access lifter areas such as the warmup room, staging area and the coaching area near the platform. Local meet access varies, so ask the meet director in advance."
+    },
+    {
+      "question": "Should I cut weight for my first meet?",
+      "answer": "No. Enter the class you already are. A weight cut adds a serious variable to a day that is already entirely new to you, and your first meet is for learning the process and earning a total."
+    },
+    {
+      "question": "How far out should I pick a meet?",
+      "answer": "Far enough to run a full training block into it and to get your membership and registration done well before the deadline. Registration for popular local meets can close early, so pick the meet first and build the training backward from its date."
+    }
+  ],
+  "first-visit-powerlifting-gym": [
+    {
+      "question": "Do I need powerlifting experience to join a powerlifting gym?",
+      "answer": "No. Many members at strength-focused gyms are recreational lifters, general fitness trainees, and athletes from other sports. The equipment is useful for anyone doing barbell training."
+    },
+    {
+      "question": "Will I be judged for lifting light weights?",
+      "answer": "In a well-run strength gym, no. Everyone started somewhere, and most experienced lifters are respectful of people at every level."
+    },
+    {
+      "question": "What if I do not know how to use the equipment?",
+      "answer": "Staff can show you the basics during a tour or orientation. If you want more structured help, personal training provides hands-on coaching."
+    },
+    {
+      "question": "How do I know if a gym is right for me?",
+      "answer": "Visit during the hours you plan to train. See if the equipment, culture, and logistics match what you need. A free facility tour is the most reliable way to evaluate this."
+    }
+  ],
+  "gym-day-pass-santa-cruz": [
+    {
+      "question": "How much is a gym day pass in Santa Cruz?",
+      "answer": "$20 at Santa Cruz Strength, valid for the same day, with no membership required."
+    },
+    {
+      "question": "Can you use a gym without a membership in Santa Cruz?",
+      "answer": "Yes. A $20 day pass at Santa Cruz Strength gives you access to the training floor for the day with no agreement and no card on file."
+    },
+    {
+      "question": "What hours can I use the day pass?",
+      "answer": "Published facility hours list day passes as 9am to 6pm, while the day pass tier's terms describe access during staffed hours. Those disagree, so call (408) 337-6709 to confirm before you come. [FACT NEEDED: whether the day pass runs 9am to 6pm or the full staffed window, confirmed by the owner]"
+    },
+    {
+      "question": "Do I need to book a day pass in advance?",
+      "answer": "[FACT NEEDED: whether day passes require advance booking or can be purchased on arrival, confirmed by the owner] Calling ahead is the safe approach either way."
+    },
+    {
+      "question": "Is there a drop in gym in Santa Cruz for visitors?",
+      "answer": "Santa Cruz Strength takes drop ins on a $20 day pass. It is in the Harvey West Business Park at 151 Harvey West Blvd Ste D, a short drive from downtown."
+    },
+    {
+      "question": "Does the day pass include personal training?",
+      "answer": "No. The day pass covers floor access. Personal training is separate and optional, and it will not be pushed on you during a drop in."
+    },
+    {
+      "question": "Is a free tour available instead?",
+      "answer": "Yes. A free facility tour requires no commitment and no card. If you are new to barbell training, start there rather than with a day pass."
+    }
+  ],
+  "gym-membership-cost-santa-cruz": [
+    {
+      "question": "How much is a gym membership in Santa Cruz?",
+      "answer": "The range is wide and most local gyms do not publish a number. Santa Cruz Strength publishes nine tiers from $45 per month up to $120 per month, plus a $20 day pass, on its membership page."
+    },
+    {
+      "question": "What is the cheapest gym in Santa Cruz?",
+      "answer": "We are not going to claim it is us, and we cannot tell you who it is without quoting prices we have not verified on the competitor's own site. Check each gym's own website or ask them directly."
+    },
+    {
+      "question": "Is a strength gym worth the extra cost?",
+      "answer": "It is if you train with barbells and need racks, platforms and specialty bars available when you arrive. It is not if your training is cardio and machines, in which case a chain is the better value."
+    },
+    {
+      "question": "Does Santa Cruz Strength have a no contract option?",
+      "answer": "Yes. Flex is $120 per month month to month with no agreement required. The 30 day cancellation notice still applies."
+    },
+    {
+      "question": "What extra fees should I ask about?",
+      "answer": "Enrolment fee, annual fee, cancellation fee, freeze policy and the renewal rate. Santa Cruz Strength charges a $50 annual enhancement fee and publishes it alongside the prices."
+    },
+    {
+      "question": "Does the $20 day pass count toward a membership if I join?",
+      "answer": "[FACT NEEDED: whether the $20 day pass credits toward a membership when the person joins, confirmed by the owner]"
+    }
+  ],
+  "gym-no-contract-santa-cruz": [
+    {
+      "question": "Is there a month to month gym in Santa Cruz?",
+      "answer": "Yes. Santa Cruz Strength offers Flex at $120 per month with no agreement required. A 30 day cancellation notice applies."
+    },
+    {
+      "question": "What is the cancellation policy at Santa Cruz Strength?",
+      "answer": "30 days written notice on every tier. Commitment memberships auto renew to month to month rather than into a new fixed term. A $50 annual enhancement fee applies to all memberships."
+    },
+    {
+      "question": "Can I cancel a 24 Hour Fitness commitment membership early?",
+      "answer": "24 Hour Fitness publishes that commitment memberships are non cancelable and non refundable within the commitment term except as provided in the membership agreement, and that a cancellation fee may apply. Check your own agreement and their their published member policies."
+    },
+    {
+      "question": "What is the Anytime Fitness cancellation policy in Santa Cruz?",
+      "answer": "Anytime Fitness states that cancellation policies are set in the membership agreement for each location and that clubs are independently owned and operated, so you need the agreement from the Santa Cruz club itself. See their their published FAQs."
+    },
+    {
+      "question": "How do I cancel a gym membership in California?",
+      "answer": "Read your agreement's cancellation clause, send notice in writing with a date, count the notice period forward, keep the confirmation, and check your statements for two billing cycles afterwards."
+    },
+    {
+      "question": "Is month to month worth the extra cost?",
+      "answer": "It is if you are unsure you will still be training in six months. At Santa Cruz Strength the difference between Flex and a twelve month plan is $45 per month, which is what the option to leave costs."
+    }
+  ],
+  "gym-with-lifting-platforms-santa-cruz": [
+    {
+      "question": "Where can I deadlift in Santa Cruz?",
+      "answer": "Santa Cruz Strength at 151 Harvey West Blvd Ste D has lifting platforms built for deadlifting. Take a $20 day pass and use one before you decide anything."
+    },
+    {
+      "question": "Are there gyms that allow dropping weights in Santa Cruz?",
+      "answer": "Dropping policy is a house rule and varies by gym even when platforms are present. [FACT NEEDED: whether controlled dropping onto the platforms is permitted at Santa Cruz Strength, confirmed by the owner] Call (408) 337-6709 and ask directly."
+    },
+    {
+      "question": "Does Santa Cruz Strength have squat racks?",
+      "answer": "Yes. Racks are part of the standing equipment. The exact count is not published here because it is not owner confirmed. [FACT NEEDED: exact count of squat racks and power racks, confirmed by the owner]"
+    },
+    {
+      "question": "Is there a gym in Santa Cruz with a safety squat bar?",
+      "answer": "Specialty bars are on the floor at Santa Cruz Strength. Whether a safety squat bar specifically is among them is worth confirming by phone before you visit. [FACT NEEDED: names of the specialty bars on the floor, confirmed by the owner]"
+    },
+    {
+      "question": "Is chalk allowed?",
+      "answer": "[FACT NEEDED: whether chalk is allowed, and whether liquid chalk only, confirmed by the owner] This is a top three question for serious lifters and it deserves a confirmed answer rather than an assumption."
+    },
+    {
+      "question": "Can I see the equipment before joining?",
+      "answer": "Yes. A free facility tour requires no commitment and no card, and a $20 day pass lets you train on the floor. Neither one asks you to sign anything."
+    }
+  ],
+  "how-24-7-gym-access-works-santa-cruz": [
+    {
+      "question": "Is 24/7 access safe?",
+      "answer": "Modern access control systems, security cameras, and emergency procedures make 24/7 facilities generally safe. Using equipment with built-in safety features and managing your load appropriately are practical personal precautions."
+    },
+    {
+      "question": "Can I bring a guest during unstaffed hours?",
+      "answer": "Policies vary by facility. Most 24/7 gyms restrict guest access to staffed hours. Check the membership terms for specifics."
+    },
+    {
+      "question": "What happens if the access system malfunctions?",
+      "answer": "Reputable facilities have a support line or app-based troubleshooting for access issues. Ask about this during your tour."
+    }
+  ],
+  "how-many-days-a-week-should-a-beginner-lift": [
+    {
+      "question": "Can I train every day as a beginner?",
+      "answer": "Daily training is not recommended for beginners performing full-body strength work. Muscles need recovery time between sessions. Training the same muscles before they have recovered can lead to diminished performance and increased injury risk."
+    },
+    {
+      "question": "Should I do cardio on rest days?",
+      "answer": "Light activity like walking, cycling, or swimming on rest days is fine and can support recovery. Avoid high-intensity conditioning that competes with your strength training recovery."
+    },
+    {
+      "question": "What if I miss a session?",
+      "answer": "One missed session in a week has negligible impact on long-term progress. Resume your schedule the following week. Do not try to \"make up\" sessions by doubling up."
+    },
+    {
+      "question": "How long before I see results?",
+      "answer": "Most beginners notice improved energy, better sleep, and increased confidence within two to three weeks. Visible changes in body composition typically become apparent after six to eight weeks of consistent training."
+    }
+  ],
+  "how-to-choose-a-strength-gym-santa-cruz": [
+    {
+      "question": "Should I choose the cheapest gym?",
+      "answer": "The cheapest option is not always the best value. If you stop going after a month because the equipment does not match your needs, the money is wasted regardless of the monthly rate. Choose the gym where you will actually train consistently."
+    },
+    {
+      "question": "How important is a gym's brand or reputation?",
+      "answer": "Reputation provides useful signal but is not a substitute for visiting in person. What matters is whether the specific location, at the specific hours you train, has the equipment and culture that fit your goals."
+    },
+    {
+      "question": "Can I try a gym before committing?",
+      "answer": "Most reputable gyms offer a tour or trial session. Take advantage of this. It is the most reliable way to evaluate a facility."
+    }
+  ],
+  "personal-trainer-vs-open-gym-santa-cruz": [
+    {
+      "question": "How much does personal training cost compared to open gym?",
+      "answer": "Pricing varies by facility and coach. Personal training is typically priced per session or in packages, and costs more than a monthly gym membership. The investment is in expertise and personalized attention. Contact the gym directly for current rates."
+    },
+    {
+      "question": "Can I do personal training and open gym together?",
+      "answer": "Yes. Many members combine a weekly coaching session with additional independent training days. This is an effective and cost-efficient approach."
+    },
+    {
+      "question": "How do I know if my trainer is qualified?",
+      "answer": "Look for trainers with recognized certifications and practical experience coaching the movements you want to learn. Ask about their training philosophy and experience with clients at your level."
+    }
+  ],
+  "personal-training-cost-santa-cruz": [
+    {
+      "question": "How much does a personal trainer cost in Santa Cruz?",
+      "answer": "Rates are set per session and drop when sessions are bought in packages. Local trainers and gyms rarely publish figures, so you will need to ask directly. For rates at Santa Cruz Strength, [FACT NEEDED: personal training session rates and package structure, confirmed by the owner]."
+    },
+    {
+      "question": "Are personal training packages cheaper than single sessions?",
+      "answer": "Nearly always, yes. The per session price falls as the package size rises. The trade is that you pay up front, so check the expiry date and the cancellation terms before you buy."
+    },
+    {
+      "question": "Is personal training worth it?",
+      "answer": "It is worth it when you are learning technique from scratch, coming back from an injury, or stuck on a plateau you cannot diagnose yourself. If you already have solid technique and a program you trust, open gym access covers you at a much lower cost."
+    },
+    {
+      "question": "How many sessions do I need with a trainer?",
+      "answer": "For a beginner, roughly eight to twelve sessions is usually enough to learn the main lifts and understand how a program progresses. After that most people train independently and book occasional check ins."
+    },
+    {
+      "question": "Do I need a gym membership as well as personal training?",
+      "answer": "It depends on the provider, and it is one of the first things to ask, because it can double the real cost. [FACT NEEDED: whether personal training at Santa Cruz Strength requires an active membership, confirmed by the owner]."
+    },
+    {
+      "question": "Can I train with a coach and on my own in the same week?",
+      "answer": "Yes, and it is the most cost effective way to use coaching. One session a week with a coach plus two independent days gives you feedback and volume without paying for every hour you train."
+    }
+  ],
+  "powerlifting-vs-olympic-weightlifting-vs-strongman": [
+    {
+      "question": "Which sport is best for building muscle?",
+      "answer": "All three build significant muscle. Powerlifting and strongman tend to produce more overall mass due to higher training volumes and the emphasis on maximal loads. Olympic lifting develops powerful, athletic physiques with particular emphasis on the legs, back, and shoulders."
+    },
+    {
+      "question": "Can I train for more than one sport at a time?",
+      "answer": "At a recreational level, yes. Many lifters incorporate elements from multiple sports in their training. At a competitive level, specialization becomes more important."
+    },
+    {
+      "question": "Which sport is safest for beginners?",
+      "answer": "All three can be practiced safely with proper instruction. Powerlifting movements have the lowest technical complexity, making them accessible for beginners to learn with minimal coaching. Olympic lifting requires more instruction due to the speed and technical demands of the snatch and clean and jerk."
+    }
+  ],
+  "return-to-lifting-after-injury": [
+    {
+      "question": "Can I lift while I am still in physical therapy?",
+      "answer": "That is a question for your physical therapist, not for a gym. Many people do train alongside physical therapy with their therapist's guidance, and many are asked to wait. Ask directly, and ask them to write down what you are and are not cleared to load."
+    },
+    {
+      "question": "Will lifting fix my injury?",
+      "answer": "Nothing here claims that it will. Lifting is training, not treatment. Whether loading has a role in your particular situation is a clinical question, and the person who evaluated you is the one who can answer it."
+    },
+    {
+      "question": "How much weight should I start with?",
+      "answer": "Less than you think. A workable starting point is a load you could perform for at least three more reps than you actually do on every set, held there for the first couple of weeks. If that feels absurdly easy, it is probably about right."
+    },
+    {
+      "question": "Should I wait until the restriction is completely gone before I train?",
+      "answer": "Once you have been cleared, usually not. Training the movements you can do keeps the rest of you from detraining while the restricted pattern waits. What you should not do is decide on your own that a restriction has expired."
+    },
+    {
+      "question": "Is it normal to feel much weaker than I was?",
+      "answer": "Feeling weaker after time off is expected and it is not a verdict on how this goes. The useful response is to log sessions completed rather than the weight on the bar for the first month, because sessions completed is what actually produces the weight later."
+    },
+    {
+      "question": "How do I know if I am progressing too fast?",
+      "answer": "Watch the day after and the day after that, not the session itself. Symptoms that show up 24 to 48 hours later, or a slow week over week creep in how long it takes to feel ready to train again, are the two signals worth acting on. When either appears, hold the current load rather than adding, and if it continues, go back to the person who cleared you."
+    },
+    {
+      "question": "Do I need a coach for this?",
+      "answer": "Not necessarily. You need a plan you did not write in the moment. A coach is one way to get that, and a written progression you commit to in advance is another. What does not work is deciding each session's load based on how the warmup felt."
+    }
+  ],
+  "strength-training-after-40-santa-cruz": [
+    {
+      "question": "Is it too late to start strength training at 50 or 60?",
+      "answer": "No. Research demonstrates that previously untrained adults can make significant strength and muscle gains at any age. The best time to start was 20 years ago. The second best time is now."
+    },
+    {
+      "question": "Will strength training help with joint pain?",
+      "answer": "In many cases, yes. Strengthening the muscles around a joint provides support and can reduce pain associated with conditions like osteoarthritis. Consult your physician for specific medical conditions, and work with a qualified coach to select appropriate exercises."
+    },
+    {
+      "question": "Do I need a coach?",
+      "answer": "A coach is valuable for learning proper technique, selecting appropriate exercise variations, and designing a program that accounts for individual limitations. Even a few sessions can provide a strong foundation."
+    }
+  ],
+  "strength-training-for-mountain-bikers-santa-cruz": [
+    {
+      "question": "Does lifting weights help mountain biking?",
+      "answer": "Yes, mostly in the areas the bike does not train. Grip and forearm endurance, upper body pulling for braking and bar control, single leg and rotational stability for technical terrain, and general resilience. Pedaling fitness still comes from riding."
+    },
+    {
+      "question": "How do I avoid arm pump mountain biking?",
+      "answer": "Train grip endurance rather than grip max, using dead hangs, farmer carries, thick bar work, and direct forearm work. Then check your setup: lever reach and angle, tyre pressure, suspension, and whether you are gripping harder than the trail requires. If it is severe or persistent, see a doctor."
+    },
+    {
+      "question": "How many days a week should a mountain biker lift?",
+      "answer": "Two is enough for most riders. Keep heavy leg work off the day before a long ride, and treat the gym as support for the riding rather than a second sport competing for recovery."
+    },
+    {
+      "question": "Will lifting make me too heavy for climbing?",
+      "answer": "Not at the volumes described here. Two days a week of strength work with normal eating builds strength well before it builds meaningful mass. Riders chasing significant size are eating for it deliberately."
+    },
+    {
+      "question": "What is the single best exercise for mountain bikers?",
+      "answer": "If you only had one, the farmer carry. It trains grip endurance, trunk bracing, and shoulder stability in a single movement, which is a reasonable description of what a descent demands."
+    },
+    {
+      "question": "Should I lift during riding season?",
+      "answer": "Yes, at lower volume. Dropping strength work entirely in season means arriving at the end of the year having lost what you built. Keep two short sessions and put the heavy blocks in the off season."
+    }
+  ],
+  "strength-training-for-surfers-santa-cruz": [
+    {
+      "question": "Will lifting weights make me too heavy to surf?",
+      "answer": "No. The amount of muscle mass gained from two to three strength sessions per week is modest and functional. Most surfers who add strength training report feeling more powerful and agile in the water, not heavier."
+    },
+    {
+      "question": "How long before I notice a difference in my surfing?",
+      "answer": "Most surfers report noticeable improvements in paddle endurance and pop-up speed within six to eight weeks of consistent training. Injury resilience benefits accumulate over months."
+    },
+    {
+      "question": "Can I train at the gym and still surf every day?",
+      "answer": "Yes, with appropriate programming. Keep gym sessions moderate on days adjacent to surf sessions. A coach can help structure a schedule that supports both."
+    }
+  ],
+  "strength-training-high-school-athletes-santa-cruz": [
+    {
+      "question": "Is weightlifting safe for teenagers?",
+      "answer": "The general consensus in pediatric and sports medicine is that supervised, appropriately loaded resistance training is considered safe for adolescents. The risk sits with unsupervised training, maximal attempts, and untaught technique rather than with resistance training itself. Check with your child's doctor about their specific situation."
+    },
+    {
+      "question": "Does lifting weights stunt growth?",
+      "answer": "There is no good evidence that it does, and the major pediatric and sports medicine organisations do not support the idea. Any specific concern about your child's growth belongs with their pediatrician."
+    },
+    {
+      "question": "What age can a teen start lifting weights?",
+      "answer": "Readiness is usually described in terms of maturity rather than age: can they follow instruction, accept coaching, and behave safely around equipment. Separately, each gym sets its own minimum age. [FACT NEEDED: minimum age for membership or supervised training at Santa Cruz Strength, and whether a parent must be present, confirmed by the owner]."
+    },
+    {
+      "question": "How often should a high school athlete lift?",
+      "answer": "Two or three days a week off season, and lower volume maintenance during the season. Their sport is already a significant training load and the weight room adds to it rather than replacing it."
+    },
+    {
+      "question": "Should my teenager max out?",
+      "answer": "Not as a novice. Maximal single attempts concentrate the risk and tell you very little about an athlete who is still learning the movements. Good programs build strength with controlled submaximal work."
+    },
+    {
+      "question": "Does my teen need a coach or can they follow a program online?",
+      "answer": "For the first block, coaching is worth it, because technique errors learned early are hard to undo and supervision is the single biggest factor in weight room safety for this age group. After that, many teenagers train well on a written program with periodic check ins."
+    },
+    {
+      "question": "What if my teen says something hurts?",
+      "answer": "Stop the movement and find out what kind of pain it is. General muscle soreness after a session is expected. Sharp pain, joint pain, or pain that is not improving should be seen by a doctor rather than trained through."
+    }
+  ],
+  "ucsc-off-campus-gym-guide": [
+    {
+      "question": "Do off-campus gyms in Santa Cruz offer student discounts?",
+      "answer": "Some do. Ask directly when touring the facility. Bring your student ID."
+    },
+    {
+      "question": "Can I freeze my membership over summer break?",
+      "answer": "Policies vary by gym. This is worth asking before signing up, since many UCSC students leave during summer."
+    },
+    {
+      "question": "Is the on-campus gym sufficient for strength training?",
+      "answer": "It depends on your specific goals and tolerance for crowding. For general fitness, the campus facilities work. For focused barbell training with specific equipment needs, an off-campus strength gym may be a better fit."
+    },
+    {
+      "question": "How do I get to off-campus gyms without a car?",
+      "answer": "Santa Cruz Metro buses connect campus to most parts of the city. Some gyms are also bikeable from campus or from common off-campus housing areas. Check transit routes when evaluating gym location."
+    }
+  ],
+  "women-strength-training-santa-cruz": [
+    {
+      "question": "Where can women lift weights in Santa Cruz?",
+      "answer": "Most local search results point to studios and class based training. For barbell work specifically, look for a gym with racks, lifting platforms, and a plate supply that goes high. Santa Cruz Strength has all three at 151 Harvey West Blvd Ste D in the Harvey West Business Park."
+    },
+    {
+      "question": "Will lifting weights make me bulky?",
+      "answer": "No. Visible muscle mass requires a training stimulus, enough food, and years of consistent work happening together. Early gains are largely neurological, meaning you get stronger before you get bigger. It is not something that happens by accident."
+    },
+    {
+      "question": "Is a powerlifting gym intimidating for women?",
+      "answer": "It can feel that way before your first visit, usually because the unwritten rules are unfamiliar rather than because the weights are heavy. Take a tour first and watch how people in the room treat each other. That answers the question faster than anything else."
+    },
+    {
+      "question": "Do I need to know how to lift before I join?",
+      "answer": "No. Coaching is available and optional, and staffed hours mean there is a person to ask. If you would rather arrive with the basics already understood, start with the beginner guide linked above."
+    },
+    {
+      "question": "Is Santa Cruz Strength LGBTQ friendly?",
+      "answer": "In the gym's own published words: \"We are a queer-friendly space, and we are committed to creating an environment where all identities are respected.\""
+    },
+    {
+      "question": "What should I bring to my first session?",
+      "answer": "Flat shoes rather than running shoes, clothes you can move in, water, and something to write your sets in. That is the whole list."
+    }
+  ]
+}

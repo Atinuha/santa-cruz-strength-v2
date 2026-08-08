@@ -4344,7 +4344,7 @@ async def seed_blog_posts():
 
 <h2>What Beginners Should Focus On</h2>
 
-<p>In the first 3 months, the priority is:</p>
+<p>In the first 3 months, the priority is short, and <a href="/blog/beginner-strength-training-santa-cruz">the full beginner strength training guide</a> expands each item into what it looks like week to week:</p>
 
 <ol>
 <li><strong>Learning movement patterns</strong> - squat, hinge, push, pull, carry</li>
@@ -4376,7 +4376,7 @@ async def seed_blog_posts():
 
 <h2>Why Sport-Specific Fitness Isn\'t Enough</h2>
 
-<p>Running makes you a better runner - but only to a point. Past a certain threshold, additional running volume produces diminishing returns and increasing injury risk. The athletes who break through plateaus and stay healthy long-term are the ones who address their structural weaknesses in the weight room.</p>
+<p>Running makes you a better runner - but only to a point. Past a certain threshold, additional running volume produces diminishing returns and increasing injury risk. The athletes who break through plateaus and stay healthy long-term are the ones who address their structural weaknesses in the weight room. The same reasoning applies to <a href="/blog/strength-training-for-surfers-santa-cruz">surfers specifically</a>, and that article covers the lifts that carry over to the water.</p>
 
 <h2>For Climbers</h2>
 
@@ -4386,13 +4386,15 @@ async def seed_blog_posts():
 
 <p>Running doesn\'t build the single-leg strength needed to run efficiently. Unilateral exercises - Bulgarian split squats, single-leg Romanian deadlifts, step-ups - build the specific strength that improves running economy and protects knees and hips on technical descents. Two sessions per week of strength work has been shown repeatedly to improve running performance without adding significant training load.</p>
 
-<h2>For Cyclists</h2>
+<h2>For Road Cyclists</h2>
 
-<p>Cycling is almost entirely quad-dominant. Cyclists who lift discover two things quickly: their glutes were significantly underdeveloped, and their power on climbs improves when they address it. Heavy deadlifts and hip thrusts build the posterior chain that makes the difference in the final kilometers of a hard effort.</p>
+<p>Road cycling is almost entirely quad-dominant. Road cyclists who lift discover two things quickly: their glutes were significantly underdeveloped, and their power on climbs improves when they address it. Heavy deadlifts and hip thrusts build the posterior chain that makes the difference in the final kilometers of a hard effort.</p>
+
+<p>Mountain biking asks for something different. Braking and bar control load the upper body, technical descents demand rotational stability and grip endurance, and crashes are part of the sport. If you ride trails rather than roads, see <a href="/blog/strength-training-for-mountain-bikers-santa-cruz">strength training for Santa Cruz mountain bikers</a>.</p>
 
 <h2>How We Train Outdoor Athletes at Santa Cruz Strength</h2>
 
-<p>Our approach for athletes is simple: build strength that carries over to your sport without compromising your sport-specific training. We program around your schedule, respect your primary training volume, and focus on the movements that give you the most return.</p>
+<p>Our approach for athletes is simple: build strength that carries over to your sport without compromising your sport-specific training. We program around your schedule, respect your primary training volume, and focus on the movements that give you the most return. Those are <a href="/blog/beginner-strength-training-santa-cruz">the compound lifts that carry over</a>, and the beginner guide covers how to learn them.</p>
 
 <p>If you\'re a climber, runner, or cyclist curious about how strength training would fit into your life, come in for a free tour and conversation. We train athletes from across the Santa Cruz community.</p>''',
             'category': 'Outdoor Athletes',
@@ -4420,7 +4422,7 @@ async def seed_blog_posts():
 
 <p>Muscle tissue is metabolically expensive. The more of it you have, the more calories your body burns at rest. When you add muscle through consistent strength training, you raise your resting metabolic rate - meaning you burn more calories even when you\'re not exercising.</p>
 
-<p>This is why many people who start lifting report that their body composition changes noticeably even without changing what they eat. They gain muscle, lose fat, and their clothes fit differently - even if the number on the scale doesn\'t move dramatically.</p>
+<p>This is why many people who start lifting report that their body composition changes noticeably even without changing what they eat. They gain muscle, lose fat, and their clothes fit differently - even if the number on the scale doesn\'t move dramatically. None of that happens in a single session, which is why <a href="/blog/how-many-days-a-week-should-a-beginner-lift">a sustainable weekly frequency</a> matters more than any individual workout.</p>
 
 <h2>Strength Training + Diet: The Real Formula</h2>
 
@@ -4431,7 +4433,7 @@ async def seed_blog_posts():
 <li>A modest caloric deficit (not aggressive restriction)</li>
 </ol>
 
-<p>This combination preserves muscle while losing fat - which produces dramatically better long-term results than calorie restriction alone.</p>
+<p>This combination preserves muscle while losing fat - which produces dramatically better long-term results than calorie restriction alone. If the training half of that is the unfamiliar part, <a href="/blog/beginner-strength-training-santa-cruz">how to start lifting</a> covers the first six months.</p>
 
 <h2>What Santa Cruz Strength Members Experience</h2>
 
@@ -4457,7 +4459,7 @@ async def seed_blog_posts():
 
 <h2>What "Serious" Actually Means</h2>
 
-<p>Serious doesn\'t mean competitive. It doesn\'t mean you have to be a powerlifter or an athlete chasing a PR. Serious means you show up consistently, you put in the work, and you\'re there to improve - not to be seen, not to socialize, not to go through the motions.</p>
+<p>Serious doesn\'t mean competitive. It doesn\'t mean you have to be a powerlifter or an athlete chasing a PR. Serious means you show up consistently, you put in the work, and you\'re there to improve - not to be seen, not to socialize, not to go through the motions. That is one criterion among several in <a href="/blog/how-to-choose-a-strength-gym-santa-cruz">how to evaluate a strength gym in Santa Cruz</a>.</p>
 
 <p>Our members include competitive powerlifters, professional surfers, UCSC researchers who train before work, parents who get their session in during school hours, and people in their 60s who came to us wanting to build strength for the next chapter of their lives. What they have in common is intentionality.</p>
 
@@ -4473,11 +4475,11 @@ async def seed_blog_posts():
 <li>Conditioning equipment that doesn\'t crowd the strength floor</li>
 </ul>
 
-<p>We invest in equipment that athletes actually need, not in amenities designed to impress during a tour.</p>
+<p>We invest in equipment that athletes actually need, not in amenities designed to impress during a tour, and <a href="/blog/gym-with-lifting-platforms-santa-cruz">the platforms and racks</a> are broken down lift by lift on their own page.</p>
 
 <h2>The Culture</h2>
 
-<p>The culture at Santa Cruz Strength is what differentiates us most. Members re-rack their weights. People nod at each other, spot when asked, and offer advice when it\'s welcome and stay quiet when it\'s not. There\'s no judgment about what you\'re lifting, where you started, or what your goals are.</p>
+<p>The culture at Santa Cruz Strength is what differentiates us most. Members re-rack their weights. People nod at each other, spot when asked, and offer advice when it\'s welcome and stay quiet when it\'s not. There\'s no judgment about what you\'re lifting, where you started, or what your goals are. If those goals point toward competition, <a href="/blog/powerlifting-vs-olympic-weightlifting-vs-strongman">the three strength sports compared</a> covers what each one demands.</p>
 
 <h2>Location</h2>
 
@@ -4523,7 +4525,7 @@ async def seed_blog_posts():
 
 <h2>The Practical Reality</h2>
 
-<p>For most people - especially those with jobs, families, and other commitments - the ideal workout is the one that gets done consistently. A 45-minute session three times per week that you actually complete will produce far better results over a year than an aspirational 2-hour program that you abandon after three weeks.</p>
+<p>For most people - especially those with jobs, families, and other commitments - the ideal workout is the one that gets done consistently. A 45-minute session three times per week that you actually complete will produce far better results over a year than an aspirational 2-hour program that you abandon after three weeks. How many of those sessions belong in a week is a separate question, answered in <a href="/blog/how-many-days-a-week-should-a-beginner-lift">training frequency for beginners</a>.</p>
 
 <p>Build the habit. Keep sessions focused. Progress will follow.</p>
 

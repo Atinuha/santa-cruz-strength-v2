@@ -16,6 +16,9 @@ const homeSchema = JSON.parse(
 const posts = JSON.parse(
   await readFile(resolve(frontendRoot, 'src/seo/published-posts.json'), 'utf8')
 );
+const blogFaq = JSON.parse(
+  await readFile(resolve(frontendRoot, 'src/seo/blog-faq.json'), 'utf8')
+);
 const template = await readFile(resolve(buildRoot, 'index.html'), 'utf8');
 
 const lastModifiedBySlug = new Map(
@@ -27,7 +30,8 @@ const lastModifiedBySlug = new Map(
 // deliberately absent: none of the three is known at build time, and an invented
 // value is worse than an omitted one.
 const buildArticleGraph = (route) => {
-  const lastModified = lastModifiedBySlug.get(route.path.slice('/blog/'.length));
+  const slug = route.path.slice('/blog/'.length);
+  const lastModified = lastModifiedBySlug.get(slug);
   const article = {
     '@type': 'BlogPosting',
     '@id': `${route.canonical}#article`,
@@ -51,10 +55,31 @@ const buildArticleGraph = (route) => {
   };
   if (lastModified) article.dateModified = lastModified;
 
+  // Ten articles render a visible "Frequently Asked Questions" section. Encoding
+  // those pairs gives an answer engine a pre-chunked, attributable answer unit
+  // instead of one it has to infer from prose. Google restricted FAQ rich results
+  // to government and health sites in 2023, so this is a machine-readability
+  // measure, not a rich-result play. The pairs are mirrored from the rendered
+  // article and pinned to it by validate-seo.mjs, so schema cannot outlive copy.
+  const faq = blogFaq[slug];
+  const faqNode = faq?.length ? {
+    '@type': 'FAQPage',
+    '@id': `${route.canonical}#faq`,
+    url: route.canonical,
+    inLanguage: 'en-US',
+    isPartOf: { '@id': `${route.canonical}#article` },
+    mainEntity: faq.map((entry) => ({
+      '@type': 'Question',
+      name: entry.question,
+      acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+    })),
+  } : null;
+
   return {
     '@context': 'https://schema.org',
     '@graph': [
       article,
+      ...(faqNode ? [faqNode] : []),
       {
         '@type': 'BreadcrumbList',
         '@id': `${route.canonical}#breadcrumb`,

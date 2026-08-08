@@ -144,6 +144,57 @@ check(
   renderedFaq.length > 0 && JSON.stringify(renderedFaq) === JSON.stringify(encodedFaq),
   `homepage FAQ schema mirrors the questions the page renders (page ${renderedFaq.length}, schema ${encodedFaq.length})`
 );
+// Same rule for blog FAQ schema: it may only assert Q and A pairs the article
+// actually renders. The pairs live in the backend article source, so read that
+// rather than trust a hand-kept copy. If the source moves, this fails loudly
+// instead of letting stale schema ship.
+// Articles are split across backend/blog_articles*.py and the set grows, so glob
+// rather than name one file. A new sibling is picked up with no edit here.
+const backendDir = resolve(frontendRoot, '../backend');
+const articleSourcePaths = existsSync(backendDir)
+  ? (await readdir(backendDir))
+    .filter((name) => /^blog_articles.*\.py$/.test(name))
+    .map((name) => resolve(backendDir, name))
+  : [];
+const blogFaq = JSON.parse(await readFile(resolve(frontendRoot, 'src/seo/blog-faq.json'), 'utf8'));
+const stripTags = (value) => value
+  .replace(/<[^>]+>/g, '')
+  .replaceAll('&amp;', '&')
+  .replaceAll('&quot;', '"')
+  .replaceAll('&#39;', "'")
+  .replaceAll('&lt;', '<')
+  .replaceAll('&gt;', '>')
+  .trim();
+const renderedBlogFaq = {};
+for (const path of articleSourcePaths) {
+  const articleSource = await readFile(path, 'utf8');
+  const segments = articleSource.split(/'slug':\s*'([a-z0-9-]+)'/);
+  for (let index = 1; index < segments.length; index += 2) {
+    const body = segments[index + 1];
+    const faqStart = body.indexOf('Frequently Asked Questions');
+    if (faqStart < 0) continue;
+    const pairs = [...body.slice(faqStart).matchAll(/<h3>([\s\S]*?)<\/h3>\s*<p>([\s\S]*?)<\/p>/g)]
+      .map((match) => ({ question: stripTags(match[1]), answer: stripTags(match[2]) }));
+    if (pairs.length) renderedBlogFaq[segments[index]] = pairs;
+  }
+}
+const blogFaqDrift = [...new Set([...Object.keys(blogFaq), ...Object.keys(renderedBlogFaq)])]
+  .filter((slug) => JSON.stringify(blogFaq[slug]) !== JSON.stringify(renderedBlogFaq[slug]));
+const encodedFaqPairs = Object.values(blogFaq).reduce((total, entries) => total + entries.length, 0);
+check(
+  articleSourcePaths.length > 0 && encodedFaqPairs > 0 && !blogFaqDrift.length,
+  `blog FAQ schema mirrors the questions the articles render (${Object.keys(blogFaq).length} articles, ${encodedFaqPairs} pairs)${blogFaqDrift.length ? `: drifted on ${blogFaqDrift.join(', ')}` : ''}`
+);
+// A FAQ block may only be encoded for a page a crawler is allowed to index.
+const faqOnNonIndexable = Object.keys(blogFaq).filter((slug) => {
+  const route = registry.routes.find((candidate) => candidate.path === `/blog/${slug}`);
+  return !route || !route.indexable;
+});
+check(
+  !faqOnNonIndexable.length,
+  `blog FAQ schema is only encoded for indexable articles${faqOnNonIndexable.length ? `: ${faqOnNonIndexable.join(', ')}` : ''}`
+);
+
 check(!publicIndex.includes('openingHoursSpecification'), 'schema omits unverified hours');
 check(appSource.includes('<RouteSeo />'), 'route SEO manager is mounted');
 check(appSource.includes('<Route path="*" element={<NotFound />} />'), 'client fallback is a real not-found view');

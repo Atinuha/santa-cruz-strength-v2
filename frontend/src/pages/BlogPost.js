@@ -16,41 +16,31 @@ function readingTime(html) {
   return Math.max(1, Math.round(text.split(' ').length / 200));
 }
 
-function ArticleSchema({ post }) {
-  if (!post || post.noindex || post.review_status) return null;
-  const data = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: sanitizeDashes(post.title),
-    description: sanitizeDashes(post.seo_description || post.excerpt || ''),
-    author: { '@type': 'Organization', name: post.author || 'Santa Cruz Strength' },
-    publisher: { '@type': 'Organization', name: 'Santa Cruz Strength' },
-    datePublished: post.created_at,
-    dateModified: post.updated_at || post.created_at,
-    mainEntityOfPage: `https://santacruzstrength.com/blog/${post.slug}`,
-  };
-  if (post.cover_image) data.image = post.cover_image;
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
-}
-
-function FAQSchema({ post }) {
-  if (!post || post.noindex || post.review_status) return null;
-  const content = sanitizeDashes(post.content || '');
-  const faqPairs = [];
-  const h2Regex = /<h2[^>]*>(.*?)<\/h2>/gi;
-  const parts = content.split(h2Regex);
-  for (let i = 1; i < parts.length; i += 2) {
-    const question = parts[i]?.replace(/<[^>]+>/g, '').trim();
-    const answerHtml = parts[i + 1] || '';
-    const answer = answerHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    if (question && answer && question.includes('?')) {
-      faqPairs.push({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer.slice(0, 500) } });
-    }
-  }
-  if (faqPairs.length === 0) return null;
-  const data = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqPairs };
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
-}
+// ArticleSchema and FAQSchema used to live here and both were deleted.
+//
+// Both wrote a second JSON-LD block on top of the one generate-route-heads.mjs
+// already puts in every blog shell at build time, so each article carried two
+// competing primary entities for one URL.
+//
+// ArticleSchema also invented all three of the fields the build step
+// deliberately omits. Its datePublished read post.created_at, which is written
+// by the seed at startup: all 17 articles currently report the identical value
+// 2026-08-08T09:23:58, and it moves every time the backend restarts. Google
+// would have seen the publication date of the whole corpus change on every
+// crawl. Its author was an unevidenced Organization node. And its guard tested
+// post.noindex and post.review_status, both of which the API returns as null on
+// every article, so it fired on the two cross canonical duplicates too and
+// asserted mainEntityOfPage back at the URLs we deliberately consolidated away.
+//
+// FAQSchema treated any h2 containing a question mark as a question and took
+// the next 500 characters of stripped prose as the answer. Against the live
+// corpus it fired on exactly one article, the noindex duplicate, and produced
+// truncated body text rather than an answer.
+//
+// The build step now emits BlogPosting, BreadcrumbList and, for the ten
+// articles that render one, a FAQPage mirroring the real pairs. It omits
+// datePublished, author and image because none of them is known, and a
+// validator check fails if the encoded FAQ drifts from the rendered copy.
 
 export default function BlogPost() {
   const { slug } = useParams();
@@ -93,8 +83,6 @@ export default function BlogPost() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }} data-testid="blog-post">
-      <ArticleSchema post={post} />
-      <FAQSchema post={post} />
       <Navbar />
 
       {/* Editorial review banner */}

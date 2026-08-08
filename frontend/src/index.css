@@ -717,70 +717,23 @@ ul { list-style: none; padding: 0; margin: 0; }
 }
 
 /* ==========================================================
-   CLICK TO LOAD MAP
-   The Google frame is loaded on request, not on page load: it
-   sends the visitor IP and sets cookies before the consent
-   control has been answered. These styles were lost when the
-   approved design system replaced the previous index.css, and
-   the placeholder rendered as an empty dark block on the
-   homepage and the contact page until this restored them.
-   Written to sit on the dark band the homepage puts it on.
+   LOCATION MAP
+   The frame is a third party embed and loads for every visitor.
+   That is a deliberate decision recorded in MapEmbed.js. The
+   rounded, inset treatment matches the reference the owner
+   approved.
    ========================================================== */
-.scs-map { min-height: 200px; }
-.scs-map iframe { display: block; border: 0; border-radius: var(--scs-radius); }
-.scs-map-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 10px;
-  height: 100%;
-  min-height: 200px;
-  padding: 22px;
-  border: 1px solid rgba(232, 225, 214, 0.18);
-  border-radius: var(--scs-radius);
+.scs-map {
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 225, 214, 0.14);
   background: rgba(232, 225, 214, 0.04);
-  color: var(--scs-text-on-dark);
+  min-height: 240px;
 }
-.scs-map-placeholder svg { color: var(--scs-clay); }
-.scs-map-address {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  line-height: 1.45;
+.scs-map iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  border: 0;
 }
-.scs-map-placeholder small {
-  color: var(--scs-text-on-dark-muted);
-  font-size: 0.72rem;
-  line-height: 1.45;
-}
-.scs-map-placeholder .scs-button,
-.scs-map-placeholder button {
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 9px 18px;
-  cursor: pointer;
-  background: var(--scs-clay);
-  border: 1px solid var(--scs-clay);
-  border-radius: var(--scs-radius);
-  color: var(--scs-chalk);
-}
-.scs-map-placeholder button:hover { background: var(--scs-clay-dark); }
-.scs-map-placeholder .scs-text-link {
-  font-size: 0.82rem;
-  color: var(--scs-chalk);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* On the chalk coloured contact page the same component needs light treatment. */
-.scs-map-light .scs-map-placeholder {
-  border-color: var(--scs-border);
-  background: var(--scs-warm-white);
-  color: var(--scs-text);
-}
-.scs-map-light .scs-map-placeholder small { color: var(--scs-text-muted); }
-.scs-map-light .scs-map-placeholder .scs-text-link { color: var(--scs-charcoal); }
