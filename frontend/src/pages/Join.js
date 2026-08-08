@@ -3,11 +3,14 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import { ArrowRight, CheckCircle2, Clock, Users, Zap, Calendar, Star, CreditCard, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { GYM_CONFIG } from '../config';
 
 const PRIMARY_PLANS = [
   { id: 'daypass', name: 'Day Pass', price: '$20', per: '', highlight: false, tag: 'Try Us Out',
     features: ['Valid for same-day use', 'Staffed hours only'], terms: [],
-    cta: 'Get a Day Pass' },
+    // A twenty dollar drop-in should not need a tour booking and a callback.
+    // Call or walk in during staffed hours.
+    direct: 'call', cta: 'Call to arrange' },
   { id: 'huscler-12', name: 'Huscler', subtitle: '12-Month', price: '$75', per: '/mo', highlight: true, tag: 'Most Popular',
     savings: 'Save 38%', compareText: 'vs. $120/mo month-to-month',
     features: ['Full facility access', 'Unlimited open gym', 'All available equipment'],
@@ -56,8 +59,8 @@ function PlanCard({ plan }) {
         {plan.features.map((f, i) => <li key={`f-${plan.id}-${i}`} className="flex items-start gap-2 text-xs" style={{ color: 'var(--scs-text)' }}><CheckCircle2 size={13} className="shrink-0 mt-0.5" style={{ color: 'var(--scs-charcoal)' }} />{f}</li>)}
       </ul>
       {plan.terms?.length > 0 && <div className="pt-2 mb-3" style={{ borderTop: '1px solid var(--scs-border)' }}>{plan.terms.map((t, i) => <p key={`t-${plan.id}-${i}`} className="text-[10px] leading-relaxed" style={{ color: 'var(--scs-text-light)' }}>{t}</p>)}</div>}
-      <a href="#book-a-tour" data-testid={`join-${plan.id}`}
-        className={`w-full py-3 text-sm text-center block font-semibold transition-colors duration-180 ${pop ? 'btn-clay' : 'btn-primary'}`}>Book a tour</a>
+      <a href={plan.direct === 'call' ? GYM_CONFIG.phoneHref : '#book-a-tour'} data-testid={`join-${plan.id}`}
+        className={`w-full py-3 text-sm text-center block font-semibold transition-colors duration-180 ${pop ? 'btn-clay' : 'btn-primary'}`}>{plan.direct === 'call' ? `Call ${GYM_CONFIG.phone}` : 'Book a tour'}</a>
     </div>
   );
 }
@@ -100,8 +103,8 @@ export default function Join() {
       <section className="pt-24 pb-6 sm:pt-28 sm:pb-8" style={{ background: 'var(--scs-chalk)' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--scs-stone)' }}>Membership</p>
-          <h1 className="font-display text-3xl sm:text-4xl mb-2" style={{ color: 'var(--scs-charcoal)' }}>Find Your Plan</h1>
-          <p className="text-sm max-w-md mx-auto" style={{ color: 'var(--scs-text-muted)' }}>All plans include full equipment access. Longer commitments save more.</p>
+          <h1 className="font-display text-3xl sm:text-4xl mb-2" style={{ color: 'var(--scs-charcoal)' }}>What Membership Costs</h1>
+          <p className="text-sm max-w-md mx-auto" style={{ color: 'var(--scs-text-muted)' }}>Every plan includes full equipment access. Longer commitments cost less per month. Book a visit and a coach will set you up.</p>
         </div>
       </section>
 

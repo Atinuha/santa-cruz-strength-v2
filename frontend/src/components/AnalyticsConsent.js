@@ -17,6 +17,28 @@ export default function AnalyticsConsent() {
   const [draft, setDraft] = useState({ analytics: false, marketing: false });
   const undecided = preferences.analytics === null && preferences.marketing === null;
 
+  // The prompt is fixed to the bottom of the viewport, so without this the last
+  // 68px of every page sits underneath it. That silently hides footer contact
+  // details, and more on mobile where the bar wraps to two or three lines.
+  // Measure the real height rather than hardcoding it, since the text wraps.
+  useEffect(() => {
+    const root = document.body;
+    if (!undecided) {
+      root.style.removeProperty('padding-bottom');
+      return undefined;
+    }
+    const apply = () => {
+      const bar = document.querySelector('.scs-consent-prompt');
+      if (bar) root.style.setProperty('padding-bottom', `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+    };
+    apply();
+    window.addEventListener('resize', apply);
+    return () => {
+      window.removeEventListener('resize', apply);
+      root.style.removeProperty('padding-bottom');
+    };
+  }, [undecided]);
+
   const openDetails = (opener = null) => {
     const current = getTrackingPreferences();
     openerRef.current = opener;
