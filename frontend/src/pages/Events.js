@@ -136,10 +136,21 @@ export default function Events() {
   const [rsvpEvent, setRsvpEvent] = useState(null);
   const [catFilter, setCatFilter] = useState('All');
 
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  // "Nothing is scheduled" and "we could not reach the calendar" are different
+  // sentences, and this used to say the first on the evidence of the second.
+  // The blog index had the same bug in a worse place. A failed request now
+  // leaves whatever is on screen alone and is reported as a failure.
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     fetch(`${BACKEND}/api/events?upcoming=${filter === 'upcoming'}`)
-      .then(r => r.json()).then(setEvents).catch(() => setEvents([])).finally(() => setLoading(false));
+      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .then(data => { if (!cancelled) { setEvents(Array.isArray(data) ? data : []); setLoadFailed(false); } })
+      .catch(() => { if (!cancelled) setLoadFailed(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [filter]);
 
   const cats = [...new Set(events.map(e => e.category))].filter(Boolean);
@@ -214,15 +225,27 @@ export default function Events() {
                  gym is open to visit. */
               <div className="py-16 max-w-lg">
                 <BlueprintIcon name="meet-here" size={80} className="mb-6" />
-                <h2 className="font-display text-2xl sm:text-3xl mb-3" style={{ color: 'var(--scs-forest)' }}>
-                  {filter === 'upcoming' ? 'Nothing on the calendar right now' : 'No past events listed'}
-                </h2>
-                <p className="text-base leading-relaxed mb-6" style={{ color: 'var(--scs-text-muted)' }}>
-                  {filter === 'upcoming'
-                    ? 'When a meet, workshop or community night is scheduled, it appears here with the date, the cost and how to sign up.'
-                    : 'Past events will be archived here as they happen.'}
-                </p>
-                <a href="/contact" className="btn-clay text-sm">Book a Free Facility Tour</a>
+                {loadFailed ? (
+                  <>
+                    <h2 className="font-display text-2xl sm:text-3xl mb-3" style={{ color: 'var(--scs-forest)' }}>The calendar did not load</h2>
+                    <p className="text-base leading-relaxed mb-6" style={{ color: 'var(--scs-text-muted)' }}>
+                      This is a problem reaching the site, not a quiet week. Reloading usually fixes it.
+                    </p>
+                    <button onClick={() => window.location.reload()} className="btn-primary text-sm">Reload the page</button>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="font-display text-2xl sm:text-3xl mb-3" style={{ color: 'var(--scs-forest)' }}>
+                      {filter === 'upcoming' ? 'Nothing on the calendar right now' : 'No past events listed'}
+                    </h2>
+                    <p className="text-base leading-relaxed mb-6" style={{ color: 'var(--scs-text-muted)' }}>
+                      {filter === 'upcoming'
+                        ? 'When a meet, workshop or community night is scheduled, it appears here with the date, the cost and how to sign up.'
+                        : 'Past events will be archived here as they happen.'}
+                    </p>
+                    <a href="/contact" className="btn-clay text-sm">Book a Free Facility Tour</a>
+                  </>
+                )}
               </div>
             ) : (
               <>
