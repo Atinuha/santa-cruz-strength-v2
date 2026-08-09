@@ -101,6 +101,78 @@ const buildArticleGraph = (route) => {
 // homepage nor an article. Two levels, because this site is two levels deep.
 // The final item deliberately carries no `item` property, per schema.org: the
 // last crumb is the current page and linking a page to itself is noise.
+// The membership prices this page publishes, encoded once. Every figure here is
+// rendered on /join in the plan cards; nothing is described that a visitor
+// cannot read for themselves, which is the only condition under which encoding
+// it is honest.
+//
+// OfferCatalog rather than Product. A gym membership is access to a service,
+// not a thing that ships, and forcing Product onto it to reach a rich result
+// would be describing this business as something it is not. The Offers carry
+// price, currency and what the price is for, and stop there: no aggregateRating
+// because there are no per-review ratings behind the stars, no availability
+// window because nobody has confirmed one.
+const MEMBERSHIP_OFFERS = [
+  { name: 'Day Pass', price: '20', description: 'Single day access, valid for same-day use during staffed hours.' },
+  { name: '12-Month Membership, Huscler', price: '75', unit: 'MON', description: 'Full facility access on a 12-month agreement, billed monthly.' },
+  { name: 'Annual Membership Paid in Full, Huscler', price: '825', description: 'Full facility access for 13 months, paid in full at signup.' },
+  { name: 'Month-to-Month Membership, Flex Huscler', price: '120', unit: 'MON', description: 'Full facility access with no agreement, billed monthly.' },
+  { name: '6-Month Membership, Huscler', price: '82', unit: 'MON', description: 'Full facility access on a 6-month agreement, billed monthly.' },
+  { name: '12-Month Couples Membership', price: '120', unit: 'MON', description: 'Full facility access for two members on a 12-month agreement, $60 per person.' },
+  { name: '6-Month Couples Membership', price: '136', unit: 'MON', description: 'Full facility access for two members on a 6-month agreement, $68 per person.' },
+  { name: '12-Month Weekend Membership, Weekend Warrior', price: '45', unit: 'MON', description: 'Friday to Sunday access on a 12-month agreement, billed monthly.' },
+  { name: '6-Month Weekend Membership, Weekend Warrior', price: '55', unit: 'MON', description: 'Friday to Sunday access on a 6-month agreement, billed monthly.' },
+];
+
+// Extra nodes for the two routes that describe something the gym sells. Both
+// hang off the same #gym entity the homepage declares, so a parser resolves one
+// business rather than three that happen to share a name.
+const pageExtras = (route) => {
+  const gym = { '@id': `${registry.site.origin}/#gym` };
+
+  if (route.path === '/personal-training') {
+    return [{
+      '@type': 'Service',
+      '@id': `${route.canonical}#service`,
+      name: 'Personal Training',
+      serviceType: 'Strength training coaching',
+      description: route.description,
+      url: route.canonical,
+      provider: gym,
+      areaServed: { '@type': 'City', name: 'Santa Cruz', address: { '@type': 'PostalAddress', addressLocality: 'Santa Cruz', addressRegion: 'CA', addressCountry: 'US' } },
+      // No offers node. Rates and packages are published nowhere on this site
+      // and nobody has confirmed them, so there is no price to encode and a
+      // placeholder would be an invented one.
+    }];
+  }
+
+  if (route.path === '/join') {
+    return [{
+      '@type': 'OfferCatalog',
+      '@id': `${route.canonical}#memberships`,
+      name: 'Santa Cruz Strength memberships',
+      url: route.canonical,
+      provider: gym,
+      itemListElement: MEMBERSHIP_OFFERS.map((offer, index) => ({
+        '@type': 'Offer',
+        position: index + 1,
+        name: offer.name,
+        description: offer.description,
+        price: offer.price,
+        priceCurrency: 'USD',
+        url: route.canonical,
+        category: 'Gym membership',
+        offeredBy: gym,
+        ...(offer.unit
+          ? { priceSpecification: { '@type': 'UnitPriceSpecification', price: offer.price, priceCurrency: 'USD', unitCode: offer.unit } }
+          : {}),
+      })),
+    }];
+  }
+
+  return [];
+};
+
 const buildPageGraph = (route) => ({
   '@context': 'https://schema.org',
   '@graph': [
@@ -112,6 +184,7 @@ const buildPageGraph = (route) => ({
         { '@type': 'ListItem', position: 2, name: route.h1 || route.title },
       ],
     },
+    ...pageExtras(route),
   ],
 });
 

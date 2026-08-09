@@ -4,6 +4,29 @@ import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
 import { ArrowRight, CheckCircle2, Clock, Users, Zap, Calendar, Star, CreditCard, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { GYM_CONFIG } from '../config';
+import { trackMembershipView } from '../utils/analytics';
+
+// Every "Save X%" on this page is measured against one number: $120/mo, the
+// Flex Huscler month-to-month rate published two cards down. That baseline is
+// now printed on every card that shows a percentage, because a percentage with
+// an invisible baseline is a marketing number rather than a claim, and this one
+// happens to be true and can afford to show its working.
+//
+//   Huscler 12-month   $75/mo   1 - 75/120       = 37.5%  shown as 38%
+//   Annual paid in full $825    825/13 = $63.46  = 47.1%  shown as 47%
+//   Huscler 6-month    $82/mo   1 - 82/120       = 31.7%  shown as 32%
+//   Couples 12-month   $60/person                = 50.0%  shown as 50%
+//   Weekend Warrior 12 $45/mo   1 - 45/120       = 62.5%  shown as 63%
+//   Weekend Warrior 6  $55/mo   1 - 55/120       = 54.2%  shown as 54%
+//
+// Couples 6-month works out to 43% and carries no badge. That is a gap, not an
+// error, and it is left alone rather than filled in: nobody has confirmed the
+// omission was accidental.
+//
+// The Weekend Warrior comparison is against full access while the plan itself
+// is three days, so its card says so in as many words. A visitor reading 63%
+// should not have to find that out on the tour.
+const MONTH_TO_MONTH = 'vs. $120/mo month-to-month';
 
 const PRIMARY_PLANS = [
   { id: 'daypass', name: 'Day Pass', price: '$20', per: '', highlight: false, tag: 'Try Us Out',
@@ -11,31 +34,31 @@ const PRIMARY_PLANS = [
     // A twenty dollar drop-in should not need a tour booking and a callback.
     // Call or walk in during staffed hours.
     direct: 'call', cta: 'Call to arrange' },
-  { id: 'huscler-12', name: 'Huscler', subtitle: '12-Month', price: '$75', per: '/mo', highlight: true, tag: 'Most Popular',
-    savings: 'Save 38%', compareText: 'vs. $120/mo month-to-month',
+  { id: 'huscler-12', name: '12-Month Membership', subtitle: 'Huscler', price: '$75', per: '/mo', highlight: true, tag: 'Most Popular',
+    savings: 'Save 38%', compareText: MONTH_TO_MONTH,
     features: ['Full facility access', 'Unlimited open gym', 'All available equipment'],
     terms: ['12-month agreement', 'Auto-renews month-to-month', '30-day cancellation notice', '$50 Annual Enhancement Fee'],
     cta: 'Join Now' },
-  { id: 'annual', name: 'Annual Huscler', subtitle: 'Paid in Full', price: '$825', per: ' one-time', highlight: false, tag: 'Best Value',
-    savings: 'Save 47%', monthlyEquiv: '$63/mo effective',
+  { id: 'annual', name: 'Annual Membership, Paid in Full', subtitle: 'Huscler', price: '$825', per: ' one-time', highlight: false, tag: 'Best Value',
+    savings: 'Save 47%', compareText: MONTH_TO_MONTH, monthlyEquiv: '$63/mo effective',
     features: ['Full facility access', '13 months total', 'Unlimited open gym'],
     terms: ['Paid in full at signup', 'Auto-renews month-to-month', '30-day cancellation notice', '$50 Annual Enhancement Fee'],
     cta: 'Get 13 Months' },
 ];
 
 const MORE_PLANS = [
-  { id: 'flex', name: 'Flex Huscler', subtitle: 'Month-to-Month', price: '$120', per: '/mo',
+  { id: 'flex', name: 'Month-to-Month Membership', subtitle: 'Flex Huscler', price: '$120', per: '/mo',
     features: ['Full facility access', 'No agreement required'],
     terms: ['Billed monthly', '30-day cancellation notice', '$50 Annual Enhancement Fee'] },
-  { id: 'huscler-6', name: 'Huscler 6-Month', subtitle: '6-Month', price: '$82', per: '/mo', savings: 'Save 32%',
+  { id: 'huscler-6', name: '6-Month Membership', subtitle: 'Huscler', price: '$82', per: '/mo', savings: 'Save 32%', compareText: MONTH_TO_MONTH,
     features: ['Full facility access'], terms: ['6-month agreement', 'Auto-renews month-to-month', '$50 Annual Enhancement Fee'] },
-  { id: 'couples-12', name: 'Couples 12-Month', subtitle: '2 Members', price: '$120', per: '/mo', extra: '$60/person', savings: 'Save 50%',
+  { id: 'couples-12', name: '12-Month Couples Membership', subtitle: 'Two members', price: '$120', per: '/mo', extra: '$60/person', savings: 'Save 50%', compareText: 'per person, vs. $120/mo month-to-month',
     features: ['Includes 2 members', 'Full facility access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'] },
-  { id: 'couples-6', name: 'Couples 6-Month', subtitle: '2 Members', price: '$136', per: '/mo', extra: '$68/person',
+  { id: 'couples-6', name: '6-Month Couples Membership', subtitle: 'Two members', price: '$136', per: '/mo', extra: '$68/person',
     features: ['Includes 2 members', 'Full facility access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'] },
-  { id: 'weekend-12', name: 'Weekend Warrior 12-Mo', subtitle: 'Fri to Sun only', price: '$45', per: '/mo', savings: 'Save 63%',
+  { id: 'weekend-12', name: '12-Month Weekend Membership', subtitle: 'Weekend Warrior, Friday to Sunday', price: '$45', per: '/mo', savings: 'Save 63%', compareText: 'vs. $120/mo full-access month-to-month',
     features: ['Friday to Sunday access'], terms: ['12-month agreement', '$50 Annual Enhancement Fee'] },
-  { id: 'weekend-6', name: 'Weekend Warrior 6-Mo', subtitle: 'Fri to Sun only', price: '$55', per: '/mo', savings: 'Save 54%',
+  { id: 'weekend-6', name: '6-Month Weekend Membership', subtitle: 'Weekend Warrior, Friday to Sunday', price: '$55', per: '/mo', savings: 'Save 54%', compareText: 'vs. $120/mo full-access month-to-month',
     features: ['Friday to Sunday access'], terms: ['6-month agreement', '$50 Annual Enhancement Fee'] },
 ];
 
@@ -54,7 +77,13 @@ function PlanCard({ plan }) {
         <span className="text-sm" style={{ color: 'var(--scs-text-muted)' }}>{plan.per}</span>
       </div>
       {plan.monthlyEquiv && <p className="text-xs font-semibold mb-1" style={{ color: 'var(--scs-clay)' }}>{plan.monthlyEquiv}</p>}
-      {plan.savings && <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 inline-block mb-3" style={{ background: 'var(--scs-clay)', color: 'white', borderRadius: 'var(--scs-radius)' }}>{plan.savings}</span>}
+      {plan.savings && (
+        <div className="mb-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 inline-block" style={{ background: 'var(--scs-clay)', color: 'white', borderRadius: 'var(--scs-radius)' }}>{plan.savings}</span>
+          {plan.compareText && <p className="text-[10px] mt-1" style={{ color: 'var(--scs-text-light)' }}>{plan.compareText}</p>}
+        </div>
+      )}
+      {!plan.savings && plan.compareText && <p className="text-[10px] mb-3" style={{ color: 'var(--scs-text-light)' }}>{plan.compareText}</p>}
       <ul className="space-y-1.5 mb-4 flex-1">
         {plan.features.map((f, i) => <li key={`f-${plan.id}-${i}`} className="flex items-start gap-2 text-xs" style={{ color: 'var(--scs-text)' }}><CheckCircle2 size={13} className="shrink-0 mt-0.5" style={{ color: 'var(--scs-charcoal)' }} />{f}</li>)}
       </ul>
@@ -89,7 +118,10 @@ function MobileCarousel({ children }) {
 export default function Join() {
   const [showMore, setShowMore] = useState(false);
   const [showFaq, setShowFaq] = useState(null);
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    trackMembershipView(PRIMARY_PLANS.length + MORE_PLANS.length);
+  }, []);
 
   const faqs = [
     { q: 'What is the $50 Annual Enhancement Fee?', a: 'A $50 fee applied once per year to all memberships. It supports equipment maintenance and facility upkeep.' },
@@ -108,8 +140,16 @@ export default function Join() {
         </div>
       </section>
 
+      {/* Headings are the document outline, not a size picker. Before this h2
+          the page went h1 straight to the h3 inside each plan card, and the
+          "more plans" cards were h4 under nothing at all. Both now sit under a
+          heading that says what the group is. */}
       <section className="pb-8">
-        <div className="hidden md:block max-w-5xl mx-auto px-4 sm:px-6 mt-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-8">
+          <h2 className="font-display text-lg mb-1" style={{ color: 'var(--scs-charcoal)' }}>Membership plans and pricing</h2>
+          <p className="text-xs mb-5" style={{ color: 'var(--scs-text-muted)' }}>Prices are per month unless the card says otherwise. Memberships are completed in person.</p>
+        </div>
+        <div className="hidden md:block max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-3 gap-5 items-stretch">{PRIMARY_PLANS.map(p => <PlanCard key={p.id} plan={p} />)}</div>
         </div>
         <div className="md:hidden mt-6"><MobileCarousel>{PRIMARY_PLANS.map(p => <PlanCard key={p.id} plan={p} />)}</MobileCarousel></div>
@@ -118,25 +158,38 @@ export default function Join() {
       <section className="pb-14">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <button onClick={() => setShowMore(!showMore)} data-testid="show-more-plans"
+            aria-expanded={showMore} aria-controls="more-membership-plans"
             className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold border-2 border-dashed transition-colors duration-180"
             style={{ color: 'var(--scs-charcoal)', borderColor: 'var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
             {showMore ? 'Hide plans' : 'See more plans'} {showMore ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
-          {showMore && (
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Rendered whether or not the disclosure is open, and hidden with the
+              hidden attribute when it is closed.
+
+              Six of this gym's nine plans live behind this toggle, including
+              every couples and weekend tier. Mounting them on click meant the
+              pricing page's initial HTML listed three plans and the other six
+              did not exist in the document at all: not for a crawler, not for
+              an answer engine asked what a membership here costs, not for
+              anyone reading with JavaScript off. hidden keeps the page looking
+              exactly as it did. */}
+          <div id="more-membership-plans" hidden={!showMore}>
+            <h2 className="font-display text-lg mt-8 mb-4" style={{ color: 'var(--scs-charcoal)' }}>More membership options</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {MORE_PLANS.map(p => (
                 <div key={p.id} className="p-4 flex flex-col h-full" style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }} data-testid={`plan-${p.id}`}>
-                  <div className="flex justify-between mb-1"><h4 className="font-display-medium text-sm" style={{ color: 'var(--scs-charcoal)' }}>{p.name}</h4><span className="text-sm font-semibold" style={{ color: 'var(--scs-clay)' }}>{p.price}{p.per}</span></div>
+                  <div className="flex justify-between mb-1"><h3 className="font-display-medium text-sm" style={{ color: 'var(--scs-charcoal)' }}>{p.name}</h3><span className="text-sm font-semibold" style={{ color: 'var(--scs-clay)' }}>{p.price}{p.per}</span></div>
                   <p className="text-xs mb-2" style={{ color: 'var(--scs-text-muted)' }}>{p.subtitle}</p>
                   {p.extra && <p className="text-xs font-semibold mb-1" style={{ color: 'var(--scs-charcoal)' }}>{p.extra}</p>}
-                  {p.savings && <span className="text-[10px] font-semibold uppercase px-2 py-0.5 inline-block mb-2 self-start" style={{ background: 'var(--scs-clay)', color: 'white', borderRadius: 'var(--scs-radius)' }}>{p.savings}</span>}
+                  {p.savings && <span className="text-[10px] font-semibold uppercase px-2 py-0.5 inline-block mb-1 self-start" style={{ background: 'var(--scs-clay)', color: 'white', borderRadius: 'var(--scs-radius)' }}>{p.savings}</span>}
+                  {p.compareText && <p className="text-[10px] mb-2" style={{ color: 'var(--scs-text-light)' }}>{p.compareText}</p>}
                   <p className="text-[10px] mb-auto" style={{ color: 'var(--scs-text-light)' }}>{p.terms?.[0]}</p>
                   <a href="#book-a-tour" data-testid={`join-${p.id}`} className="btn-primary w-full text-center text-sm py-2.5 mt-3 block">Book a tour</a>
                 </div>
               ))}
               <p className="sm:col-span-2 lg:col-span-3 text-[10px] text-center mt-1" style={{ color: 'var(--scs-text-light)' }}>All memberships: $50 Annual Enhancement Fee. 30-day cancellation notice required.</p>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -146,10 +199,13 @@ export default function Join() {
           <div className="space-y-2">
             {faqs.map((f, i) => (
               <div key={`faq-${i}`} className="overflow-hidden" style={{ border: '1px solid var(--scs-border)', background: 'var(--scs-warm-white)', borderRadius: 'var(--scs-radius)' }}>
-                <button onClick={() => setShowFaq(showFaq === i ? null : i)} className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-medium" style={{ color: 'var(--scs-charcoal)' }} data-testid={`faq-toggle-${i}`}>
+                <button onClick={() => setShowFaq(showFaq === i ? null : i)} aria-expanded={showFaq === i} aria-controls={`join-faq-${i}`} className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-medium" style={{ color: 'var(--scs-charcoal)' }} data-testid={`faq-toggle-${i}`}>
                   {f.q} {showFaq === i ? <ChevronUp size={16} className="shrink-0 ml-2" /> : <ChevronDown size={16} className="shrink-0 ml-2" />}
                 </button>
-                {showFaq === i && <div className="px-5 pb-4 text-sm leading-relaxed" style={{ color: 'var(--scs-text-muted)', borderTop: '1px solid var(--scs-border)' }}>{f.a}</div>}
+                {/* hidden, not unmounted, for the same reason as the plans above:
+                    an answer that only exists after a click is an answer the
+                    page does not contain. */}
+                <div id={`join-faq-${i}`} hidden={showFaq !== i} className="px-5 pb-4 text-sm leading-relaxed" style={{ color: 'var(--scs-text-muted)', borderTop: '1px solid var(--scs-border)' }}>{f.a}</div>
               </div>
             ))}
           </div>

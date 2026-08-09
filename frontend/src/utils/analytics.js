@@ -121,3 +121,43 @@ export const trackThankYouPageView = () => {
     event_category: 'lead_capture',
   });
 };
+
+/**
+ * The two conversion signals this file did not already have.
+ *
+ * A pre-launch brief asked for eight named events. Six of them already exist
+ * here under names GA4 has been configured against, and renaming a live event
+ * loses its history, so the mapping is recorded rather than the events
+ * rewritten:
+ *
+ *   facility_tour_start      -> form_start with form_name 'tour_form'
+ *   facility_tour_submit     -> lead_submit from the tour funnel
+ *   membership_cta_click     -> join_now_click
+ *   personal_training_start  -> form_start with form_name 'personal_training'
+ *   personal_training_submit -> lead_submit with that interest_type
+ *   click_to_call            -> phone_click
+ *
+ * That left two with nothing behind them at all, and they are the two that say
+ * whether the pricing page and the address are doing any work. Both are below.
+ *
+ * Both go through the same consent gate as everything else in this file: no
+ * consent, no call, and nothing queued for later.
+ */
+
+/** Fired once when the membership pricing page is actually looked at. */
+export const trackMembershipView = (plans_shown = 0) => {
+  gtag('event', 'membership_view', {
+    page_path: typeof window !== 'undefined' ? window.location.pathname : '/join',
+    plans_shown,
+  });
+};
+
+/**
+ * A click on the map or address link. The strongest intent signal a local
+ * business gets that is not a form: somebody is working out how to drive there.
+ */
+export const trackDirectionsClick = (location = '') => {
+  gtag('event', 'get_directions', {
+    link_location: location,
+  });
+};

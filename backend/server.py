@@ -5017,6 +5017,13 @@ async def startup():
         # with the copy that is actually on screen rather than blank.
         {'key': 'home_hero_headline_v2', 'value': 'A Santa Cruz strength gym you can see before you join.'},
         {'key': 'home_hero_subtitle_v2', 'value': 'See the racks, platforms, training floor, and access setup before you choose a membership.'},
+        # The factual definition block on the homepage. Seeded so the Content
+        # Manager shows the owner the real sentences rather than empty boxes,
+        # and so the values here and the fallbacks in Home.js cannot drift.
+        {'key': 'home_definition_headline', 'value': 'What Santa Cruz Strength is'},
+        {'key': 'home_definition_body_1', 'value': 'Santa Cruz Strength is an independent strength training gym at 151 Harvey West Blvd, Suite D, in Santa Cruz, California. The floor supports barbell training, powerlifting and general strength work, with racks, bars, platforms and open gym space.'},
+        {'key': 'home_definition_body_2', 'value': 'Personal training is available for lifters who want technique coaching, structured programming, or help getting started. Membership options include day passes, monthly plans and longer-term memberships.'},
+        {'key': 'home_definition_access', 'value': 'Members have 24/7 access to the facility through the member app. Day passes are used during posted hours.'},
         {'key': 'home_hero_subtext', 'value': 'Real training environment. Real community. Santa Cruz.'},
         {'key': 'home_benefits_headline', 'value': 'STRENGTH WITHOUT THE NOISE.'},
         {'key': 'home_benefits_subtitle', 'value': 'No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.'},

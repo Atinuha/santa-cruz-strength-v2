@@ -9,9 +9,10 @@ import MapEmbed from '../components/MapEmbed';
 import { getSiteContent, getBlogPosts } from '../lib/api';
 import { withoutConsolidated } from '../seo/consolidatedSlugs';
 import { MEMBER_STORIES } from '../config/testimonials';
-import { trackBookTourClick, trackPhoneClick } from '../utils/analytics';
+import { trackBookTourClick, trackPhoneClick, trackDirectionsClick } from '../utils/analytics';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { ArrowRight, MapPin, Phone, Clock, Calendar, Star } from 'lucide-react';
+import { preloaded } from '../lib/preload';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -36,9 +37,13 @@ const FAQ_ITEMS = [
 ];
 
 export default function Home() {
-  const [c, setC] = useState({});
+  const [c, setC] = useState(() => preloaded('content', {}));
   const copy = (key, approved) => c[key] || approved;
-  const [blogPosts, setBlogPosts] = useState([]);
+  // Filtered and sliced here exactly as the effect below does it, from a
+  // payload captured with the same limit the effect asks for. Anything else and
+  // the server would render a different three posts than the browser, which is
+  // a hydration mismatch dressed up as a content bug.
+  const [blogPosts, setBlogPosts] = useState(() => withoutConsolidated(preloaded('postsHome', [])).slice(0, 3));
 
   useEffect(() => {
     getSiteContent().then(({ data }) => setC(data)).catch(() => {});
@@ -99,6 +104,43 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 2b. WHAT THIS PLACE IS, STATED PLAINLY
+
+          A short factual definition of the business, high on the page, in one
+          block. The hero says what the visit is like and that is the right
+          first thing for a person; it is not something a machine can turn into
+          "what is Santa Cruz Strength". This paragraph is: name, category,
+          address, what the floor supports, what is sold. Every clause is
+          already true elsewhere on the site, which is the condition for putting
+          it in one extractable place rather than leaving it spread across six
+          sections and an FAQ.
+
+          Nothing here is a number nobody has counted. Racks, bars and platforms
+          are named because the equipment answer already names them; how many of
+          each stays unstated, because nobody has counted them. */}
+      <section className="py-14 sm:py-16" style={{ background: 'var(--scs-warm-white)' }} data-testid="home-entity-definition">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--scs-stone)' }}>Strength gym, Santa Cruz CA</p>
+          <h2 className="font-display text-2xl sm:text-3xl mb-5" style={{ color: 'var(--scs-charcoal)' }}>
+            {copy('home_definition_headline', 'What Santa Cruz Strength is')}
+          </h2>
+          <p className="text-sm sm:text-base leading-relaxed mb-4" style={{ color: 'var(--scs-text)' }}>
+            {copy('home_definition_body_1', 'Santa Cruz Strength is an independent strength training gym at 151 Harvey West Blvd, Suite D, in Santa Cruz, California. The floor supports barbell training, powerlifting and general strength work, with racks, bars, platforms and open gym space.')}
+          </p>
+          <p className="text-sm sm:text-base leading-relaxed mb-4" style={{ color: 'var(--scs-text)' }}>
+            {copy('home_definition_body_2', 'Personal training is available for lifters who want technique coaching, structured programming, or help getting started. Membership options include day passes, monthly plans and longer-term memberships.')}
+          </p>
+          {/* Stated on its own because it is the single most asked question
+              about this gym and the answer is a fact, not a feature list. It is
+              the business's own published claim: it is on the live site, it is
+              in the membership terms of every full plan, and members describe
+              it in their own reviews. */}
+          <p className="text-sm sm:text-base leading-relaxed" style={{ color: 'var(--scs-text)' }}>
+            {copy('home_definition_access', 'Members have 24/7 access to the facility through the member app. Day passes are used during posted hours.')}
+          </p>
+        </div>
+      </section>
+
       {/* 3. FACILITY WALKTHROUGH */}
       <section className="py-16 sm:py-20" style={{ background: 'var(--scs-chalk)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -149,6 +191,53 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* 4b. THE DISCIPLINES THE FLOOR ACTUALLY SUPPORTS
+
+          "Three starting points" says who trains here. This says what they
+          train. Between "strength gym" and the words people actually search,
+          powerlifting, weightlifting, strongman, there was nothing on this page
+          bridging the two, so the site read as a category with no specifics.
+
+          Four disciplines, and each one is claimed because the business already
+          claims it: the About story names powerlifting, strongman and Olympic
+          weightlifting as what this gym was built for, the gym hosts a
+          powerlifting meet, and a member describes the same four in a review
+          published on the live site. None of them is here for the search
+          volume, and a fifth is not being added for it either.
+
+          These are not links yet on purpose. A dedicated page per discipline is
+          the right structure once there is real content for each; four thin
+          pages created to own four URLs is the wrong one, and it is the
+          specific mistake this section would otherwise invite. */}
+      <section className="py-16 sm:py-20" style={{ background: 'var(--scs-warm-white)' }} data-testid="home-disciplines">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--scs-stone)' }}>What the floor is for</p>
+          <h2 className="font-display text-2xl sm:text-3xl mb-8" style={{ color: 'var(--scs-charcoal)' }}>
+            Built for strength training
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { title: 'Powerlifting', desc: 'Squat, bench and deadlift training on rack and platform space, with the bars and plates a competitive total needs. The gym hosts sanctioned meets on site.' },
+              { title: 'Olympic weightlifting', desc: 'Snatch and clean and jerk work on lifting platforms with bumper plates, so the lifts can be dropped where they are meant to be dropped.' },
+              { title: 'Strongman', desc: 'One of the three disciplines this gym was built around. Implement training happens here alongside the barbell work.' },
+              { title: 'General strength training', desc: 'Getting stronger without competing. Open gym access to the same racks, bars and floor, on your own program or one a coach writes.' },
+            ].map((item) => (
+              <div key={item.title} className="p-6" style={{ background: 'var(--scs-bg)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
+                <h3 className="font-display-medium text-base mb-2" style={{ color: 'var(--scs-charcoal)' }}>{item.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--scs-text-muted)' }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm mt-6" style={{ color: 'var(--scs-text-muted)' }}>
+            Not sure which of these you are?{' '}
+            <Link to="/contact" className="font-semibold hover:opacity-80 transition-opacity" style={{ color: 'var(--scs-clay)' }}>
+              Book a free facility tour
+            </Link>{' '}
+            and walk the floor before you decide.
+          </p>
         </div>
       </section>
 
@@ -319,7 +408,7 @@ export default function Home() {
                 </ul>
               </div>
               <div>
-                <a href="https://maps.google.com/?q=151+Harvey+West+Blvd+Ste+D+Santa+Cruz+CA+95060" target="_blank" rel="noopener noreferrer" className="btn-outline px-5 py-2.5 text-sm mb-4 inline-flex items-center gap-2 w-full sm:w-auto justify-center" style={{ borderColor: 'rgba(232,225,214,0.2)', color: 'var(--scs-chalk)' }}>
+                <a href="https://maps.google.com/?q=151+Harvey+West+Blvd+Ste+D+Santa+Cruz+CA+95060" target="_blank" rel="noopener noreferrer" onClick={() => trackDirectionsClick('home_location')} className="btn-outline px-5 py-2.5 text-sm mb-4 inline-flex items-center gap-2 w-full sm:w-auto justify-center" style={{ borderColor: 'rgba(232,225,214,0.2)', color: 'var(--scs-chalk)' }}>
                   <MapPin size={13} /> Get Directions
                 </a>
                 <MapEmbed testId="home-map-embed" className="flex-1 min-h-[280px]" />

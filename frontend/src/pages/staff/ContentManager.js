@@ -17,6 +17,10 @@ const SEO_TIPS = {
   // no error. An editor that silently does nothing is worse than no editor.
   home_hero_headline_v2: { seo: 'high', tip: 'H1 tag - most important for SEO. Include "strength" and "training".' },
   home_hero_subtitle_v2: { seo: 'high', tip: 'Visible text under H1. Use natural keywords: gym, Santa Cruz, athletes.' },
+  home_definition_headline: { seo: 'high', tip: 'H2 above the factual definition of the business.' },
+  home_definition_body_1: { seo: 'high', tip: 'Name, category, address and what the floor supports, in plain sentences. Extractable facts beat adjectives here.' },
+  home_definition_body_2: { seo: 'medium', tip: 'What is sold: coaching, and the shape of the membership options.' },
+  home_definition_access: { seo: 'high', tip: 'Access hours. Correct this the day they change; it is quoted verbatim.' },
   home_hero_subtext: { seo: 'medium', tip: 'Secondary text. Reinforce location: "Santa Cruz".' },
   home_benefits_headline: { seo: 'high', tip: 'H2 tag - include "strength" or "training".' },
   home_benefits_subtitle: { seo: 'medium', tip: 'Describe what makes the gym unique. Use natural language.' },
@@ -52,6 +56,15 @@ const PAGES = [
         { key: 'home_hero_headline_v2', label: 'Hero Headline (H1)', type: 'textarea', rows: 3, help: 'Use line breaks for stacked text' },
         { key: 'home_hero_subtitle_v2', label: 'Hero Subtitle', type: 'text' },
         { key: 'home_hero_subtext', label: 'Hero Subtext', type: 'text' },
+      ]},
+      // The factual definition block. It is the paragraph an answer engine is
+      // most likely to quote when asked what this gym is, which is exactly why
+      // the owner needs to be able to correct it without a deploy.
+      { heading: 'What This Gym Is', keys: [
+        { key: 'home_definition_headline', label: 'Definition Headline (H2)', type: 'text' },
+        { key: 'home_definition_body_1', label: 'What the gym is and what the floor supports', type: 'textarea', rows: 4, help: 'Keep it factual. This is the paragraph AI search is most likely to quote.' },
+        { key: 'home_definition_body_2', label: 'Coaching and membership options', type: 'textarea', rows: 3 },
+        { key: 'home_definition_access', label: 'Access statement', type: 'textarea', rows: 2, help: 'Only publish access hours that are currently true. This sentence gets quoted.' },
       ]},
       { heading: 'Benefits Section', keys: [
         { key: 'home_benefits_headline', label: 'Benefits Headline (H2)', type: 'text' },
