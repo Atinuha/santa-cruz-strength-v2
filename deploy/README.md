@@ -52,9 +52,35 @@ as Netlify. Copy `netlify/_redirects` to `frontend/public/_redirects`.
 
 Copy `vercel/vercel.json` to the repository root. Do not put it in `public/`.
 
-Vercel serves static files before applying rewrites, and it serves `404.html`
-with a genuine 404 status for unmatched paths automatically, so the file only
-needs to declare the three rewrites that must return 200.
+Vercel serves static files before applying rewrites, so the file only needs to
+declare the three rewrites that must return 200. Read the next section before
+you deploy: half of that reasoning is confirmed and half is an assumption.
+
+### One unverified assumption on Vercel, and why it matters
+
+The Vercel config declares only the three rewrites that must return 200. It
+assumes Vercel serves `404.html` with a genuine 404 status for unmatched paths
+by itself. Two things about that.
+
+The first half is confirmed by Vercel's own reference, which states it twice:
+the filesystem takes precedence over rewrites, so static files and the 39
+prerendered shells are served before any rule here is consulted. That part is
+solid.
+
+The second half, that unmatched paths automatically get `404.html` with a 404
+status, is not stated in Vercel's documentation. It is very likely true for a
+plain static output like this one, but it is not verified and it cannot be
+without deploying. Treat the first curl in the block below as the test that
+decides it.
+
+If it turns out false, DO NOT reach for another rewrite. A rewrite always
+returns 200; that is exactly what separates it from a redirect, so adding one
+cannot produce a 404 and you will conclude Vercel is broken when it is not.
+Serving a file with a 404 status on Vercel requires the legacy `routes`
+property with an explicit `"status": 404`, and `routes` switches off all the
+default routing behaviour including the filesystem precedence above. It is a
+different configuration shape, not a line you add. Budget for that rather than
+discovering it at two in the morning.
 
 ## Verify it, do not assume it
 

@@ -15,6 +15,7 @@
 /staff/*                 /index.html   200
 /review/*                /index.html   200
 /implementation-preview  /index.html   200
+/implementation-preview/*  /index.html   200
 
 # Everything else that did not match a real file is genuinely not found.
 # A SPA catch all returning 200 here would get the sitemap rejected by Search
