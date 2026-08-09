@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
-import { GYM_CONFIG } from '../config';
-import { SCS_MEDIA } from '../config/media';
+import BlueprintIcon from '../components/BlueprintIcon';
+import CoachPlate from '../components/CoachPlate';
+import { photo } from '../config/media';
 import { getTeamMembers, getSiteContent } from '../lib/api';
-import { CheckCircle2, User, ArrowRight } from 'lucide-react';
 import { preloaded } from '../lib/preload';
 
-const PT_IMG = SCS_MEDIA.openGym;
+/* Who the service is for. The four audiences are the approved ones,
+   unchanged; what is new is that each carries the equipment mark that
+   matches it, so the list reads as four different people rather than
+   four bullets. */
+const AUDIENCES = [
+  { icon: 'first-timer', text: 'People new to lifting who want proper form from the start' },
+  { icon: 'plate', text: 'Athletes returning from injury or building injury resilience' },
+  { icon: 'own-program', text: 'Lifters who want structured programming' },
+  { icon: 'competitor', text: 'Anyone who wants a clear plan and direct coaching' },
+];
+
+const STEPS = [
+  { n: '01', icon: 'inquiry', h: 'You send an inquiry', d: 'Use the form on this page. It asks what you are training for and how to reach you, and it goes to a coach rather than a queue.' },
+  { n: '02', icon: 'contact', h: 'A coach makes contact', d: 'Someone gets in touch to understand your goal, your training history and what your week realistically looks like, then arranges a consultation.' },
+  { n: '03', icon: 'meet-here', h: 'You meet at the gym', d: 'The consultation happens on the floor, in the room you would be training in, with the equipment you would be using in front of you.' },
+];
 
 export default function PersonalTraining() {
   const [trainers, setTrainers] = useState(() => preloaded('team', []).filter(m => m.category === 'trainer'));
@@ -23,104 +37,146 @@ export default function PersonalTraining() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>
       <Navbar />
-      <section className="relative pt-28 pb-14" style={{ background: 'var(--scs-chalk)' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--scs-stone)' }}>Coaching</p>
-          <h1 className="font-display text-3xl sm:text-4xl mb-4" style={{ color: 'var(--scs-charcoal)' }}>Personal Training</h1>
-          <p className="text-sm max-w-lg" style={{ color: 'var(--scs-text-muted)' }}>{g('training_subtitle', 'Work with a coach to build strength, improve technique, and train with a plan that fits your goals.')}</p>
-        </div>
-      </section>
 
-      {/* The page had a hero, a four-item list and a form. It told a visitor
-          the service exists and nothing about what buying it involves: not how
-          it starts, not what the first meeting is, not who would coach them.
-          That is thin for a person and unanswerable for a machine.
+      <main id="main">
+        {/* --------------------------------------------------------------
+            HERO
+            The coaches, the proposition and the way in, in one view.
+            This page sells a conversation, so the form is the hero's
+            right hand rather than something to scroll for.
+            -------------------------------------------------------------- */}
+        <section className="relative pt-16 on-dark on-photo" style={{ background: 'var(--scs-forest-deep)' }}>
+          <img
+            {...photo('coaching-crew', { sizes: '100vw', eager: true })}
+            alt="Coaches on the lifting platform at Santa Cruz Strength"
+            className="absolute inset-0 w-full h-full object-cover scs-photo"
+            style={{ objectPosition: 'center 30%' }}
+          />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(100deg, rgba(6,48,31,0.95) 0%, rgba(6,48,31,0.80) 32%, rgba(6,48,31,0.28) 62%, rgba(6,48,31,0.10) 100%)' }} />
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+              <div className="lg:col-span-6">
+                <h1 className="font-display mb-5" style={{ color: 'var(--scs-white)', fontSize: 'clamp(2.25rem, 5.5vw, 3.75rem)', lineHeight: 0.96 }}>
+                  Personal Training
+                </h1>
+                <p className="text-base sm:text-lg leading-relaxed max-w-lg m-0" style={{ color: 'var(--scs-text-on-dark)' }}>
+                  {g('training_subtitle', 'Work with a coach to build strength, improve technique, and train with a plan that fits your goals.')}
+                </p>
+              </div>
 
-          What follows adds only steps this business actually performs. The
-          inquiry goes to a coach, the coach makes contact to understand the
-          goal, and a consultation is arranged. Rates, package sizes, session
-          length and cancellation terms are all absent, because they are
-          published nowhere and nobody has confirmed them. They are listed as
-          owner questions in the handoff rather than estimated here. */}
-      <section className="py-14" style={{ background: 'var(--scs-bg)' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            <div>
-              <h2 className="font-display text-xl sm:text-2xl mb-5" style={{ color: 'var(--scs-charcoal)' }}>Who personal training is for</h2>
-              <ul className="space-y-3 mb-6">
-                {['People new to lifting who want proper form from the start', 'Athletes returning from injury or building injury resilience', 'Lifters who want structured programming', 'Anyone who wants a clear plan and direct coaching'].map((item, i) => (
-                  <li key={`pt-${i}`} className="flex items-start gap-3 text-sm" style={{ color: 'var(--scs-text)' }}>
-                    <span className="w-1 h-1 rounded-full mt-2 shrink-0" style={{ background: 'var(--scs-clay)' }} />{item}
-                  </li>
-                ))}
-              </ul>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--scs-text-muted)' }}>
-                Coaching is optional and separate from membership. You can train here on your own program, add coaching later, or start with a coach from your first session.
-              </p>
-            </div>
-            <div id="talk-to-a-coach" className="p-6" style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
-              <h2 className="font-display-medium text-base mb-1" style={{ color: 'var(--scs-charcoal)' }}>Start with a conversation</h2>
-              <p className="text-sm mb-5" style={{ color: 'var(--scs-text-muted)' }}>Tell us about your goals. No commitment, no card required.</p>
-              <QuizForm source="personal_training_inquiry" noAutoFocus />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14" style={{ background: 'var(--scs-warm-white)', borderTop: '1px solid var(--scs-border)' }} data-testid="pt-how-it-works">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <h2 className="font-display text-xl sm:text-2xl mb-8" style={{ color: 'var(--scs-charcoal)' }}>How personal training works</h2>
-          <ol className="grid grid-cols-1 md:grid-cols-3 gap-6 list-none">
-            {[
-              { n: '01', h: 'You send an inquiry', d: 'Use the form on this page. It asks what you are training for and how to reach you, and it goes to a coach rather than a queue.' },
-              { n: '02', h: 'A coach makes contact', d: 'Someone gets in touch to understand your goal, your training history and what your week realistically looks like, then arranges a consultation.' },
-              { n: '03', h: 'You meet at the gym', d: 'The consultation happens on the floor, in the room you would be training in, with the equipment you would be using in front of you.' },
-            ].map((step) => (
-              <li key={step.n} className="p-6" style={{ background: 'var(--scs-bg)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--scs-stone)' }}>{step.n}</p>
-                <h3 className="font-display-medium text-base mb-2" style={{ color: 'var(--scs-charcoal)' }}>{step.h}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--scs-text-muted)' }}>{step.d}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      <section className="py-14" style={{ background: 'var(--scs-bg)' }} data-testid="pt-first-consultation">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <h2 className="font-display text-xl sm:text-2xl mb-5" style={{ color: 'var(--scs-charcoal)' }}>What happens during your first consultation</h2>
-          <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--scs-text)' }}>
-            The first meeting is a conversation, not a sales appointment. A coach asks what you want to be able to do, what you have done before, what has hurt, and how many days a week you can genuinely train. You walk the floor together and look at the equipment your plan would use.
-          </p>
-          <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--scs-text)' }}>
-            Bring anything a coach would otherwise have to guess at: a current program, a note from a physical therapist, a competition date, a list of the lifts that bother you. Wear something you could train in, in case it makes sense to move.
-          </p>
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--scs-text-muted)' }}>
-            You leave knowing what training with a coach here would look like for you. Deciding on the spot is not expected.
-          </p>
-        </div>
-      </section>
-
-      {trainers.length > 0 && (
-        <section className="py-14" style={{ background: 'var(--scs-chalk)', borderTop: '1px solid var(--scs-border)' }} data-testid="meet-trainers-section">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <h2 className="font-display text-xl sm:text-2xl mb-8" style={{ color: 'var(--scs-charcoal)' }}>Meet the coaches</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-              {trainers.map(t => (
-                <div key={t.id} data-testid={`trainer-card-${t.id}`}>
-                  <div className="w-full aspect-square overflow-hidden mb-3 scs-photo" style={{ borderRadius: 'var(--scs-radius)' }}>
-                    {t.photo_url ? <img src={t.photo_url} alt={`${t.name}, ${t.role}`} className="w-full h-full object-cover object-top" loading="lazy" />
-                    : <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--scs-bg)' }}><User size={36} style={{ color: 'var(--scs-stone)', opacity: 0.4 }} /></div>}
-                  </div>
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--scs-charcoal)' }}>{t.name}</h3>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--scs-stone)' }}>{t.role}</p>
-                  {t.bio && <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--scs-text-muted)' }}>{t.bio}</p>}
-                </div>
-              ))}
+              <div id="talk-to-a-coach" className="lg:col-span-5 lg:col-start-8 p-6 sm:p-7" style={{ background: 'var(--scs-white)', borderRadius: 'var(--scs-radius-card)', color: 'var(--scs-text)' }}>
+                <h2 className="font-display-medium text-xl mb-1" style={{ color: 'var(--scs-forest)' }}>Start with a conversation</h2>
+                <p className="text-sm mb-5" style={{ color: 'var(--scs-text-muted)' }}>Tell us about your goals. No commitment, no card required.</p>
+                <QuizForm source="personal_training_inquiry" noAutoFocus />
+              </div>
             </div>
           </div>
         </section>
-      )}
+
+        {/* The page had a hero, a four-item list and a form. It told a visitor
+            the service exists and nothing about what buying it involves: not how
+            it starts, not what the first meeting is, not who would coach them.
+            That is thin for a person and unanswerable for a machine.
+
+            What follows adds only steps this business actually performs. The
+            inquiry goes to a coach, the coach makes contact to understand the
+            goal, and a consultation is arranged. Rates, package sizes, session
+            length and cancellation terms are all absent, because they are
+            published nowhere and nobody has confirmed them. They are listed as
+            owner questions in the handoff rather than estimated here. */}
+        <section className="py-16 sm:py-20" style={{ background: 'var(--scs-cream)' }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl mb-10 max-w-xl" style={{ color: 'var(--scs-forest)', lineHeight: 0.98 }}>
+              Who personal training is for
+            </h2>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {AUDIENCES.map((item, index) => (
+                <li key={item.text} data-reveal>
+                  <BlueprintIcon name={item.icon} size={56} draw className="mb-4" />
+                  <p className="text-base leading-relaxed m-0" style={{ color: 'var(--scs-text)' }}>{item.text}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="text-base leading-relaxed mt-12 pt-8 max-w-[68ch]" style={{ color: 'var(--scs-text-muted)', borderTop: '1px solid var(--scs-border)' }}>
+              Coaching is optional and separate from membership. You can train here on your own program, add coaching later, or start with a coach from your first session.
+            </p>
+          </div>
+        </section>
+
+        <section className="py-16 sm:py-20 on-dark" style={{ background: 'var(--scs-forest-deep)' }} data-testid="pt-how-it-works">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl mb-12" style={{ color: 'var(--scs-white)' }}>How personal training works</h2>
+            <ol className="scs-rail scs-rail-h grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 pl-10 md:pl-0" style={{ color: 'var(--scs-mint)' }}>
+              {STEPS.map((step) => (
+                <li key={step.n}>
+                  <span className="scs-rail-node absolute md:relative" style={{ left: 0, marginLeft: '-1px' }} aria-hidden="true" />
+                  <div className="md:mt-7">
+                    <BlueprintIcon name={step.icon} size={64} draw className="scs-blueprint-light mb-5" />
+                    <h3 className="font-display-medium text-lg mb-2" style={{ color: 'var(--scs-white)' }}>{step.h}</h3>
+                    <p className="text-sm leading-relaxed m-0" style={{ color: 'var(--scs-text-on-dark-muted)' }}>{step.d}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* --------------------------------------------------------------
+            FIRST CONSULTATION
+
+            No photograph here on purpose. There is no honest picture of a
+            consultation at this gym in the asset set, and the media policy
+            forbids substituting a different subject or generating one, so
+            the section is typographic. When a real consultation frame
+            exists it belongs on the left of this text.
+            -------------------------------------------------------------- */}
+        <section className="py-16 sm:py-20" style={{ background: 'var(--scs-mint)' }} data-testid="pt-first-consultation">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+              <div className="lg:col-span-4">
+                <BlueprintIcon name="meet-here" size={112} draw className="mb-6" />
+                <h2 className="font-display text-2xl sm:text-3xl m-0" style={{ color: 'var(--scs-forest)', lineHeight: 0.98 }}>
+                  What happens during your first consultation
+                </h2>
+              </div>
+              <div className="lg:col-span-7 lg:col-start-6">
+                <p className="text-base leading-relaxed mb-5 max-w-[68ch]" style={{ color: 'var(--scs-text)' }}>
+                  The first meeting is a conversation, not a sales appointment. A coach asks what you want to be able to do, what you have done before, what has hurt, and how many days a week you can genuinely train. You walk the floor together and look at the equipment your plan would use.
+                </p>
+                <p className="text-base leading-relaxed mb-5 max-w-[68ch]" style={{ color: 'var(--scs-text)' }}>
+                  Bring anything a coach would otherwise have to guess at: a current program, a note from a physical therapist, a competition date, a list of the lifts that bother you. Wear something you could train in, in case it makes sense to move.
+                </p>
+                <p className="text-base leading-relaxed m-0 max-w-[68ch]" style={{ color: 'var(--scs-text-muted)' }}>
+                  You leave knowing what training with a coach here would look like for you. Deciding on the spot is not expected.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {trainers.length > 0 && (
+          <section className="py-16 sm:py-20" style={{ background: 'var(--scs-cream)' }} data-testid="meet-trainers-section">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6">
+              <h2 className="font-display text-2xl sm:text-3xl mb-10" style={{ color: 'var(--scs-forest)' }}>Meet the coaches</h2>
+              <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+                {trainers.map(t => (
+                  <li key={t.id} data-testid={`trainer-card-${t.id}`}>
+                    <div className="w-full aspect-square overflow-hidden mb-4 scs-frame">
+                      {t.photo_url
+                        ? <img src={t.photo_url} alt={`${t.name}, ${t.role}`} className="w-full h-full object-cover object-top scs-photo" loading="lazy" />
+                        : <CoachPlate name={t.name} />}
+                    </div>
+                    <h3 className="font-display-medium text-base m-0" style={{ color: 'var(--scs-forest)' }}>{t.name}</h3>
+                    <p className="text-xs uppercase tracking-[0.10em] mt-1 m-0" style={{ color: 'var(--scs-text-muted)' }}>{t.role}</p>
+                    {t.bio && <p className="text-sm mt-2 leading-relaxed m-0" style={{ color: 'var(--scs-text-muted)' }}>{t.bio}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
+      </main>
+
       <Footer />
     </div>
   );

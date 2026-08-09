@@ -84,3 +84,59 @@ export const SCS_MEDIA_AWAITING_PERMISSION = Object.freeze({
   medalists: `${SCS_ASSETS}/podium.jpeg`,    // three lifters at the wall seal
   meetCrowd: `${SCS_ASSETS}/community.jpeg`, // meet day, many people
 });
+
+/**
+ * Responsive sources.
+ *
+ * There is no image pipeline in this build and adding one to make a
+ * photograph smaller would be a poor trade. So the derivatives are
+ * checked in: each public photograph exists at 640, 960 and 1400 on
+ * its longest edge, generated once from the camera original, which
+ * stays untouched as the source of truth in /assets/scs.
+ *
+ * The hero drops from 820KB to 87KB on a phone this way, which is the
+ * difference between a Largest Contentful Paint the network can hit
+ * and one it cannot. Every caller passes real width and height, so
+ * the box is reserved before the bytes land and the page does not
+ * jump when it does.
+ */
+const SIZED = '/assets/scs/sized';
+
+const SIZED_SET = {
+  facility:           { w: 1080, h: 1440, widths: [640, 960, 1400] },
+  racks:              { w: 1080, h: 1974, widths: [640, 960, 1400] },
+  'coaching-crew':    { w: 1024, h: 683,  widths: [640, 960, 1400] },
+  'community-group':  { w: 1024, h: 683,  widths: [640, 960, 1400] },
+  'community-strength': { w: 1024, h: 683, widths: [640, 960, 1400] },
+  'community-wall':   { w: 1024, h: 683,  widths: [640, 960, 1400] },
+  'community-medals': { w: 1024, h: 683,  widths: [640, 960, 1400] },
+  'portrait-mike':    { w: 1024, h: 1536, widths: [640] },
+  'portrait-teresa':  { w: 1024, h: 1536, widths: [640] },
+  'portrait-lexi':    { w: 1024, h: 1536, widths: [640] },
+  'portrait-chris':   { w: 1024, h: 1536, widths: [640] },
+  'portrait-brit':    { w: 1024, h: 1536, widths: [640] },
+};
+
+/**
+ * Props for one documentary photograph: src, srcSet, sizes, and the
+ * intrinsic dimensions. Spread it onto an img and pass alt separately,
+ * because alt is a decision about that use of the photograph rather
+ * than a property of the file.
+ */
+export function photo(name, { sizes = '100vw', eager = false } = {}) {
+  const entry = SIZED_SET[name];
+  if (!entry) return {};
+  const scale = Math.min(1, entry.widths[entry.widths.length - 1] / Math.max(entry.w, entry.h));
+  return {
+    src: `${SIZED}/${name}-${entry.widths[entry.widths.length - 1]}.jpg`,
+    srcSet: entry.widths
+      .map((edge) => `${SIZED}/${name}-${edge}.jpg ${Math.round(entry.w * (edge / Math.max(entry.w, entry.h)))}w`)
+      .join(', '),
+    sizes,
+    width: Math.round(entry.w * scale),
+    height: Math.round(entry.h * scale),
+    loading: eager ? 'eager' : 'lazy',
+    decoding: eager ? 'sync' : 'async',
+    fetchPriority: eager ? 'high' : undefined,
+  };
+}

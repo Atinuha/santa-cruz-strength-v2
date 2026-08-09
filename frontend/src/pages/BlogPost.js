@@ -103,7 +103,27 @@ export default function BlogPost() {
   }, [post, isDraft]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--scs-bg)' }}><div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--scs-charcoal)', borderTopColor: 'transparent' }} /></div>;
-  if (notFound) return <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}><Navbar /><div className="pt-32 pb-20 min-h-[60vh] flex items-center justify-center" data-testid="blog-post-not-found"><div className="text-center"><p className="text-sm mb-4" style={{ color: 'var(--scs-text-muted)' }}>Post not found.</p><Link to="/blog" className="btn-primary px-5 py-2.5 text-sm">Back to Blog</Link></div></div><Footer /></div>;
+  // The missing-article view had no h1 at all, so a page that a crawler
+  // can reach carried no heading. It is still a page; it says what it is.
+  if (notFound) return (
+    <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>
+      <Navbar />
+      <main id="main">
+        <section className="pt-32 pb-24 min-h-[60vh]" style={{ background: 'var(--scs-cream)' }} data-testid="blog-post-not-found">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6">
+            <h1 className="font-display mb-4" style={{ color: 'var(--scs-forest)', fontSize: 'clamp(2rem, 5vw, 3rem)', lineHeight: 0.98 }}>
+              This article is not here
+            </h1>
+            <p className="text-base mb-8 max-w-[58ch]" style={{ color: 'var(--scs-text-muted)' }}>
+              The address you followed does not match a published article. The rest of the writing is still on the blog.
+            </p>
+            <Link to="/blog" className="btn-primary text-sm">Back to all articles</Link>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
 
   const isReview = isDraft || post?.review_status;
   const isEditorial = post?.review_status === 'editorial-review';
@@ -124,40 +144,63 @@ export default function BlogPost() {
         </div>
       )}
 
-      {post?.cover_image && <div className={`relative h-56 sm:h-72 ${isReview ? '' : 'mt-16'} overflow-hidden scs-photo`} style={{ backgroundImage: `url(${post.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center 30%' }}><div className="absolute inset-0" style={{ background: 'rgba(232,225,214,0.2)' }} /></div>}
-      <div className={`max-w-3xl mx-auto px-4 sm:px-6 ${post?.cover_image ? '-mt-10 relative z-10' : isReview ? 'pt-12' : 'pt-28'}`}>
-        <article className="p-6 sm:p-8 mb-8" style={{ background: 'var(--scs-warm-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
-          <Link to="/blog" className="inline-flex items-center gap-1.5 text-sm mb-5 transition-colors duration-180" style={{ color: 'var(--scs-text-muted)' }}><ArrowLeft size={13} /> Blog</Link>
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--scs-stone)' }}>{post?.category}</span>
+      {/* The article header lifts out of the card and onto the page.
+          An article is a reading surface, so the title, the category and
+          the read time sit on the cream field at editorial scale and the
+          body gets a white column at a 68 character measure underneath
+          it. A post with no photograph gets the drawn cover rather than
+          a stock gym scene. */}
+      <main id="main">
+        {post?.cover_image
+          ? <div className={`relative h-56 sm:h-80 ${isReview ? '' : 'mt-16'} overflow-hidden`}>
+              <img src={post.cover_image} alt="" className="w-full h-full object-cover scs-photo" style={{ objectPosition: 'center 35%' }} />
+            </div>
+          : <div className={isReview ? '' : 'mt-16'} />}
 
-            {post?.content && <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}><Clock size={11} />{readingTime(post.content)} min read</span>}
-            {post?.author && <span className="text-xs" style={{ color: 'var(--scs-text-light)' }}>by {post.author}</span>}
+        <header className={`px-4 sm:px-6 ${post?.cover_image ? 'pt-10' : isReview ? 'pt-12' : 'pt-14'} pb-8`} style={{ background: 'var(--scs-cream)' }}>
+          <div className="max-w-3xl mx-auto">
+            <Link to="/blog" className="scs-advance inline-flex items-center gap-2 text-sm mb-6" style={{ color: 'var(--scs-forest)' }}><ArrowLeft size={14} /> All articles</Link>
+            <p className="flex flex-wrap items-center gap-4 m-0 mb-4">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--scs-forest)' }}>{post?.category}</span>
+              {post?.content && <span className="text-xs flex items-center gap-1.5" style={{ color: 'var(--scs-text-muted)' }}><Clock size={12} aria-hidden="true" />{readingTime(post.content)} min read</span>}
+              {post?.author && <span className="text-xs" style={{ color: 'var(--scs-text-muted)' }}>by {post.author}</span>}
+            </p>
+            <h1 className="font-display leading-none mb-5" style={{ color: 'var(--scs-forest)', fontSize: 'clamp(2rem, 4.6vw, 3.25rem)' }} data-testid="blog-post-title">{sanitizeDashes(post?.title || '')}</h1>
+            {post?.excerpt && <p className="text-lg leading-relaxed pl-5 m-0 max-w-[62ch]" style={{ color: 'var(--scs-text-muted)', borderLeft: '3px solid var(--scs-coral)' }}>{sanitizeDashes(post.excerpt)}</p>}
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl leading-tight mb-4" style={{ color: 'var(--scs-charcoal)' }} data-testid="blog-post-title">{sanitizeDashes(post?.title || '')}</h1>
-          {post?.excerpt && <p className="text-sm leading-relaxed pl-4 mb-6" style={{ color: 'var(--scs-text-muted)', borderLeft: '2px solid var(--scs-clay)' }}>{sanitizeDashes(post.excerpt)}</p>}
-          <div className="prose-article leading-relaxed" data-testid="blog-post-content" style={{ color: 'var(--scs-text)', fontSize: '1rem', lineHeight: '1.75' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(sanitizeDashes(post?.content || '')) }} />
-        </article>
-        {post?.tags?.length > 0 && <div className="flex flex-wrap items-center gap-2 mb-8"><Tag size={13} style={{ color: 'var(--scs-text-light)' }} />{post.tags.map((t, i) => <span key={`tag-${i}`} className="text-xs px-2 py-1" style={{ color: 'var(--scs-text-muted)', background: 'var(--scs-chalk)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>{t}</span>)}</div>}
-        <div className="p-5 mb-10" style={{ background: 'var(--scs-chalk)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius)' }}>
-          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--scs-charcoal)' }}>Train at Santa Cruz Strength</p>
-          <p className="text-xs mb-3" style={{ color: 'var(--scs-text-muted)' }}>{GYM_CONFIG.address.full} &middot; {GYM_CONFIG.phone}</p>
-          <div className="flex gap-2"><Link to="/contact" className="btn-clay px-4 py-2 text-xs">Book a Free Facility Tour <ArrowRight size={12} /></Link><Link to="/join" className="btn-outline px-4 py-2 text-xs">Compare Memberships</Link></div>
+        </header>
+
+        <div className="px-4 sm:px-6 pb-14" style={{ background: 'var(--scs-cream)' }}>
+          <div className="max-w-3xl mx-auto">
+            <article className="p-6 sm:p-10 mb-8" style={{ background: 'var(--scs-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius-card)' }}>
+              <div className="prose-article" data-testid="blog-post-content" style={{ color: 'var(--scs-text)', fontSize: '1.0625rem', lineHeight: '1.75', maxWidth: '68ch' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(sanitizeDashes(post?.content || '')) }} />
+            </article>
+            {post?.tags?.length > 0 && <div className="flex flex-wrap items-center gap-2 mb-8"><Tag size={14} style={{ color: 'var(--scs-text-muted)' }} aria-hidden="true" />{post.tags.map((t, i) => <span key={`tag-${i}`} className="text-xs px-2.5 py-1.5" style={{ color: 'var(--scs-forest)', background: 'var(--scs-mint)', borderRadius: 'var(--scs-radius)' }}>{t}</span>)}</div>}
+            <aside className="p-6 sm:p-7 on-dark" style={{ background: 'var(--scs-forest-deep)', borderRadius: 'var(--scs-radius-card)' }}>
+              <p className="font-display-medium text-xl mb-2" style={{ color: 'var(--scs-white)' }}>Train at Santa Cruz Strength</p>
+              <p className="text-sm mb-5" style={{ color: 'var(--scs-text-on-dark-muted)' }}>{GYM_CONFIG.address.full} &middot; {GYM_CONFIG.phone}</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link to="/contact" className="btn-clay text-sm">Book a Free Facility Tour <ArrowRight size={14} /></Link>
+                <Link to="/join" className="btn-outline btn-outline-on-dark text-sm">Compare Memberships</Link>
+              </div>
+            </aside>
+          </div>
         </div>
-        <div className="text-center pb-10"><Link to="/blog" className="text-sm flex items-center justify-center gap-2 transition-colors duration-180" style={{ color: 'var(--scs-text-muted)' }}><ArrowLeft size={14} /> All Articles</Link></div>
-      </div>
+      </main>
       <Footer />
       <style>{`
-        .prose-article h2 { color: var(--scs-charcoal); font-family: 'Barlow Condensed', Impact, sans-serif; font-size: 1.4rem; font-weight: 900; text-transform: uppercase; margin: 1.5rem 0 0.75rem; }
-        .prose-article h3 { color: var(--scs-charcoal); font-size: 1.1rem; font-weight: 700; margin: 1.25rem 0 0.5rem; }
-        .prose-article p { margin-bottom: 1rem; }
-        .prose-article ul, .prose-article ol { margin: 0.75rem 0 1rem 1.25rem; }
-        .prose-article li { margin-bottom: 0.3rem; }
+        .prose-article h2 { color: var(--scs-forest); font-family: 'Barlow Condensed', Impact, sans-serif; font-size: 1.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1.05; margin: 2.5rem 0 0.75rem; }
+        .prose-article h3 { color: var(--scs-ink); font-size: 1.15rem; font-weight: 700; margin: 2rem 0 0.5rem; }
+        .prose-article h2:first-child, .prose-article h3:first-child { margin-top: 0; }
+        .prose-article p { margin-bottom: 1.15rem; }
+        .prose-article ul, .prose-article ol { margin: 0.75rem 0 1.25rem 1.35rem; }
+        .prose-article li { margin-bottom: 0.4rem; }
         .prose-article ul li { list-style-type: disc; }
         .prose-article ol li { list-style-type: decimal; }
-        .prose-article strong { color: var(--scs-charcoal); }
-        .prose-article a { color: var(--scs-clay); text-decoration: underline; }
-        .prose-article img { border-radius: var(--scs-radius); margin: 1rem 0; }
+        .prose-article strong { color: var(--scs-ink); font-weight: 600; }
+        .prose-article a { color: var(--scs-forest); text-decoration: underline; text-underline-offset: 3px; }
+        .prose-article img { border-radius: var(--scs-radius-card); margin: 1.5rem 0; max-width: 100%; height: auto; }
+        .prose-article blockquote { margin: 1.75rem 0; padding-left: 1.25rem; border-left: 3px solid var(--scs-mint); color: var(--scs-text-muted); }
       `}</style>
     </div>
   );

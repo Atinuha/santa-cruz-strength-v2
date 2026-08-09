@@ -295,7 +295,7 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
       )}
 
       {submitError && (
-        <div role="alert" className="mt-5 border border-red-300 bg-red-50 text-red-800 p-4 text-sm">
+        <div role="alert" className="mt-5 p-4 text-sm" style={{ border: '1px solid var(--scs-coral)', background: 'rgba(201,74,78,0.07)', color: 'var(--scs-coral-dark)', borderRadius: 'var(--scs-radius)' }}>
           {submitError} <a href={GYM_CONFIG.phoneHref} className="font-bold underline">Call {GYM_CONFIG.phone}</a>.
         </div>
       )}

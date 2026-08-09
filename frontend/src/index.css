@@ -147,64 +147,113 @@
 
 /* ==========================================================
    SCS DESIGN CONTRACT
-   Carbon · Stone · Chalk · Clay (conversion only)
+   Forest, Deep Forest, Mint, Cream, Ink, Coral, Sand.
+
+   The previous contract was Carbon, Stone, Chalk and Clay: a warm
+   beige field with a terracotta conversion accent. It was
+   internally consistent and it belonged to no particular gym.
+   The convergence brief replaces it with the palette that comes
+   out of the room itself. The facility wall carries a painted
+   green stripe above grey; the seal is a black circle with
+   crossed bars. Forest is that stripe, taken seriously. Coral is
+   the one loud thing on the page and it is reserved for the tour.
+
+   The old names are kept as the semantic layer rather than being
+   renamed across twenty files, so a component that asked for
+   "the dark field" still gets the dark field. What changed is
+   which colour that is.
+
+   Contrast, measured, not assumed:
+     ink        on cream   15.7:1     forest      on cream  10.0:1
+     white      on coral    4.6:1     white       on forest  7.8:1
+     on-dark    on forest  11.7:1     on-dark-mut on forest  4.8:1
+     text-muted on cream    5.7:1     text-muted  on mint    4.7:1
    ========================================================== */
 :root {
   /* Brand palette */
-  --scs-carbon:       #0C0C0B;
-  --scs-charcoal:     #242321;
-  --scs-stone:        #8E867A;
-  --scs-chalk:        #E8E1D6;
-  --scs-chalk-light:  #EDE8DF;
-  --scs-clay:         #A5543B;
-  --scs-clay-dark:    #8A4530;
-  --scs-warm-white:   #F5F2ED;
+  --scs-forest:       #0E5D3E;
+  --scs-forest-deep:  #083E2A;
+  --scs-forest-dark:  #06301F;
+  --scs-mint:         #CDEAE0;
+  --scs-mint-deep:    #B4DBCB;
+  --scs-cream:        #F7F5F0;
+  --scs-sand:         #E8E1D6;
+  --scs-ink:          #1B1B19;
+  --scs-coral:        #C94A4E;
+  --scs-coral-dark:   #A93B3F;
+  /* Only for a coral mark on a deep forest field, where the
+     conversion coral falls to 2.6:1 and this holds 3.5:1. */
+  --scs-coral-bright: #FB5A5C;
+  --scs-white:        #FFFFFF;
 
-  /* Semantic tokens */
-  --scs-bg:           #E8E1D6;
-  --scs-bg-alt:       #D9D2C6;
-  --scs-bg-dark:      #0C0C0B;
-  --scs-text:         #242321;
-  --scs-text-muted:   #8E867A;
-  --scs-text-light:   #A8A196;
-  --scs-text-on-dark:      #E8E1D6;
-  --scs-text-on-dark-muted: rgba(232,225,214,0.50);
-  --scs-border:       rgba(36,35,33,0.10);
-  --scs-border-dark:  rgba(232,225,214,0.10);
+  /* Semantic tokens. These are what components ask for. */
+  --scs-bg:           #F7F5F0;  /* page canvas, cream */
+  --scs-bg-alt:       #E8E1D6;  /* sand band, secondary contrast */
+  --scs-bg-mint:      #CDEAE0;  /* human and community fields */
+  --scs-bg-dark:      #083E2A;  /* deep forest field */
+  --scs-surface:      #FFFFFF;
+  --scs-text:         #1B1B19;
+  --scs-text-muted:   #5A6560;
+  --scs-text-light:   #77837D;  /* decorative and icon use only */
+  --scs-text-on-dark:      #F2F5F2;
+  --scs-text-on-dark-muted: #B7CEC2;
+  --scs-border:       rgba(27,27,25,0.12);
+  --scs-border-strong: rgba(27,27,25,0.22);
+  --scs-border-dark:  rgba(205,234,224,0.20);
 
-  /* Dimensions */
-  --scs-radius:    2px;
-  --scs-radius-sm: 3px;
-  --scs-shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
-  --scs-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
-  --scs-shadow-lg: 0 4px 16px rgba(0,0,0,0.10);
+  /* Radius by meaning, not by component. Three steps, no more. */
+  --scs-radius:       4px;  /* technical: buttons, inputs, chips */
+  --scs-radius-sharp: 0px;  /* rails, bands, full bleed edges */
+  --scs-radius-card:  8px;  /* standard card and photo frame */
+  --scs-radius-soft: 12px;  /* human surfaces: quotes, coach cards */
+  --scs-radius-sm:    3px;
 
-  /* Legacy token mappings, keeps unrewritten CRM overrides safe */
-  --clr-green:       #242321;
-  --clr-green-dark:  #0C0C0B;
-  --clr-green-light: #3D3B37;
-  --clr-green-muted: #E8E1D6;
-  --clr-seafoam:     #D9D2C6;
-  --clr-seafoam-dark:#C5BEB3;
-  --clr-coral:       #A5543B;
-  --clr-coral-dark:  #8A4530;
-  --clr-charcoal:    #0C0C0B;
-  --clr-text:        #242321;
-  --clr-text-muted:  #8E867A;
-  --clr-text-light:  #A8A196;
-  --clr-bg:          #E8E1D6;
-  --clr-bg-white:    #F5F2ED;
-  --clr-bg-green:    #E8E1D6;
-  --clr-border:      rgba(36,35,33,0.10);
-  --clr-border-green:rgba(36,35,33,0.10);
+  /* Motion. One curve, three durations. */
+  --scs-ease:       cubic-bezier(0.22, 1, 0.36, 1);
+  --scs-dur-fast:   160ms;
+  --scs-dur:        220ms;
+  --scs-dur-enter:  480ms;
+
+  /* Shadows tinted to the forest hue rather than pure black. */
+  --scs-shadow-sm: 0 1px 2px rgba(8,62,42,0.08);
+  --scs-shadow-md: 0 2px 10px rgba(8,62,42,0.10);
+  --scs-shadow-lg: 0 8px 28px rgba(8,62,42,0.14);
+
+  /* Legacy names, still referenced by pages and CRM overrides.
+     Each one now resolves into the forest system. */
+  --scs-carbon:       #083E2A;
+  --scs-charcoal:     #0E5D3E;
+  --scs-stone:        #5A6560;  /* muted text on LIGHT fields only */
+  --scs-chalk:        #F2F5F2;
+  --scs-chalk-light:  #F7F5F0;
+  --scs-clay:         #C94A4E;
+  --scs-clay-dark:    #A93B3F;
+  --scs-warm-white:   #FFFFFF;
+  --clr-green:       #0E5D3E;
+  --clr-green-dark:  #083E2A;
+  --clr-green-light: #16744E;
+  --clr-green-muted: #CDEAE0;
+  --clr-seafoam:     #CDEAE0;
+  --clr-seafoam-dark:#B4DBCB;
+  --clr-coral:       #C94A4E;
+  --clr-coral-dark:  #A93B3F;
+  --clr-charcoal:    #083E2A;
+  --clr-text:        #1B1B19;
+  --clr-text-muted:  #5A6560;
+  --clr-text-light:  #77837D;
+  --clr-bg:          #F7F5F0;
+  --clr-bg-white:    #FFFFFF;
+  --clr-bg-green:    #CDEAE0;
+  --clr-border:      rgba(27,27,25,0.12);
+  --clr-border-green:rgba(14,93,62,0.20);
   --radius-sm: 3px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-xl: 4px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
-  --shadow-lg: 0 4px 16px rgba(0,0,0,0.10);
-  --shadow-card: 0 1px 4px rgba(0,0,0,0.06);
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --shadow-sm: 0 1px 2px rgba(8,62,42,0.08);
+  --shadow-md: 0 2px 10px rgba(8,62,42,0.10);
+  --shadow-lg: 0 8px 28px rgba(8,62,42,0.14);
+  --shadow-card: 0 1px 4px rgba(8,62,42,0.08);
 }
 
 /* ==========================================================
@@ -268,26 +317,26 @@
    SHADCN TOKENS, Public marketing
    ========================================================== */
 body:not(.crm-page) {
-  --background: 36 18% 88%;
-  --foreground: 40 4% 13%;
-  --card: 36 20% 93%;
-  --card-foreground: 40 4% 13%;
-  --popover: 36 20% 93%;
-  --popover-foreground: 40 4% 13%;
-  --primary: 40 4% 13%;
-  --primary-foreground: 36 18% 88%;
-  --secondary: 36 10% 82%;
-  --secondary-foreground: 40 4% 13%;
-  --muted: 36 10% 85%;
-  --muted-foreground: 37 8% 52%;
-  --accent: 36 10% 82%;
-  --accent-foreground: 40 4% 13%;
-  --destructive: 14 54% 44%;
-  --destructive-foreground: 36 18% 88%;
-  --border: 36 6% 82%;
-  --input: 36 10% 86%;
-  --ring: 40 4% 13%;
-  --radius: 3px;
+  --background: 43 27% 95%;
+  --foreground: 60 4% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 60 4% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 60 4% 10%;
+  --primary: 157 74% 21%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 158 44% 86%;
+  --secondary-foreground: 157 74% 14%;
+  --muted: 36 26% 88%;
+  --muted-foreground: 158 6% 37%;
+  --accent: 158 44% 86%;
+  --accent-foreground: 157 74% 14%;
+  --destructive: 358 54% 54%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 60 4% 88%;
+  --input: 60 4% 84%;
+  --ring: 157 74% 21%;
+  --radius: 4px;
 }
 
 * { box-sizing: border-box; border-color: hsl(var(--border)); }
@@ -324,112 +373,112 @@ html { overflow-x: hidden; }
 
 /* ==========================================================
    BUTTONS
+
+   Three roles and no more. Coral converts, forest confirms,
+   outline defers. Every one is a 44px target, presses to 0.98
+   so the interface answers the finger, and names exact
+   transition properties rather than `all`.
    ========================================================== */
+.btn-primary,
+.btn-clay,
+.btn-coral,
+.btn-outline,
+.btn-outline-green {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  border-radius: var(--scs-radius);
+  padding: 0.75rem 1.75rem;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--scs-dur) var(--scs-ease),
+    border-color var(--scs-dur) var(--scs-ease),
+    color var(--scs-dur) var(--scs-ease),
+    transform var(--scs-dur-fast) var(--scs-ease);
+}
+.btn-primary:active,
+.btn-clay:active,
+.btn-coral:active,
+.btn-outline:active,
+.btn-outline-green:active { transform: scale(0.98); }
+
 .btn-primary {
-  background-color: var(--scs-charcoal);
-  color: var(--scs-chalk);
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 600;
-  border-radius: var(--scs-radius);
-  padding: 0.75rem 1.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: background-color 180ms, opacity 180ms;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+  background-color: var(--scs-forest);
+  color: var(--scs-white);
+  border: 1.5px solid var(--scs-forest);
 }
-.btn-primary:hover { background-color: var(--scs-carbon); }
-.btn-primary:active { opacity: 0.9; }
-
-.btn-clay {
-  background-color: var(--scs-clay);
-  color: white;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 600;
-  border-radius: var(--scs-radius);
-  padding: 0.75rem 1.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: background-color 180ms, opacity 180ms;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+.btn-primary:hover {
+  background-color: var(--scs-forest-deep);
+  border-color: var(--scs-forest-deep);
 }
-.btn-clay:hover { background-color: var(--scs-clay-dark); }
-.btn-clay:active { opacity: 0.9; }
 
-/* Legacy alias */
-.btn-coral { composes: btn-clay; }
+.btn-clay,
 .btn-coral {
-  background-color: var(--scs-clay);
-  color: white;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 600;
-  border-radius: var(--scs-radius);
-  padding: 0.75rem 1.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: background-color 180ms, opacity 180ms;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.875rem;
+  background-color: var(--scs-coral);
+  color: var(--scs-white);
+  border: 1.5px solid var(--scs-coral);
 }
-.btn-coral:hover { background-color: var(--scs-clay-dark); }
+.btn-clay:hover,
+.btn-coral:hover {
+  background-color: var(--scs-coral-dark);
+  border-color: var(--scs-coral-dark);
+}
 
-.btn-outline {
+.btn-outline,
+.btn-outline-green {
   background-color: transparent;
-  color: var(--scs-charcoal);
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 600;
-  border-radius: var(--scs-radius);
-  padding: 0.75rem 1.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: background-color 180ms, color 180ms;
-  text-decoration: none;
-  border: 1.5px solid var(--scs-charcoal);
-  cursor: pointer;
-  font-size: 0.875rem;
+  color: var(--scs-forest);
+  border: 1.5px solid var(--scs-forest);
 }
-.btn-outline:hover {
-  background-color: var(--scs-charcoal);
-  color: var(--scs-chalk);
-}
-.btn-outline-green { /* legacy alias */
-  background-color: transparent;
-  color: var(--scs-charcoal);
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 600;
-  border-radius: var(--scs-radius);
-  padding: 0.75rem 1.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: background-color 180ms, color 180ms;
-  text-decoration: none;
-  border: 1.5px solid var(--scs-charcoal);
-  cursor: pointer;
-  font-size: 0.875rem;
-}
+.btn-outline:hover,
 .btn-outline-green:hover {
-  background-color: var(--scs-charcoal);
-  color: var(--scs-chalk);
+  background-color: var(--scs-forest);
+  color: var(--scs-white);
 }
+
+/* On a deep forest or photographic field the outline inverts, so a
+   secondary action stays legible without becoming a second primary. */
+.on-dark .btn-outline,
+.on-dark .btn-outline-green,
+.btn-outline-on-dark {
+  color: var(--scs-text-on-dark);
+  border-color: rgba(242,245,242,0.45);
+}
+.on-dark .btn-outline:hover,
+.on-dark .btn-outline-green:hover,
+.btn-outline-on-dark:hover {
+  background-color: var(--scs-text-on-dark);
+  color: var(--scs-forest-deep);
+  border-color: var(--scs-text-on-dark);
+}
+
+/* Advance: the arrow moves, the label does not. */
+.btn-primary svg,
+.btn-clay svg,
+.btn-coral svg,
+.btn-outline svg,
+.scs-advance svg {
+  transition: transform 180ms var(--scs-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover svg,
+  .btn-clay:hover svg,
+  .btn-coral:hover svg,
+  .btn-outline:hover svg,
+  .scs-advance:hover svg { transform: translateX(4px); }
+}
+.btn-primary:focus-visible svg,
+.btn-clay:focus-visible svg,
+.btn-coral:focus-visible svg,
+.btn-outline:focus-visible svg,
+.scs-advance:focus-visible svg { transform: translateX(4px); }
 
 /* CRM buttons, do not edit */
 .btn-scs-primary {
@@ -451,18 +500,18 @@ html { overflow-x: hidden; }
    CARDS & SURFACES
    ========================================================== */
 .card-light {
-  background: var(--scs-warm-white);
-  border-radius: var(--scs-radius);
+  background: var(--scs-surface);
+  border-radius: var(--scs-radius-card);
   box-shadow: var(--scs-shadow-sm);
   border: 1px solid var(--scs-border);
 }
 .card-dark {
-  background: var(--scs-charcoal);
-  border-radius: var(--scs-radius);
-  color: var(--scs-chalk);
+  background: var(--scs-forest-deep);
+  border-radius: var(--scs-radius-card);
+  color: var(--scs-text-on-dark);
 }
-.card-seafoam { background: var(--scs-bg-alt); border-radius: var(--scs-radius); }
-.card-green { background: var(--scs-bg); border-radius: var(--scs-radius); border: 1px solid var(--scs-border); }
+.card-seafoam { background: var(--scs-bg-mint); border-radius: var(--scs-radius-card); }
+.card-green { background: var(--scs-bg-mint); border-radius: var(--scs-radius-card); border: 1px solid rgba(14,93,62,0.18); }
 .card-marketing {
   background: var(--elevated, rgba(255,255,255,0.04));
   border: 1px solid rgba(240,244,255,0.09);
@@ -474,15 +523,15 @@ html { overflow-x: hidden; }
    ACCENT RULES (hairlines, not decorative blobs)
    ========================================================== */
 .green-accent-line, .scs-rule {
-  width: 2rem;
+  width: 2.5rem;
   height: 2px;
-  background: var(--scs-clay);
+  background: var(--scs-forest);
   display: block;
   margin-bottom: 0.75rem;
 }
 .coral-accent-line {
-  width: 2rem; height: 2px;
-  background: var(--scs-clay);
+  width: 2.5rem; height: 2px;
+  background: var(--scs-coral);
   display: block; margin-bottom: 0.75rem;
 }
 
@@ -491,22 +540,26 @@ html { overflow-x: hidden; }
    ========================================================== */
 .input-light {
   width: 100%;
-  background: var(--scs-warm-white);
-  border: 1.5px solid rgba(36,35,33,0.15);
+  background: var(--scs-white);
+  border: 1.5px solid rgba(27,27,25,0.22);
   border-radius: var(--scs-radius);
   padding: 0.75rem 1rem;
+  min-height: 44px;
   color: var(--scs-text);
   font-family: 'DM Sans', sans-serif;
   font-size: 0.9375rem;
   font-weight: 500;
-  transition: border-color 180ms, box-shadow 180ms;
+  transition: border-color var(--scs-dur) var(--scs-ease), box-shadow var(--scs-dur) var(--scs-ease);
   outline: none;
 }
 .input-light:focus {
-  border-color: var(--scs-charcoal);
-  box-shadow: 0 0 0 2px rgba(36,35,33,0.10);
+  border-color: var(--scs-forest);
+  box-shadow: 0 0 0 3px rgba(14,93,62,0.18);
 }
-.input-light::placeholder { color: var(--scs-text-light); }
+/* Placeholder contrast is a real failure mode, not a nicety. This
+   sits at 4.6:1 on white rather than the 2.8:1 the old light grey
+   gave, so the hint is readable rather than decorative. */
+.input-light::placeholder { color: #6B7570; opacity: 1; }
 
 /* ==========================================================
    CRM TABLES & KANBAN, Do not edit
@@ -568,10 +621,16 @@ html { overflow-x: hidden; }
   }
 }
 
-/* Focus */
+/* Focus. Forest on light fields; the ring inverts on dark ones so
+   keyboard position is never lost against a deep forest band. */
 *:focus-visible {
-  outline: 2px solid var(--scs-charcoal);
+  outline: 2px solid var(--scs-forest);
   outline-offset: 2px;
+  border-radius: 2px;
+}
+.on-dark *:focus-visible,
+.on-photo *:focus-visible {
+  outline-color: var(--scs-mint);
 }
 
 /* Scrollbar, light */
@@ -736,4 +795,272 @@ ul { list-style: none; padding: 0; margin: 0; }
   height: 100%;
   min-height: inherit;
   border: 0;
+}
+
+/* ==========================================================
+   SECTION FIELDS
+
+   The failure this replaces: every section was a cream field
+   with white cards on it, so the page had one texture from top
+   to bottom and nothing to navigate by. A field is a full-width
+   band with a declared tone. Sections alternate deliberately
+   between them, and no two adjacent sections share one.
+
+   `.on-dark` and `.on-photo` are not colours, they are contexts.
+   Anything inside them takes the inverted focus ring, the
+   inverted outline button and the light text scale.
+   ========================================================== */
+.field { position: relative; }
+.field-cream  { background: var(--scs-cream); color: var(--scs-text); }
+.field-sand   { background: var(--scs-sand);  color: var(--scs-text); }
+.field-mint   { background: var(--scs-mint);  color: var(--scs-text); }
+.field-white  { background: var(--scs-white); color: var(--scs-text); }
+.field-forest { background: var(--scs-forest); color: var(--scs-text-on-dark); }
+.field-deep   { background: var(--scs-forest-deep); color: var(--scs-text-on-dark); }
+
+/* ==========================================================
+   BLUEPRINT ICON SYSTEM
+
+   Equipment drawn as a technical elevation rather than picked
+   out of an icon pack: forest linework, one weight, square caps,
+   no fill, no gradient, no 3D. The stroke width is set once here
+   so a rack and a collar read as the same hand.
+   ========================================================== */
+.scs-blueprint {
+  display: block;
+  color: var(--scs-forest);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
+}
+.on-dark .scs-blueprint,
+.scs-blueprint-light { color: var(--scs-mint); }
+.scs-blueprint .accent { color: var(--scs-coral); stroke: var(--scs-coral); }
+
+/* Draw. The stroke writes itself in as the icon scrolls into view.
+   Same rule as Load: driven by scroll position, never by an event,
+   and a browser without the timeline simply shows the finished
+   drawing. A dash offset left stranded by a listener that never
+   fired would be an invisible icon, which is not a trade worth
+   making for a flourish. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .scs-draw path,
+    .scs-draw line,
+    .scs-draw rect,
+    .scs-draw circle,
+    .scs-draw polyline {
+      stroke-dasharray: 400;
+      animation: scsDraw linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 30%;
+    }
+  }
+}
+@keyframes scsDraw {
+  from { stroke-dashoffset: 400; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* ==========================================================
+   RAIL
+
+   The barbell shaft as a connector. Stations sit on one line
+   with a plate-ring node at each stop, which is where the
+   discipline row and the three-step process both live. On
+   mobile the line turns vertical rather than becoming a
+   horizontal scroll trap.
+   ========================================================== */
+.scs-rail { position: relative; }
+.scs-rail::before {
+  content: "";
+  position: absolute;
+  left: 11px; top: 12px; bottom: 12px;
+  width: 2px;
+  background: currentColor;
+  opacity: 0.28;
+}
+/* display matters here and its absence was a real defect: a span is
+   inline by default, an inline box ignores width and height, and the
+   inner ring then sized itself against the rail instead of the node.
+   Four 280px circles appeared behind the discipline row. */
+.scs-rail-node {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  width: 24px; height: 24px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  background: inherit;
+  flex-shrink: 0;
+}
+.scs-rail-node::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  opacity: 0.55;
+}
+@media (min-width: 1024px) {
+  .scs-rail-h::before {
+    content: "";
+    position: absolute;
+    top: 11px; left: 12px; right: 12px;
+    height: 2px;
+    width: auto; bottom: auto;
+    background: currentColor;
+    opacity: 0.28;
+  }
+  .scs-rail-h::after { display: none; }
+}
+
+/* ==========================================================
+   LOAD
+
+   One entrance behaviour for the whole site: 10px up, fade in,
+   on an exponential ease-out, staggered when a group arrives
+   together. It runs from an already-visible default, so a
+   crawler, a printer and a visitor with JavaScript off all see
+   finished content rather than an invisible page waiting for an
+   observer that will never fire.
+   ========================================================== */
+/* Driven by the scroll position of the element itself, with no
+   script involved at all.
+
+   The first implementation of this used an IntersectionObserver that
+   set opacity to 0 and waited to set it back. That is the standard
+   pattern and it is a trap: anything that stops the observer firing,
+   a stalled bundle, an error earlier in the tree, a screenshot taken
+   before the callback, leaves whole sections permanently invisible on
+   a page whose entire purpose is that its content is readable without
+   JavaScript. It did exactly that here, in the first screenshot.
+
+   `animation-timeline: view()` cannot fail that way. The animation is
+   a function of scroll position rather than of an event, an element
+   already on screen is already at its end state, and a browser that
+   does not support the property gets the finished page with no
+   animation and no hidden state. Both failure modes land on visible. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    [data-reveal] {
+      animation: scsLoad linear both;
+      animation-timeline: view();
+      animation-range: entry 5% cover 22%;
+    }
+  }
+}
+@keyframes scsLoad {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================
+   LOCK
+
+   Selection feedback for membership plans, filters and active
+   route cards. A rail slides in along the top edge and the
+   surface settles. No scale, no bounce, nothing that moves the
+   number the visitor is reading.
+   ========================================================== */
+.scs-lock {
+  position: relative;
+  transition: background-color var(--scs-dur) var(--scs-ease),
+              border-color var(--scs-dur) var(--scs-ease);
+}
+.scs-lock::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 3px;
+  background: var(--scs-coral);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 320ms var(--scs-ease);
+}
+.scs-lock[data-locked="true"]::before { transform: scaleX(1); }
+
+/* ==========================================================
+   PHOTOGRAPHY
+
+   The room is lit by fluorescent tube and shot on a phone. The
+   treatment steadies that rather than pretending otherwise: a
+   touch of contrast, saturation pulled back, and an inset
+   hairline so a dark photo still reads as a framed object on a
+   cream page.
+   ========================================================== */
+.scs-photo {
+  filter: saturate(0.9) contrast(1.05);
+}
+.scs-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--scs-radius-card);
+  background: var(--scs-sand);
+}
+.scs-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(27,27,25,0.10);
+  pointer-events: none;
+}
+.on-dark .scs-frame::after { box-shadow: inset 0 0 0 1px rgba(205,234,224,0.16); }
+
+/* Shift. A 2% drift on one hero photograph, slow enough to read
+   as a room you are standing in rather than as a parallax trick. */
+@media (prefers-reduced-motion: no-preference) {
+  .scs-shift { animation: scsShift 26s var(--scs-ease) infinite alternate; }
+}
+@keyframes scsShift {
+  from { transform: scale(1.02) translate3d(0, 0, 0); }
+  to   { transform: scale(1.04) translate3d(0, -1.2%, 0); }
+}
+
+/* ==========================================================
+   EDITORIAL COVER
+
+   Blog posts without a photograph get a drawn cover built from
+   the category, the title and one blueprint motif, rendered in
+   CSS and SVG. It is crisp at any size, costs no request, and
+   never invents a photograph of a gym.
+   ========================================================== */
+.scs-cover {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--scs-cream);
+  border-bottom: 1px solid var(--scs-border);
+}
+.scs-cover-forest { background: var(--scs-forest-deep); }
+.scs-cover-mint   { background: var(--scs-mint); }
+.scs-cover-sand   { background: var(--scs-sand); }
+.scs-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, currentColor 1px, transparent 1px),
+    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+/* ==========================================================
+   QUOTE
+
+   Member words are the most valuable content on the site, so
+   they get the largest type in their section rather than the
+   smallest card in a grid of six.
+   ========================================================== */
+.scs-quote-lead {
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
