@@ -1,0 +1,18 @@
+# Netlify and Cloudflare Pages headers. Copy to frontend/public/_headers before
+# building, alongside _redirects.
+#
+# Defence in depth for the staff and review routes. Those already receive a
+# noindex,nofollow shell through the rewrite in _redirects; this says the same
+# thing at the header level so neither mechanism is the only one. robots.txt is
+# not part of this: it controls crawling, not indexing, and a disallowed URL can
+# still be indexed from an external link precisely because the crawler is not
+# allowed in to read the noindex.
+
+/staff/*
+  X-Robots-Tag: noindex, nofollow
+
+/review/*
+  X-Robots-Tag: noindex, nofollow
+
+/implementation-preview
+  X-Robots-Tag: noindex, nofollow

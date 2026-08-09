@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getStaffContent, updateSiteContent } from '../../lib/api';
 import { toast } from 'sonner';
+import StaticSiteNotice from '../../components/StaticSiteNotice';
 import {
   ArrowLeft, Save, Loader2, FileText, Type, ExternalLink,
   Home, Info, Dumbbell, Phone, ChevronRight, Search,
@@ -219,6 +220,7 @@ export default function ContentManager() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <StaticSiteNotice surface="the homepage, About and other page copy" />
         {/* Page Tabs */}
         <div className="flex items-center gap-1 mb-6 overflow-x-auto pb-1">
           {PAGES.map(page => {

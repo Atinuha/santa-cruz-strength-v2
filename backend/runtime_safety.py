@@ -39,6 +39,16 @@ ALLOW_LEAD_TWILIO = env_flag("ALLOW_LEAD_TWILIO")
 # write gate cannot see, so a flag is the only thing that can stop them.
 ALLOW_THIRD_PARTY_RESEARCH = env_flag("ALLOW_THIRD_PARTY_RESEARCH")
 
+# Publishing public CMS content is now a build-affecting act, because the public
+# pages are prerendered to static HTML at build time. Without a rebuild the
+# database moves and the served HTML does not, so a price change or an hours
+# change is live in the CRM and invisible on the site.
+#
+# Off by default like every other outbound capability here: holding a deploy
+# hook URL is not by itself permission to fire it. With the flag off the staff
+# UI still warns that a rebuild is required, so the safeguard exists either way.
+ALLOW_DEPLOY_HOOK = env_flag("ALLOW_DEPLOY_HOOK")
+
 
 def _allowlist(name: str) -> set[str]:
     return {item.strip().lower() for item in os.environ.get(name, "").split(",") if item.strip()}
@@ -160,4 +170,5 @@ def runtime_summary() -> dict:
         "lead_resend": ALLOW_LEAD_RESEND,
         "lead_twilio": ALLOW_LEAD_TWILIO,
         "third_party_research": ALLOW_THIRD_PARTY_RESEARCH,
+        "deploy_hook": ALLOW_DEPLOY_HOOK,
     }

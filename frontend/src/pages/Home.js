@@ -130,14 +130,29 @@ export default function Home() {
           <p className="text-sm sm:text-base leading-relaxed mb-4" style={{ color: 'var(--scs-text)' }}>
             {copy('home_definition_body_2', 'Personal training is available for lifters who want technique coaching, structured programming, or help getting started. Membership options include day passes, monthly plans and longer-term memberships.')}
           </p>
-          {/* Stated on its own because it is the single most asked question
-              about this gym and the answer is a fact, not a feature list. It is
-              the business's own published claim: it is on the live site, it is
-              in the membership terms of every full plan, and members describe
-              it in their own reviews. */}
-          <p className="text-sm sm:text-base leading-relaxed" style={{ color: 'var(--scs-text)' }}>
-            {copy('home_definition_access', 'Members have 24/7 access to the facility through the member app. Day passes are used during posted hours.')}
-          </p>
+          {/* An empty slot, deliberately, waiting on one answer from the owner.
+              This is where "Members have 24/7 access to the facility" belongs,
+              and it is the single most quoted sentence a gym publishes, which
+              is exactly why it is not being published on inference. The claim
+              appears on the live site, in the membership terms of every full
+              plan, and in members' own reviews, and it is still not confirmed
+              current by the person who would know.
+
+              The same review left the day pass window unresolved: three
+              different answers are published today and the one repeated twice,
+              9am to 9pm, matches nothing else the business says. Two facts,
+              one paragraph, neither of them guessable.
+
+              The default is an empty string, so this renders nothing until the
+              owner types the confirmed sentence into the Content Manager. It
+              then appears with no deploy and no code change. An empty slot is
+              the site declining to answer; a plausible sentence here would be
+              this site inventing hours for a business with a locked door. */}
+          {copy('home_definition_access', '') && (
+            <p className="text-sm sm:text-base leading-relaxed" style={{ color: 'var(--scs-text)' }}>
+              {copy('home_definition_access', '')}
+            </p>
+          )}
         </div>
       </section>
 

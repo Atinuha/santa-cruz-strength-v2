@@ -45,13 +45,52 @@ const apiBase = (process.env.PRERENDER_API_URL || process.env.REACT_APP_BACKEND_
   .trim()
   .replace(/\/+$/, '');
 
-if (!apiBase) {
+// Fail closed. A build that quietly skips prerendering produces a deployable
+// artefact whose every page is empty, and it looks exactly like a build that
+// worked. The only way to skip is to say so, and only somewhere it cannot reach
+// production.
+//
+//   SKIP_PRERENDER=true   an explicit local opt-out. Refused under CI.
+//   CI=true               set by every major CI provider. Refuses every opt-out.
+//   APP_ENV=production    same, for a build run outside CI.
+//
+// Everything else is a hard exit: no API URL, an unreachable backend, a backend
+// with an empty database, or fewer routes rendered than the registry lists.
+const isCI = process.env.CI === 'true' || process.env.CI === '1';
+const isProduction = process.env.APP_ENV === 'production' || process.env.NODE_ENV === 'production';
+const mustPrerender = isCI || isProduction;
+const optedOut = process.env.SKIP_PRERENDER === 'true';
+
+const fail = (...lines) => {
+  for (const line of lines) console.error(`[prerender] ${line}`);
+  process.exit(1);
+};
+
+if (optedOut && mustPrerender) {
+  fail(
+    'SKIP_PRERENDER is set on a CI or production build.',
+    `CI=${process.env.CI ?? 'unset'} APP_ENV=${process.env.APP_ENV ?? 'unset'} NODE_ENV=${process.env.NODE_ENV ?? 'unset'}`,
+    'The opt-out exists for local work. A production artefact with empty page',
+    'bodies is not something a flag gets to choose.'
+  );
+}
+
+if (optedOut) {
   console.log(
-    '[prerender] skipped: no PRERENDER_API_URL or REACT_APP_BACKEND_URL.\n' +
+    '[prerender] skipped: SKIP_PRERENDER=true.\n' +
     '[prerender] Route shells keep their metadata and stay body-empty.\n' +
-    '[prerender] Set PRERENDER_API_URL to a reachable backend and rebuild to fill them.'
+    '[prerender] This build must not be deployed.'
   );
   process.exit(0);
+}
+
+if (!apiBase) {
+  fail(
+    'no PRERENDER_API_URL and no REACT_APP_BACKEND_URL.',
+    'Point one at a running, seeded backend, or set SKIP_PRERENDER=true for a',
+    'local build you will not deploy. Skipping silently would ship 39 pages',
+    'with empty bodies and a full set of correct-looking metadata.'
+  );
 }
 
 const registry = JSON.parse(
@@ -93,20 +132,50 @@ console.log(
   `[prerender] ${Object.keys(content).length} content keys, ${team.length} team members, ${indexPosts.length} posts`
 );
 
+// A backend that answers 200 with nothing in it is the failure mode that looks
+// most like success. The seed is gated behind ALLOW_DATABASE_WRITES and
+// ALLOW_SEEDING, so a backend booted without them serves empty collections
+// cheerfully, and rendering against that writes an empty About page and an
+// empty blog into static files that are then served for as long as nobody
+// notices. Refuse.
+const expectedArticles = registry.routes.filter((route) => route.path.startsWith('/blog/')).length;
+const shortfalls = [
+  Object.keys(content).length === 0 && 'no site content keys',
+  team.length === 0 && 'no team members',
+  indexPosts.length === 0 && 'no blog posts',
+  indexPosts.length < expectedArticles &&
+    `only ${indexPosts.length} blog posts for ${expectedArticles} article routes`,
+].filter(Boolean);
+if (shortfalls.length) {
+  fail(
+    'the backend is reachable but not seeded.',
+    ...shortfalls,
+    'Set ALLOW_DATABASE_WRITES=true and ALLOW_SEEDING=true, restart it, and',
+    'confirm the three [SEED] lines before building.'
+  );
+}
+
 // Article bodies, one request each. The list endpoint returns excerpts, and an
 // article page whose body arrives after mount is the exact problem this script
 // exists to fix.
 const articleRoutes = registry.routes.filter((route) => route.path.startsWith('/blog/'));
 const articles = new Map();
+const missingBodies = [];
 for (const route of articleRoutes) {
   const slug = route.path.slice('/blog/'.length);
   try {
     articles.set(slug, await getJson(`/api/blog/post/${slug}`));
   } catch (error) {
-    console.warn(`[prerender] no body for /blog/${slug}: ${error.message}`);
+    missingBodies.push(`/blog/${slug}: ${error.message}`);
   }
 }
 console.log(`[prerender] ${articles.size}/${articleRoutes.length} article bodies`);
+if (missingBodies.length) {
+  // An article whose body is missing renders a "Post not found" view into a
+  // shell whose head advertises the article. Two contradictory answers for one
+  // URL is worse than a build that stops.
+  fail('the registry lists articles the backend does not serve:', ...missingBodies);
+}
 
 /** The data a given route actually reads. Shipping the rest would be dead weight. */
 const payloadFor = (path) => {
@@ -129,7 +198,7 @@ console.log('[prerender] bundling the app for node');
 await rm(ssrOut, { recursive: true, force: true });
 await mkdir(ssrOut, { recursive: true });
 
-const stats = await new Promise((done, fail) => {
+const stats = await new Promise((done, reject) => {
   webpack(
     {
       mode: 'production',
@@ -184,7 +253,7 @@ const stats = await new Promise((done, fail) => {
       ],
       stats: 'errors-warnings',
     },
-    (error, result) => (error ? fail(error) : done(result))
+    (error, result) => (error ? reject(error) : done(result))
   );
 });
 
@@ -298,12 +367,15 @@ for (const route of registry.routes) {
 await rm(ssrOut, { recursive: true, force: true });
 
 if (missingShells.length) {
-  console.warn(`[prerender] no shell for ${missingShells.length} route(s): ${missingShells.join(', ')}`);
+  failures.push(...missingShells.map((path) => `${path}: no shell was generated for this route`));
 }
 if (failures.length) {
-  console.error('[prerender] failed on:');
-  for (const line of failures) console.error(`  ${line}`);
-  process.exit(1);
+  fail('failed on:', ...failures);
+}
+if (written !== registry.routes.length) {
+  fail(`rendered ${written} of ${registry.routes.length} routes.`, 'A partial render is a failed build.');
 }
 
+// The success line the deployment checklist greps for. It is printed on this
+// path only, after every route has been written.
 console.log(`[prerender] ${written} routes rendered into their shells`);

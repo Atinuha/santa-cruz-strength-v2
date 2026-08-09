@@ -335,6 +335,28 @@ if (process.env.REACT_APP_PREVIEW_MODE === 'true') {
   await writeFile(resolve(previewDir, 'index.html'), renderHead(reviewPreview), 'utf8');
 }
 
+// The shell that /staff/* and /review/* are rewritten to.
+//
+// Those two route families are client only and have no prerendered directory,
+// so the host rewrites them to a 200 shell. That shell used to be index.html,
+// which is the homepage: a cold load of /staff/login served the homepage's
+// robots directive, index,follow, and the homepage's canonical. robots.txt
+// disallowed the path, but robots.txt is a crawl instruction and not a
+// deindexing mechanism, and a disallowed URL can still be indexed from an
+// external link with no ability to read the noindex inside it.
+//
+// This shell carries noindex,nofollow and no canonical, in the markup, before
+// any JavaScript runs. The X-Robots-Tag headers in deploy/ say the same thing a
+// second way; neither depends on the other.
+const appShell = {
+  path: '/app-shell',
+  title: 'Santa Cruz Strength',
+  description: 'This page is not intended for search results.',
+  canonical: null,
+  robots: 'noindex,nofollow',
+};
+await writeFile(resolve(buildRoot, 'app-shell.html'), renderHead(appShell), 'utf8');
+
 const notFound = {
   path: '/404',
   title: 'Page Not Found | Santa Cruz Strength',
@@ -344,4 +366,4 @@ const notFound = {
 };
 await writeFile(resolve(buildRoot, '404.html'), renderHead(notFound), 'utf8');
 const previewMessage = process.env.REACT_APP_PREVIEW_MODE === 'true' ? ', review preview shell' : '';
-console.log(`Generated route-specific head shells for ${registry.routes.length} routes${previewMessage} plus 404.html.`);
+console.log(`Generated route-specific head shells for ${registry.routes.length} routes${previewMessage} plus 404.html and app-shell.html.`);

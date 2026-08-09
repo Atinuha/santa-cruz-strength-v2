@@ -163,24 +163,6 @@
       "answer": "Reputable facilities have a support line or app-based troubleshooting for access issues. Ask about this during your tour."
     }
   ],
-  "how-many-days-a-week-should-a-beginner-lift": [
-    {
-      "question": "Can I train every day as a beginner?",
-      "answer": "Daily training is not recommended for beginners performing full-body strength work. Muscles need recovery time between sessions. Training the same muscles before they have recovered can lead to diminished performance and increased injury risk."
-    },
-    {
-      "question": "Should I do cardio on rest days?",
-      "answer": "Light activity like walking, cycling, or swimming on rest days is fine and can support recovery. Avoid high-intensity conditioning that competes with your strength training recovery."
-    },
-    {
-      "question": "What if I miss a session?",
-      "answer": "One missed session in a week has negligible impact on long-term progress. Resume your schedule the following week. Do not try to \"make up\" sessions by doubling up."
-    },
-    {
-      "question": "How long before I see results?",
-      "answer": "Most beginners notice improved energy, better sleep, and increased confidence within two to three weeks. Visible changes in body composition typically become apparent after six to eight weeks of consistent training."
-    }
-  ],
   "how-to-choose-a-strength-gym-santa-cruz": [
     {
       "question": "Should I choose the cheapest gym?",
@@ -393,6 +375,24 @@
     {
       "question": "What should I bring to my first session?",
       "answer": "Flat shoes rather than running shoes, clothes you can move in, water, and something to write your sets in. That is the whole list."
+    }
+  ],
+  "how-many-days-a-week-should-you-lift": [
+    {
+      "question": "Can I train every day as a beginner?",
+      "answer": "Daily training is not recommended for beginners performing full-body strength work. Muscles need recovery time between sessions. Training the same muscles before they have recovered can lead to diminished performance and increased injury risk."
+    },
+    {
+      "question": "Should I do cardio on rest days?",
+      "answer": "Light activity like walking, cycling, or swimming on rest days is fine and can support recovery. Avoid high-intensity conditioning that competes with your strength training recovery."
+    },
+    {
+      "question": "What if I miss a session?",
+      "answer": "One missed session in a week has negligible impact on long-term progress. Resume your schedule the following week. Do not try to \"make up\" sessions by doubling up."
+    },
+    {
+      "question": "How long before I see results?",
+      "answer": "Most beginners notice improved energy, better sleep, and increased confidence within two to three weeks. Visible changes in body composition typically become apparent after six to eight weeks of consistent training."
     }
   ]
 }

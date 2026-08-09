@@ -59,7 +59,7 @@ PUBLISHED_ARTICLES = [
 
 <p>The first four weeks of strength training are primarily about motor learning. Your body is figuring out how to coordinate the movement patterns under load. Strength gains during this period are largely neurological, meaning your muscles are learning to fire more efficiently rather than growing significantly in size.</p>
 
-<p>Expect to feel some soreness after your first few sessions. This is normal and diminishes as your body adapts. Most beginners train two to three times per week with at least one rest day between sessions. The reasoning behind that range is set out in <a href="/blog/how-many-days-a-week-should-a-beginner-lift">how many days a week a beginner should lift</a>, and the related question of <a href="/blog/how-long-should-a-workout-be">how long a strength session actually needs to be</a> is answered on its own page.</p>
+<p>Expect to feel some soreness after your first few sessions. This is normal and diminishes as your body adapts. Most beginners train two to three times per week with at least one rest day between sessions. The reasoning behind that range is set out in <a href="/blog/how-many-days-a-week-should-you-lift">how many days a week you should lift</a>, and the related question of <a href="/blog/how-long-should-a-workout-be">how long a strength session actually needs to be</a> is answered on its own page.</p>
 
 <h2>Months Two Through Six</h2>
 
@@ -251,16 +251,26 @@ PUBLISHED_ARTICLES = [
     },
 
     # ──────────────────────────────────────────────────
-    # 4. How Many Days a Week Should a Beginner Lift?
+    # 4. How Many Days a Week Should You Lift?
+    #
+    # This article lives on the broad URL, which is the one that is already
+    # live and indexed. It was briefly published on a beginner-scoped slug
+    # while the thin original held the broad URL and canonicalised away to
+    # it. That was backwards: a content review found the two documents
+    # substantially duplicative, four of five headings mapping one to one
+    # with identical category and tags, and the beginner title narrower than
+    # this article's own content, which covers two, three, and four to five
+    # day frequencies. The broad URL keeps the equity and now carries the
+    # better body.
     # ──────────────────────────────────────────────────
     {
-        'title': 'How Many Days a Week Should a Beginner Lift?',
-        'slug': 'how-many-days-a-week-should-a-beginner-lift',
+        'title': 'How Many Days a Week Should You Lift?',
+        'slug': 'how-many-days-a-week-should-you-lift',
         'excerpt': 'The answer depends on your goals and recovery, but research points to a clear range. Here is what the evidence says and how to apply it.',
         'category': 'Strength Science',
         'tags': ['training frequency', 'beginners', 'programming', 'FAQ'],
-        'seo_title': 'How Many Days a Week Should a Beginner Lift? | Santa Cruz Strength',
-        'seo_description': 'How many days per week should a beginner lift weights? The evidence-based answer, programming considerations, and how to build consistency.',
+        'seo_title': 'How Many Days a Week Should You Lift? | Santa Cruz Strength',
+        'seo_description': 'How many days a week should you lift? The evidence-based range for beginners through advanced lifters, and how to pick a frequency you will keep.',
         'content': lambda slug: f"""{_ph('hero', slug, 'Hero image coming soon')}
 
 <p>Training frequency is one of the most common questions from people starting a strength program. The short answer supported by exercise science: two to three days per week is effective for most beginners. Here is the reasoning and how to apply it practically.</p>
@@ -574,7 +584,7 @@ PUBLISHED_ARTICLES = [
 <p>Effective training after 40 looks like this:</p>
 
 <ul>
-<li><strong>Frequency</strong>: Two to four sessions per week, depending on recovery capacity and other life demands. If you are new to lifting entirely, <a href="/blog/how-many-days-a-week-should-a-beginner-lift">a two to three day starting frequency</a> is the safer place to begin.</li>
+<li><strong>Frequency</strong>: Two to four sessions per week, depending on recovery capacity and other life demands. If you are new to lifting entirely, <a href="/blog/how-many-days-a-week-should-you-lift">a two to three day starting frequency</a> is the safer place to begin.</li>
 <li><strong>Exercise selection</strong>: Compound movements remain the foundation, and they are <a href="/blog/beginner-strength-training-santa-cruz">the beginner movement patterns</a> regardless of age. Substitute variations when needed: trap bar deadlifts instead of conventional if the lower back is sensitive, incline pressing if flat bench causes shoulder discomfort, goblet squats as a squat variation.</li>
 <li><strong>Load management</strong>: Training does not need to be maximally heavy to be effective. Moderate loads with controlled technique and appropriate volume produce excellent results while managing joint stress.</li>
 <li><strong>Warm-up protocol</strong>: Longer, more deliberate warm-ups including general movement, dynamic stretching, and progressive loading on the working exercises.</li>
@@ -638,7 +648,7 @@ PUBLISHED_ARTICLES = [
 
 <h2>Programming for Surfers</h2>
 
-<p>Two to three strength sessions per week is sufficient for most surfers to see meaningful results without interfering with water time. The frequency guide covers the evidence behind that range and the practicalities of <a href="/blog/how-many-days-a-week-should-a-beginner-lift">fitting two to three sessions around surf conditions</a>. The key principles:</p>
+<p>Two to three strength sessions per week is sufficient for most surfers to see meaningful results without interfering with water time. The frequency guide covers the evidence behind that range and the practicalities of <a href="/blog/how-many-days-a-week-should-you-lift">fitting two to three sessions around surf conditions</a>. The key principles:</p>
 
 <ul>
 <li><strong>Schedule around surf</strong>: Lift on days when you are not surfing, or at least separate sessions by several hours. Do not lift heavy before a surf session.</li>

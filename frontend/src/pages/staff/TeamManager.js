@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getStaffTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember } from '../../lib/api';
 import ImageUploadField from '../../components/ImageUploadField';
 import { toast } from 'sonner';
+import StaticSiteNotice from '../../components/StaticSiteNotice';
 import {
   ArrowLeft, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff,
   Users, Dumbbell, Save, X, Loader2, ChevronUp, ChevronDown,
@@ -108,6 +109,7 @@ export default function TeamManager() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <StaticSiteNotice surface="the team and coaches" />
         {/* Tabs */}
         <div className="flex items-center gap-2 mb-6">
           <button

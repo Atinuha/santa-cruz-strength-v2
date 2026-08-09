@@ -214,7 +214,13 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
           </div>
           <div>
             <label htmlFor="tour-phone" className="block text-base font-bold text-[var(--clr-charcoal)] mb-2">Phone number <span aria-hidden="true">*</span></label>
-            <input id="tour-phone" type="tel" inputMode="tel" value={form.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="(408) 555-0123" autoComplete="tel" className={inputClass('phone')} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? 'tour-phone-error' : undefined} data-testid="lead-form-phone-input" />
+            {/* "Your phone number", not a formatted example. The placeholder here
+                was (408) 555-0123, which shares its area code with this gym's own
+                number, (408) 337-6709. A visitor glancing at a greyed-out phone
+                number in a form on a business's own site can reasonably read it
+                as the business's number, and 555 only reads as fictional to
+                people who know the convention. */}
+            <input id="tour-phone" type="tel" inputMode="tel" value={form.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="Your phone number" autoComplete="tel" className={inputClass('phone')} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? 'tour-phone-error' : undefined} data-testid="lead-form-phone-input" />
             {errors.phone && <p id="tour-phone-error" role="alert" className="text-[var(--clr-coral)] text-sm mt-1 font-semibold">{errors.phone}</p>}
           </div>
           <div>

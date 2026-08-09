@@ -110,6 +110,11 @@ try:
 except ImportError:
     from .blog_articles import PUBLISHED_ARTICLES as LONGFORM_ARTICLES
 try:
+    from deploy_hook import notify_public_content_changed
+except ImportError:
+    from .deploy_hook import notify_public_content_changed
+
+try:
     from lead_consent import reinquiry_sms_updates
 except ImportError:
     from .lead_consent import reinquiry_sms_updates
@@ -2220,6 +2225,7 @@ async def create_blog_post(data: BlogPostCreate, user=Depends(require_admin)):
         'updated_at': now.isoformat(),
     }
     await db.blog.insert_one(doc)
+    notify_public_content_changed('blog_post', f'created {slug}')
     return {k: v for k, v in doc.items() if k != 'content'}
 
 @api_router.put('/staff/blog/{post_id}')
@@ -2236,6 +2242,7 @@ async def update_blog_post(post_id: str, data: BlogPostUpdate, user=Depends(requ
         update['slug'] = slugify(update['title'])
     await db.blog.update_one({'id': post_id}, {'$set': update})
     updated = await db.blog.find_one({'id': post_id}, {'_id': 0})
+    notify_public_content_changed('blog_post', f"updated {updated.get('slug', post_id)}")
     return updated
 
 @api_router.delete('/staff/blog/{post_id}')
@@ -2243,6 +2250,7 @@ async def delete_blog_post(post_id: str, user=Depends(require_admin)):
     result = await db.blog.delete_one({'id': post_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail='Post not found')
+    notify_public_content_changed('blog_post', f'deleted {post_id}')
     return {'message': 'Post deleted'}
 
 # --------------- Blog Ideas (Google Trends + AI) ---------------
@@ -2433,6 +2441,7 @@ async def update_content(key: str, request: Request, user=Depends(require_admin)
         {'$set': {'value': value, 'updated_at': now_utc().isoformat()}},
         upsert=True,
     )
+    notify_public_content_changed('site_content', f'key {key}')
     return {'key': key, 'value': value}
 
 
@@ -3234,6 +3243,7 @@ async def create_team_member(data: TeamMemberCreate, user=Depends(require_admin)
     }
     await db.team_members.insert_one(member)
     created = await db.team_members.find_one({'id': member['id']}, {'_id': 0})
+    notify_public_content_changed('team_member', f"created {created.get('name', member['id'])}")
     return created
 
 
@@ -3247,6 +3257,7 @@ async def update_team_member(member_id: str, data: TeamMemberUpdate, user=Depend
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail='Member not found')
     updated = await db.team_members.find_one({'id': member_id}, {'_id': 0})
+    notify_public_content_changed('team_member', f"updated {updated.get('name', member_id)}")
     return updated
 
 
@@ -3255,6 +3266,7 @@ async def delete_team_member(member_id: str, user=Depends(require_admin)):
     result = await db.team_members.delete_one({'id': member_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail='Member not found')
+    notify_public_content_changed('team_member', f'deleted {member_id}')
     return {'ok': True}
 
 
@@ -3478,6 +3490,7 @@ async def create_event(data: EventCreate, user=Depends(require_admin)):
     doc = {'id': event_id, **data.dict(), 'created_by': user['id'], 'created_at': now_utc().isoformat(), 'updated_at': now_utc().isoformat()}
     await db.events.insert_one(doc)
     doc.pop('_id', None)
+    notify_public_content_changed('event', f'created {event_id}')
     return doc
 
 @api_router.put('/staff/events/{event_id}')
@@ -3488,6 +3501,7 @@ async def update_event(event_id: str, data: EventUpdate, user=Depends(require_ad
     update = {k: v for k, v in data.dict().items() if v is not None}
     update['updated_at'] = now_utc().isoformat()
     await db.events.update_one({'id': event_id}, {'$set': update})
+    notify_public_content_changed('event', f'updated {event_id}')
     return await db.events.find_one({'id': event_id}, {'_id': 0})
 
 @api_router.delete('/staff/events/{event_id}')
@@ -3496,6 +3510,7 @@ async def delete_event(event_id: str, user=Depends(require_admin)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail='Event not found')
     await db.event_rsvps.delete_many({'event_id': event_id})
+    notify_public_content_changed('event', f'deleted {event_id}')
     return {'message': 'Event deleted'}
 
 @api_router.get('/staff/events/{event_id}/rsvps')
@@ -4488,55 +4503,13 @@ async def seed_blog_posts():
             'created_at': now.isoformat(),
             'updated_at': now.isoformat(),
         },
-        {
-            'id': str(uuid.uuid4()),
-            'title': 'How Many Days a Week Should You Lift? (The Real Answer)',
-            'slug': 'how-many-days-a-week-should-you-lift',
-            'excerpt': 'It\'s one of the most common questions we get. The answer depends on your goals, recovery capacity, and schedule - but there\'s a clear range that works for most people.',
-            'content': '''<p>This is one of the questions we hear most often from new members and people considering joining. The internet gives wildly different answers - some say 6 days a week, others say 2 is enough. The truth is somewhere in the middle, and it depends on you.</p>
-
-<h2>The Short Answer</h2>
-
-<p><strong>For most people: 3 days per week.</strong></p>
-
-<p>Three well-programmed sessions per week is enough to build real strength, add muscle, improve body composition, and maintain your results long-term. This holds true for beginners, intermediate lifters, and even many advanced athletes.</p>
-
-<h2>Why 3 Days Works</h2>
-
-<p>Muscle tissue repairs and grows during rest - not during the training session itself. Three sessions spaced throughout the week gives you enough stimulus to drive adaptation while allowing adequate recovery between sessions.</p>
-
-<p>A typical 3-day program at Santa Cruz Strength might look like:</p>
-<ul>
-<li><strong>Monday</strong> - Lower body focus (squat pattern + deadlift variation)</li>
-<li><strong>Wednesday</strong> - Upper body focus (push + pull)</li>
-<li><strong>Friday</strong> - Full body or sport-specific work</li>
-</ul>
-
-<h2>When to Train 4-5 Days</h2>
-
-<p>More advanced lifters with specific goals - powerlifting competition prep, building a particular muscle group, sport performance peaking - can benefit from 4 to 5 sessions per week. At this level, programming becomes more specialized and recovery management matters significantly more.</p>
-
-<h2>When 2 Days Is Enough</h2>
-
-<p>Two days of focused, heavy lifting is enough to maintain strength and provide measurable health benefits. If you\'re a busy professional, parent, or athlete whose primary sport is outside the gym, two sessions can absolutely move the needle.</p>
-
-<p>Something is always better than nothing. We would rather have you lift twice a week for five years than attempt six days a week for three weeks before burning out.</p>
-
-<h2>The Most Important Variable</h2>
-
-<p>Consistency over time beats frequency in the short term. The best program is the one you can actually do week after week, month after month. Start with three days. Get consistent. Build from there.</p>
-
-<p>If you\'re not sure where to start, our coaches at Santa Cruz Strength are happy to help you build a realistic schedule that works with your life.</p>''',
-            'category': 'Strength Science',
-            'tags': ['training frequency', 'beginners', 'programming', 'FAQ'],
-            'cover_image': None,  # see BLOG_COVERS_AWAITING_PERMISSION in blog_articles,
-            'published': True,
-            'seo_title': 'How Many Days a Week Should You Lift? | Santa Cruz Strength',
-            'seo_description': 'The honest answer on training frequency: how many days per week you should lift based on your goals, schedule, and recovery capacity.',
-            'author': 'Santa Cruz Strength',
-            'created_at': now.isoformat(),
-            'updated_at': now.isoformat(),
-        },
+        # The thin original of "How Many Days a Week Should You Lift" was seeded
+        # here. It has been retired rather than consolidated: a content review
+        # found it substantially duplicative with the longer article in
+        # blog_articles.py, which covers the same two, three and four to five day
+        # frequency bands in 671 words against this one's 347, with the research
+        # and an FAQ on top. That article now occupies this slug, so the live and
+        # indexed URL keeps its equity and carries the better body.
         {
             'id': str(uuid.uuid4()),
             'title': 'Is Strength Training Good for Beginners? (Yes - Here\'s Why)',
@@ -5023,7 +4996,12 @@ async def startup():
         {'key': 'home_definition_headline', 'value': 'What Santa Cruz Strength is'},
         {'key': 'home_definition_body_1', 'value': 'Santa Cruz Strength is an independent strength training gym at 151 Harvey West Blvd, Suite D, in Santa Cruz, California. The floor supports barbell training, powerlifting and general strength work, with racks, bars, platforms and open gym space.'},
         {'key': 'home_definition_body_2', 'value': 'Personal training is available for lifters who want technique coaching, structured programming, or help getting started. Membership options include day passes, monthly plans and longer-term memberships.'},
-        {'key': 'home_definition_access', 'value': 'Members have 24/7 access to the facility through the member app. Day passes are used during posted hours.'},
+        # Seeded empty on purpose. This is the access sentence on the homepage,
+        # and it stays blank until the owner confirms both the 24/7 member
+        # access rule and the day pass window, which the live site currently
+        # answers three different ways. Typing it into the Content Manager
+        # publishes it; nothing here will guess it.
+        {'key': 'home_definition_access', 'value': ''},
         {'key': 'home_hero_subtext', 'value': 'Real training environment. Real community. Santa Cruz.'},
         {'key': 'home_benefits_headline', 'value': 'STRENGTH WITHOUT THE NOISE.'},
         {'key': 'home_benefits_subtitle', 'value': 'No cardio theater. No supplement counters. A focused space for people who show up, lift, and improve.'},

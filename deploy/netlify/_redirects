@@ -9,13 +9,30 @@
 # prerendered route shells and every asset resolve normally and never reach the
 # catch all.
 
+# Permanent redirects for consolidated articles. These must come before the
+# rewrites below, because a 301 that loses a race with a 200 rewrite never runs.
+#
+# The surfer article: the destination covers every heading the source has and
+# adds injury prevention and an FAQ, 638 words against 391, same category and
+# same tags. It supersedes it, so this is a redirect rather than a canonical.
+#
+# The beginner frequency slug never went live. It is here only so that anything
+# which linked it during the rebuild lands on the article rather than a 404.
+/blog/why-surfers-in-santa-cruz-should-lift-weights  /blog/strength-training-for-surfers-santa-cruz  301!
+/blog/how-many-days-a-week-should-a-beginner-lift    /blog/how-many-days-a-week-should-you-lift      301!
+
 # Client only routes with no prerendered directory. Without these, a staff
 # member who refreshes /staff/dashboard is locked out of the CRM and every
 # review link is dead.
-/staff/*                 /index.html   200
-/review/*                /index.html   200
-/implementation-preview  /index.html   200
-/implementation-preview/*  /index.html   200
+#
+# They point at app-shell.html, not index.html. index.html is the homepage, and
+# serving it here handed a cold load of /staff/login the homepage's
+# index,follow directive and the homepage's canonical. app-shell.html carries
+# noindex,nofollow in the markup.
+/staff/*                 /app-shell.html   200
+/review/*                /app-shell.html   200
+/implementation-preview  /app-shell.html   200
+/implementation-preview/*  /app-shell.html   200
 
 # Everything else that did not match a real file is genuinely not found.
 # A SPA catch all returning 200 here would get the sitemap rejected by Search

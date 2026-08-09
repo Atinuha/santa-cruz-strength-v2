@@ -9,6 +9,7 @@ import {
   ExternalLink, Users, Ticket, X, Check, ChevronDown, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import StaticSiteNotice from '../../components/StaticSiteNotice';
 
 const CATEGORIES = ['Powerlifting Meet', 'Workshop', 'Open Gym', 'Community', 'Challenge', 'General'];
 const TICKET_TYPES = [
@@ -307,6 +308,7 @@ export default function EventsManager() {
   return (
     <div className="min-h-screen bg-[var(--ink)] px-4 py-6">
       <div className="max-w-4xl mx-auto">
+        <StaticSiteNotice surface="events" />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

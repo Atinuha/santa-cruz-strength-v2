@@ -158,7 +158,7 @@ SEGMENT_ARTICLES = [
 
 <h2>How to start</h2>
 
-<p>Pick your first program before your first session, so you are not standing in the middle of the floor deciding. Two or three days a week is plenty to start, and <a href="/blog/how-many-days-a-week-should-a-beginner-lift">how many days a week a beginner should lift</a> explains why more is not better at the beginning.</p>
+<p>Pick your first program before your first session, so you are not standing in the middle of the floor deciding. Two or three days a week is plenty to start, and <a href="/blog/how-many-days-a-week-should-you-lift">how many days a week you should lift</a> explains why more is not better at the beginning.</p>
 
 <p>Then go look at the place. <a href="/contact">Book a free facility tour</a>, no commitment and no card required, or read through the <a href="/join">nine published membership tiers</a> first if you would rather know the numbers before you walk in. If you want a coach for the first block, the <a href="/personal-training">personal training page</a> covers how that works.</p>
 
@@ -248,7 +248,7 @@ SEGMENT_ARTICLES = [
 
 <h2>Fitting it around actual riding</h2>
 
-<p>Two lifting days a week is enough for most riders and fits around a weekend ride schedule without eating it. Keep hard leg work away from the day before a big ride, because arriving at the trailhead with trashed quads is a bad trade in either direction. Lift on days you are not riding, or after a ride rather than before it if the week is tight. If you are new to structured lifting, <a href="/blog/how-many-days-a-week-should-a-beginner-lift">how many days a week a beginner should lift</a> covers why two or three quality days beats five rushed ones.</p>
+<p>Two lifting days a week is enough for most riders and fits around a weekend ride schedule without eating it. Keep hard leg work away from the day before a big ride, because arriving at the trailhead with trashed quads is a bad trade in either direction. Lift on days you are not riding, or after a ride rather than before it if the week is tight. If you are new to structured lifting, <a href="/blog/how-many-days-a-week-should-you-lift">how many days a week you should lift</a> covers why two or three quality days beats five rushed ones.</p>
 
 <p>The pattern is similar to the one we described for other Santa Cruz sports in <a href="/blog/strength-training-for-surfers-santa-cruz">strength training for surfers</a>: the gym supports the sport, it does not compete with it.</p>
 
@@ -324,7 +324,7 @@ SEGMENT_ARTICLES = [
 <li><strong>Technique before load, without exception.</strong> An empty bar or a broomstick until the movement is right. A coach who loads a teenager's squat in week one is telling you what to do next.</li>
 <li><strong>Submaximal loads.</strong> Sets in a moderate rep range with weight the athlete controls, not weight that controls them. Grinding, shaking reps have no place here.</li>
 <li><strong>Compound movements.</strong> Squat, hinge, press, pull, carry. The same five patterns adults train, taught properly. Our <a href="/blog/beginner-strength-training-santa-cruz">beginner guide to strength training</a> covers what each of those actually is.</li>
-<li><strong>Two or three days a week, not five.</strong> Teenagers are already loading their bodies hard in their sport. The weight room is added stress, not free. See <a href="/blog/how-many-days-a-week-should-a-beginner-lift">how many days a week a beginner should lift</a> for the reasoning.</li>
+<li><strong>Two or three days a week, not five.</strong> Teenagers are already loading their bodies hard in their sport. The weight room is added stress, not free. See <a href="/blog/how-many-days-a-week-should-you-lift">how many days a week you should lift</a> for the reasoning.</li>
 <li><strong>No testing maxes early.</strong> One rep max attempts are where the risk concentrates and they tell you almost nothing useful about a novice.</li>
 <li><strong>Progression written down.</strong> Small, planned increases over weeks. If nobody can show you the plan, there is no plan.</li>
 </ul>

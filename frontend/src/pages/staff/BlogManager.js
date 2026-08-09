@@ -13,6 +13,7 @@ import {
   Globe, FileText, LogOut, Loader2, Save, X, BookOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
+import StaticSiteNotice from '../../components/StaticSiteNotice';
 
 const CATEGORIES = ['Training Tips', 'Strength Science', 'Outdoor Athletes', 'Getting Started', 'Gym Culture'];
 
@@ -156,6 +157,7 @@ export default function BlogManager() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <StaticSiteNotice surface="blog articles" />
 
         {/* LIST VIEW */}
         {view === 'list' && (

@@ -65,13 +65,12 @@
     },
     {
       "path": "/blog/how-many-days-a-week-should-you-lift",
-      "indexable": false,
+      "indexable": true,
       "title": "How Many Days a Week Should You Lift?",
-      "description": "Learn how training goals, schedule and recovery affect the number of strength-training days that may fit your week.",
-      "h1": "How Many Days a Week Should You Lift? (The Real Answer)",
-      "canonical": "https://santacruzstrength.com/blog/how-many-days-a-week-should-a-beginner-lift",
-      "robots": "index,follow",
-      "consolidatedInto": "/blog/how-many-days-a-week-should-a-beginner-lift"
+      "description": "How many days a week should you lift? The evidence-based range for beginners through advanced lifters, and how to pick a frequency you will keep.",
+      "h1": "How Many Days a Week Should You Lift?",
+      "canonical": "https://santacruzstrength.com/blog/how-many-days-a-week-should-you-lift",
+      "robots": "index,follow"
     },
     {
       "path": "/blog/best-gym-santa-cruz-serious-athletes",
@@ -190,15 +189,6 @@
       "indexable": true,
       "robots": "index,follow",
       "h1": "How 24/7 Gym Access Works in Santa Cruz"
-    },
-    {
-      "path": "/blog/how-many-days-a-week-should-a-beginner-lift",
-      "title": "How Many Days a Week Should a Beginner Lift?",
-      "description": "How many days per week should a beginner lift weights? The evidence-based answer, programming considerations, and how to build consistency.",
-      "canonical": "https://santacruzstrength.com/blog/how-many-days-a-week-should-a-beginner-lift",
-      "indexable": true,
-      "robots": "index,follow",
-      "h1": "How Many Days a Week Should a Beginner Lift?"
     },
     {
       "path": "/blog/how-to-choose-a-strength-gym-santa-cruz",
