@@ -120,7 +120,30 @@ except ImportError:
     from .provider_dispatch import DispatchConfig, build_adapters, dispatch_batch
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+
+# Refuse an unacknowledged connection rather than inherit one.
+#
+# w=0 is a legal thing to put in a connection string and it means the driver
+# returns as soon as the write is handed to the socket, without waiting to hear
+# that the server accepted it. Every insert then reports success whether or not
+# the data landed, and this application answers a visitor with "accepted" on the
+# strength of exactly that. A lead can be lost with nothing anywhere recording
+# that it existed, which is the one failure this site cannot tolerate.
+#
+# Nothing in the code chose w=0; the risk is that a deployment configuration
+# supplies it and nothing here objects. So: reject it loudly at import, in
+# keeping with how this service treats every other unsafe configuration, and
+# otherwise require acknowledgement explicitly rather than relying on a default
+# that a future URL could override.
+if re.search(r'[?&]w=0(?:&|$)', mongo_url):
+    raise RuntimeError(
+        'MONGO_URL specifies w=0, which acknowledges writes before the server '
+        'has accepted them. Lead capture reports success on the basis of that '
+        'acknowledgement, so an unacknowledged write means silently losing '
+        'leads. Remove w=0 or set w=majority.'
+    )
+
+client = AsyncIOMotorClient(mongo_url, w=os.environ.get('MONGO_WRITE_CONCERN', 'majority'))
 database_name = os.environ.get('DB_NAME', 'test_database')
 db = client[database_name]
 
@@ -597,8 +620,13 @@ async def run_sms_followup_job():
         }, {'_id': 0, 'id': 1, 'phone': 1, 'first_name': 1, 'status': 1, 'sms_log': 1}).to_list(500)
 
         for lead in leads:
-            phone = lead.get('phone', '').strip()
-            if not phone or not phone.startswith('+'):
+            # Was: skip anything not starting with '+'. Every stored number is
+            # in display form, so that skipped all of them and no lead could
+            # ever receive a message. Convert instead, and skip only what
+            # genuinely cannot be dialled.
+            phone = to_e164(lead.get('phone', ''))
+            if not phone:
+                logger.warning(f"[SMS] Lead {lead.get('id')} has an undiallable phone, skipping")
                 continue
             # Skip if already in stop status
             if lead.get('status') in STOP_STATUSES:
@@ -804,6 +832,61 @@ def normalize_phone(phone: str) -> str:
     if len(digits) == 10:
         return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
     return phone  # return as-is if unrecognised
+
+
+def to_e164(phone: str) -> Optional[str]:
+    """The same number in the only form a carrier accepts.
+
+    Leads are stored in the display form above, (831) 555-1212, because that is
+    what staff read. Twilio speaks E.164, +18315551212, in both directions. The
+    two were never reconciled, and it broke the SMS path at both ends:
+
+      Sending: the dispatcher skipped any number not starting with '+', which
+      is every number this application has ever stored, so no lead could ever
+      receive a message.
+
+      STOP: an inbound keyword arrives with the sender in E.164 and was matched
+      against the stored display string, so it matched nothing. A customer
+      texting STOP got an acknowledgement and stayed subscribed. That is the
+      half that carries legal exposure rather than merely losing a message.
+
+    Both were latent only because SMS is flag disabled. They fire the moment
+    Twilio is enabled, which the deployment sequence does at step 5.
+
+    Returns None when the input is not a number that can be dialled, so callers
+    must decide what to do rather than send to a malformed destination.
+    """
+    if not phone:
+        return None
+    digits = re.sub(r'\D', '', phone)
+    if len(digits) == 11 and digits[0] == '1':
+        return f'+{digits}'
+    if len(digits) == 10:
+        return f'+1{digits}'
+    if phone.strip().startswith('+') and 8 <= len(digits) <= 15:
+        return f'+{digits}'
+    return None
+
+
+def phone_match_query(phone: str) -> dict:
+    """Match a stored lead by phone in whatever form the caller has.
+
+    Used for inbound Twilio webhooks, where the sender is E.164 and the stored
+    value is the display form. Matching on either representation means a STOP
+    lands whichever way the record was written, including records created
+    before to_e164 existed.
+    """
+    candidates = {phone, phone.strip()}
+    display = normalize_phone(phone)
+    if display:
+        candidates.add(display)
+    e164 = to_e164(phone)
+    if e164:
+        candidates.add(e164)
+        digits = e164[1:]
+        if len(digits) == 11 and digits[0] == '1':
+            candidates.add(normalize_phone(digits[1:]))
+    return {'phone': {'$in': [c for c in candidates if c]}}
 
 @api_router.post('/auth/login')
 async def login(req: LoginRequest):
@@ -1257,6 +1340,29 @@ async def create_lead_public(lead: LeadCreate, request: Request):
                 '_id': 0,
             },
         )
+        if not existing_request:
+            # The collision was on the identity index, not the request id: the
+            # same person enquired twice with different request ids and the
+            # other request won the insert. Adopt the winner and record this
+            # request id against it, so a retry of THIS request is recognised
+            # too. Without this branch the new unique index would turn a
+            # duplicate enquiry into a 500 and lose the lead outright, which is
+            # worse than the duplicate it exists to prevent.
+            await db.leads.update_one(
+                {'email': doc['email'], 'location': doc['location']},
+                {'$addToSet': {'request_ids': request_id}},
+            )
+            existing_request = await db.leads.find_one(
+                {'email': doc['email'], 'location': doc['location']},
+                {
+                    'id': 1,
+                    'brand_id': 1,
+                    'location_id': 1,
+                    'sms_operational_opt_in': 1,
+                    'sms_opted_out': 1,
+                    '_id': 0,
+                },
+            )
         if existing_request:
             await enqueue_lead_received_jobs(
                 db.lead_outbox, existing_request, request_id, now_utc()
@@ -4068,7 +4174,7 @@ async def _apply_sms_keyword_state(from_number: str, msg_upper: str) -> bool:
     timestamp = now_utc().isoformat()
     if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
         result = await db.leads.update_many(
-            {'phone': from_number},
+            phone_match_query(from_number),
             {'$set': {
                 'sms_opted_out': True,
                 'sms_consent': False,
@@ -4082,7 +4188,7 @@ async def _apply_sms_keyword_state(from_number: str, msg_upper: str) -> bool:
         return result.matched_count > 0
     if msg_upper == 'START':
         result = await db.leads.update_many(
-            {'phone': from_number},
+            phone_match_query(from_number),
             {'$set': {
                 'sms_opted_out': False,
                 'sms_consent': True,
@@ -4100,7 +4206,7 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
     """Background task for all DB/email work after TwiML is already returned to Twilio."""
     try:
         if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
-            lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
+            lead = await db.leads.find_one(phone_match_query(from_number), {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
             logger.info(f'[TWILIO-BG] STOP processed for {from_number}')
             await db.daily_bounce_log.insert_one({
                 'type': 'sms_optout',
@@ -4115,7 +4221,7 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
         elif msg_upper == 'START':
             logger.info(f'[TWILIO-BG] START/resubscribe processed for {from_number}')
         else:
-            lead = await db.leads.find_one({'phone': from_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
+            lead = await db.leads.find_one(phone_match_query(from_number), {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
             lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
             safe_from = escape_html(from_number)
             safe_name = escape_html(lead_name)
@@ -4130,7 +4236,7 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
             await send_resend_email(to=STAFF_EMAIL, subject=safe_sms_text(f'SMS Reply from {from_number} ({lead_name})', 220), html=html, message_kind='internal')
             if lead:
                 await db.leads.update_one(
-                    {'phone': from_number},
+                    phone_match_query(from_number),
                     {'$push': {'activity_log': {
                         'action': 'sms_reply',
                         'note': f'Replied via SMS: "{message[:100]}"',
@@ -4741,6 +4847,35 @@ async def startup():
         return
     await db.leads.create_index('id', unique=True)
     await db.leads.create_index('email')
+    # A person is one lead per location. The intake handler already treats
+    # email plus location as identity, updating in place on a re-inquiry, but
+    # it established that by reading first and then writing, with nothing
+    # enforcing it in between.
+    #
+    # Two enquiries from the same person carrying DIFFERENT request ids, which
+    # is what happens when somebody submits, waits, and submits again from
+    # another tab, could both find no existing document and both insert. The
+    # same-request-id race was already closed by the unique indexes below plus
+    # DuplicateKeyError recovery; this is the other axis, and it was open.
+    #
+    # Created in the background and tolerantly: an existing collection may
+    # already hold duplicates from before this index existed, and refusing to
+    # start is the wrong response to historical data. A failure here is logged
+    # loudly and leaves the read-before-write behaviour exactly as it was.
+    try:
+        await db.leads.create_index(
+            [('email', 1), ('location', 1)],
+            unique=True,
+            name='unique_lead_identity',
+            partialFilterExpression={'email': {'$type': 'string'}},
+        )
+    except Exception as exc:
+        logger.error(
+            '[INDEX] Could not enforce one lead per email and location: %s. '
+            'Existing duplicates must be merged before this can be applied, '
+            'and until it is, simultaneous enquiries from one person can '
+            'create two records.', exc,
+        )
     await db.leads.create_index('status')
     await db.leads.create_index('lead_source')
     await db.leads.create_index('created_at')
