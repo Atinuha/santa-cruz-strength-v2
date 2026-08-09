@@ -4503,13 +4503,73 @@ async def seed_blog_posts():
             'created_at': now.isoformat(),
             'updated_at': now.isoformat(),
         },
-        # The thin original of "How Many Days a Week Should You Lift" was seeded
-        # here. It has been retired rather than consolidated: a content review
-        # found it substantially duplicative with the longer article in
-        # blog_articles.py, which covers the same two, three and four to five day
-        # frequency bands in 671 words against this one's 347, with the research
-        # and an FAQ on top. That article now occupies this slug, so the live and
-        # indexed URL keeps its equity and carries the better body.
+        # Mike's own article, live on santacruzstrength.com and published under
+        # his name. It was briefly replaced here by a longer imported article on
+        # the reasoning that the two were duplicative and the broad URL should
+        # carry the better body.
+        #
+        # That reasoning was not mine to act on. Overlap between two articles is
+        # an editorial question for the person who wrote one of them. Deciding it
+        # by overwriting his text with someone else's, on his own URL, is not a
+        # consolidation, it is a deletion with a redirect on top.
+        #
+        # Restored verbatim from the live site, which is the authority for what
+        # he published. The only change is the em dashes, which the site-wide
+        # copy rule replaces with commas everywhere, his words included.
+        #
+        # The longer article is back on its own beginner-scoped slug and stays
+        # indexable. Whether two articles on training frequency is one too many
+        # is a call for him, and it is listed as an open question rather than
+        # settled here.
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'How Many Days a Week Should You Lift? (The Real Answer)',
+            'slug': 'how-many-days-a-week-should-you-lift',
+            'excerpt': 'It\'s one of the most common questions we get. The answer depends on your goals, recovery capacity, and schedule - but there\'s a clear range that works for most people.',
+            'content': '''<p>This is one of the questions we hear most often from new members and people considering joining. The internet gives wildly different answers - some say 6 days a week, others say 2 is enough. The truth is somewhere in the middle, and it depends on you.</p>
+
+<h2>The Short Answer</h2>
+
+<p><strong>For most people: 3 days per week.</strong></p>
+
+<p>Three well-programmed sessions per week is enough to build real strength, add muscle, improve body composition, and maintain your results long-term. This holds true for beginners, intermediate lifters, and even many advanced athletes.</p>
+
+<h2>Why 3 Days Works</h2>
+
+<p>Muscle tissue repairs and grows during rest - not during the training session itself. Three sessions spaced throughout the week gives you enough stimulus to drive adaptation while allowing adequate recovery between sessions.</p>
+
+<p>A typical 3-day program at Santa Cruz Strength might look like:</p>
+<ul>
+<li><strong>Monday</strong> - Lower body focus (squat pattern + deadlift variation)</li>
+<li><strong>Wednesday</strong> - Upper body focus (push + pull)</li>
+<li><strong>Friday</strong> - Full body or sport-specific work</li>
+</ul>
+
+<h2>When to Train 4-5 Days</h2>
+
+<p>More advanced lifters with specific goals - powerlifting competition prep, building a particular muscle group, sport performance peaking - can benefit from 4 to 5 sessions per week. At this level, programming becomes more specialized and recovery management matters significantly more.</p>
+
+<h2>When 2 Days Is Enough</h2>
+
+<p>Two days of focused, heavy lifting is enough to maintain strength and provide measurable health benefits. If you\'re a busy professional, parent, or athlete whose primary sport is outside the gym, two sessions can absolutely move the needle.</p>
+
+<p>Something is always better than nothing. We would rather have you lift twice a week for five years than attempt six days a week for three weeks before burning out.</p>
+
+<h2>The Most Important Variable</h2>
+
+<p>Consistency over time beats frequency in the short term. The best program is the one you can actually do week after week, month after month. Start with three days. Get consistent. Build from there.</p>
+
+<p>If you\'re not sure where to start, our coaches at Santa Cruz Strength are happy to help you build a realistic schedule that works with your life.</p>''',
+            'category': 'Strength Science',
+            'tags': ['training frequency', 'beginners', 'programming', 'FAQ'],
+            'cover_image': None,  # see BLOG_COVERS_AWAITING_PERMISSION in blog_articles,
+            'published': True,
+            'seo_title': 'How Many Days a Week Should You Lift? | Santa Cruz Strength',
+            'seo_description': 'The honest answer on training frequency: how many days per week you should lift based on your goals, schedule, and recovery capacity.',
+            'author': 'Santa Cruz Strength',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        },
         {
             'id': str(uuid.uuid4()),
             'title': 'Is Strength Training Good for Beginners? (Yes - Here\'s Why)',

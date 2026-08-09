@@ -22,8 +22,8 @@ BUILD, exactly this
   dies on ERESOLVE, and --legacy-peer-deps installs 1510 packages, reports success, then fails
   the build on ajv. Seeing the ajv error means npm was used.
 
-  A correct build prints "34 canonical URLs", then "38 routes plus 404.html and
-  app-shell.html", then "[prerender] 38 routes rendered into their shells". Anything else,
+  A correct build prints "35 canonical URLs", then "39 routes plus 404.html and
+  app-shell.html", then "[prerender] 39 routes rendered into their shells". Anything else,
   discard the directory and rerun. Reaching for npx craco build skips those hooks and yields an
   artifact that looks fine and is silently missing the sitemap and every route shell.
 
@@ -41,7 +41,7 @@ BOOT, the five settings that decide whether it comes up
                           seeds nothing, and an empty blog reads as a broken deploy.
   Python 3.11, 3.12 or 3.13. On 3.14 the requirements are unresolvable.
 
-  A healthy first boot logs 26 blog posts, 7 team members, 33 content keys. Confirm all three.
+  A healthy first boot logs 27 blog posts, 7 team members, 33 content keys. Confirm all three.
 
 HOST RULE, the step that decides whether Google trusts the site
   deploy/ holds working configs for Netlify, Cloudflare Pages and Vercel with a README naming

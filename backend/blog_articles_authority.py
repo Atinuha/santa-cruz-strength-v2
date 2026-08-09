@@ -81,7 +81,7 @@ AUTHORITY_ARTICLES = [
 <li>Warm up longer than you used to and do not treat that as a sign of decline. It is a sign you are taking the first working set seriously.</li>
 </ul>
 
-<p>If you are also rebuilding a training habit from scratch, the frequency question is worth its own read: <a href="/blog/how-many-days-a-week-should-you-lift">how many days a week you should lift</a> covers how to pick a schedule you will actually keep.</p>
+<p>If you are also rebuilding a training habit from scratch, the frequency question is worth its own read: <a href="/blog/how-many-days-a-week-should-a-beginner-lift">how many days a week a beginner should lift</a> covers how to pick a schedule you will actually keep.</p>
 
 <h2>How long until your strength comes back</h2>
 

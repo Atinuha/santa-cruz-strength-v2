@@ -1,17 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "redirects": [
-    {
-      "source": "/blog/why-surfers-in-santa-cruz-should-lift-weights",
-      "destination": "/blog/strength-training-for-surfers-santa-cruz",
-      "permanent": true
-    },
-    {
-      "source": "/blog/how-many-days-a-week-should-a-beginner-lift",
-      "destination": "/blog/how-many-days-a-week-should-you-lift",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
       "source": "/staff/:path*",

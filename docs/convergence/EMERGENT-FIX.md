@@ -9,12 +9,12 @@ STEP 1, SET AND REBOOT
   Restart the backend. A healthy boot logs three lines. Read them:
     [SEED] Seeded 33 new site content keys
     [SEED] Created 7 team members
-    [SEED] Seeded 26 blog posts
+    [SEED] Seeded 27 blog posts
   Three lines, those numbers. Anything less means the seed is still gated; fix that before
   continuing, because every check below depends on it.
 
 STEP 2, PROVE THE DATA. Three commands, three numbers.
-  curl -s <api>/api/blog?limit=50 | grep -o '"slug"' | wc -l          expect 26
+  curl -s <api>/api/blog?limit=50 | grep -o '"slug"' | wc -l          expect 27
   curl -s <api>/api/team | grep -o '"name"' | wc -l                   expect 7
   curl -s <api>/api/content | grep -c "over 13 years"                 expect 1
 
@@ -28,16 +28,18 @@ STEP 3, PROVE THE PAGES. Loop, do not click.
   done
   Ten routes, ten 200s. Then four articles:
     /blog/gym-day-pass-santa-cruz  /blog/first-powerlifting-meet-guide
-    /blog/women-strength-training-santa-cruz  /blog/how-many-days-a-week-should-you-lift
+    /blog/women-strength-training-santa-cruz  /blog/return-to-lifting-after-injury
 
   Then open exactly three in a real browser and confirm text renders: the homepage, /about, and
   one article. A 200 with a blank body has shipped twice on this project, so a status code
   settles routing and a human eye settles rendering. Three pages is enough; the loop covers the
   rest.
 
-  The blog index links 25 while all 26 resolve. That gap is deliberate: one article is a
-  consolidated duplicate, kept reachable so its canonical can be read, with a 301 in front of it
-  in the host config. Count 25 on the index and treat it as correct.
+  The blog index links 26 while all 27 resolve. That gap is deliberate: one article is a
+  consolidated duplicate. It stays reachable and keeps its full text, with a canonical pointing
+  at the article that supersedes it, and the index does not link it because a canonical pointing
+  one way while the site links the other is a contradiction. Count 26 on the index and treat it
+  as correct.
 
 STEP 4, PROVE THE FUNNEL. This is the only thing on the site that makes money.
   Submit the tour form at /contact with real-looking data, land on /thank-you, then resubmit the
