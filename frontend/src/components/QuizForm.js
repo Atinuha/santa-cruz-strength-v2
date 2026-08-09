@@ -43,6 +43,7 @@ const STEP_COPY = [
 
 export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocus = false }) {
   const navigate = useNavigate();
+  const formRef = useRef(null);
   const firstInputRef = useRef(null);
   const formStarted = useRef(false);
   const requestIdRef = useRef(null);
@@ -56,9 +57,32 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
 
   if (!requestIdRef.current) requestIdRef.current = createLeadRequestId();
 
+  // Bring the new step into view under the fixed navbar, then focus.
+  //
+  // focus() scrolls the element into view on its own, but only minimally, so
+  // advancing a step put the next control flush against the top of the
+  // viewport and therefore underneath the fixed 64px navbar. On the tour form
+  // that meant the interest buttons were physically unclickable after step
+  // one: a visitor saw the form jump and had to scroll up to find the controls
+  // it had just moved them to. Found by driving the funnel in a browser, where
+  // the click landed on the navbar instead of the button.
+  //
+  // The navbar is measured rather than assumed, so this keeps working if its
+  // height changes. focus takes preventScroll so it does not undo the scroll
+  // that just happened.
   useEffect(() => {
     if (noAutoFocus && step === 0) return;
-    const focusTimer = window.setTimeout(() => firstInputRef.current?.focus(), 120);
+
+    const focusTimer = window.setTimeout(() => {
+      if (step > 0 && formRef.current) {
+        const navHeight = document.querySelector('nav')?.getBoundingClientRect().height ?? 64;
+        const target = formRef.current.getBoundingClientRect().top + window.scrollY - navHeight - 16;
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: Math.max(0, target), behavior: reduceMotion ? 'auto' : 'smooth' });
+      }
+      firstInputRef.current?.focus({ preventScroll: true });
+    }, 120);
+
     return () => window.clearTimeout(focusTimer);
   }, [step, noAutoFocus]);
 
@@ -150,7 +174,7 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
   }
 
   return (
-    <form onSubmit={submitForm} onFocusCapture={markStarted} onPointerDownCapture={markStarted} noValidate>
+    <form ref={formRef} onSubmit={submitForm} onFocusCapture={markStarted} onPointerDownCapture={markStarted} noValidate>
       {previewMode && (
         <div className="scs-preview-notice" role="note" data-testid="preview-tour-notice">
           Preview test mode. Use test information only. Nothing entered here will be sent or stored.
