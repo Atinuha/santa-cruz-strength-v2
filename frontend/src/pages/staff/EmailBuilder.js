@@ -14,6 +14,13 @@ import api from '../../lib/api';
 
 const GIPHY_KEY = process.env.REACT_APP_GIPHY_KEY || '';
 
+// Holding a key must not by itself be sufficient to reach a third party. That
+// rule governs every outbound path in this project and this one was outside it:
+// opening the picker fired a Giphy search immediately, from the browser, purely
+// because a key had been compiled in. The flag is the gate; the key is only a
+// credential. Unset means off, like everything else here.
+const GIPHY_ENABLED = process.env.REACT_APP_ALLOW_GIPHY === 'true' && Boolean(GIPHY_KEY);
+
 // ── Colour presets ────────────────────────────────────────────────────────────
 const COLOR_PRESETS = ['#0D5D3E','#1B7A4A','#FA5A5C','#F59E0B','#3B82F6','#8B5CF6','#1a1a1a','#444444','#888888','#ffffff'];
 
@@ -41,8 +48,9 @@ function GifPicker({ onSelect, onClose }) {
 
   const search = useCallback(async (q) => {
     if (!q.trim()) return;
-    if (!GIPHY_KEY) {
-      toast.error('GIF search is not configured');
+    // The gate, not just the credential. A compiled key is not permission.
+    if (!GIPHY_ENABLED) {
+      toast.error('GIF search is turned off for this deployment');
       setGifs([]);
       return;
     }
@@ -56,7 +64,9 @@ function GifPicker({ onSelect, onClose }) {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { search('gym workout strength'); }, [search]);
+  // No automatic search on open. It was the reason merely opening this picker
+  // caused third party egress, and a staff member who wants GIFs can type.
+  useEffect(() => { if (GIPHY_ENABLED) search('gym workout strength'); }, [search]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

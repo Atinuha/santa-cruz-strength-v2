@@ -73,8 +73,13 @@ export default function SMSBuilder() {
   }, [campaignId]);
 
   function defaultSMS(c) {
-    const joinUrl = c?.join_url || joinUrl();
-    return `Hey {{first_name}}, Santa Cruz Strength here. We've been thinking about you. Sign up for any committed membership and we'll give you 2 months free. No catch. ${joinUrl}${OPT_OUT_SUFFIX}`;
+    // The local name shadowed the imported joinUrl, so the fallback called the
+    // binding it was still initialising and threw ReferenceError: Cannot access
+    // 'joinUrl' before initialization. It fired whenever a campaign had no
+    // join_url, which is every newly created one. Renamed rather than reordered,
+    // because the shadowing is the defect and reordering only hides it.
+    const campaignJoinUrl = c?.join_url || joinUrl();
+    return `Hey {{first_name}}, Santa Cruz Strength here. We've been thinking about you. Sign up for any committed membership and we'll give you 2 months free. No catch. ${campaignJoinUrl}${OPT_OUT_SUFFIX}`;
   }
 
   // Insert merge field at cursor

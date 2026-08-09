@@ -58,7 +58,7 @@ Keep personal data in the database where it belongs, never in the repository.
 
 === THE STANDING INVARIANT, HOLD IT THROUGHOUT ===
 
-Sixteen ALLOW_* environment flags exist, every one defaulting to disabled, behind a global write gate middleware. Fourteen are declared in backend/runtime_safety.py; ALLOW_LEAD_CRM_RECORDING and ALLOW_GYMMASTER_PROSPECT_WRITES are read where they are used, in provider_dispatch.py and gymmaster_adapter.py. The invariant they encode: possessing an API key is never by itself sufficient to send anything outward. Keep it that way. One limit of the gate worth knowing before you trust it: it inspects the HTTP method, so a GET handler that performs an outbound call passes straight through it. Two such paths existed and are now flag gated, but the gate alone would not have stopped them, which is why the flags are the control that matters. Turning any outbound path on is a separate, deliberate, reviewed act, and each time you enable one you state in your report which flag you set, on which service, and the evidence that made it safe. Leave the flags present, leave their defaults disabled, and let configuration rather than code decide what is live.
+Sixteen ALLOW_* environment flags exist, every one defaulting to disabled, behind a global write gate middleware. Fourteen are declared in backend/runtime_safety.py; ALLOW_LEAD_CRM_RECORDING and ALLOW_GYMMASTER_PROSPECT_WRITES are read where they are used, in provider_dispatch.py and gymmaster_adapter.py. The invariant they encode: possessing an API key is never by itself sufficient to send anything outward. Keep it that way. One limit of the gate worth knowing before you trust it: it inspects the HTTP method, so a GET handler that performs an outbound call passes straight through it. Corporate business discovery is exactly that and the gate could never have seen it. Blog idea generation is a POST and was already subject to the middleware; it needed a flag for a different reason, which is that possessing a model provider key was itself sufficient to send. Both are now flag gated. A third case was found later and fixed the same way: a staff settings read persisted a cache on a GET, so protected read-only mode was not read-only. Turning any outbound path on is a separate, deliberate, reviewed act, and each time you enable one you state in your report which flag you set, on which service, and the evidence that made it safe. Leave the flags present, leave their defaults disabled, and let configuration rather than code decide what is live.
 
 === BUILD ===
 
@@ -81,7 +81,11 @@ on a fresh clone of this repository, so treat any deviation as a real problem:
 
 Ship state to preserve, verify each after deploy:
   React 19 SPA on CRACO, FastAPI backend on Motor and MongoDB.
-  Backend seeds 27 blog posts, site content, and 7 team members at startup.
+  Backend seeds 27 blog posts, site content, and 7 team members at startup,
+  but ONLY when ALLOW_DATABASE_WRITES and ALLOW_SEEDING are both true. With
+  either off it starts cleanly and seeds nothing, and the site then serves an
+  empty blog and no team, which reads as a broken deploy rather than a
+  configuration one. Set both for the first boot.
   137 backend tests, 60 frontend tests, 32 SEO validator checks, all passing. Run all three suites against the deployed configuration and paste the counts.
   27 blog articles, 83 internal links, 34 URL sitemap, 89 FAQ schema pairs, 39 route shells.
   Approved design ported from the client approved preview: Barlow Condensed and DM Sans self hosted, chalk #E8E1D6, clay #A5543B. Keep the fonts self hosted and the tokens intact.
@@ -108,6 +112,13 @@ unresolvable: google-api-core demands grpcio-status 1.75.1 or newer there,
 while this file pins 1.71.2, and pip stops with ResolutionImpossible. On 3.11
 everything installs clean.
 
+Two frontend build flags default off and cannot be set after the fact, because
+they are compiled into the bundle. REACT_APP_ALLOW_ANALYTICS must be true on the
+production build or GA4 can never load whatever consent a visitor gives.
+REACT_APP_ALLOW_GIPHY governs the staff email builder's GIF search, which
+reaches a third party from the browser, and holding a Giphy key is deliberately
+not sufficient on its own. Both fail closed when unset.
+
 Set BOOTSTRAP_OWNER_EMAIL and BOOTSTRAP_OWNER_PASSWORD before the first boot.
 They are the only path to a first admin account. Without them the backend logs
 "[BOOTSTRAP] No owner exists" on every start and nobody can sign in to the
@@ -127,7 +138,13 @@ Create a DOMAIN property. Verify by DNS TXT record. Submit sitemap.xml as a rela
 Verify by DNS, and only by DNS. GA4 verification fails here in a confusing way, because analytics is gated behind both a hostname check and a consent check, so the tag will not be present for the verifier. Reaching for the Google Analytics method will cost an hour and teach nothing. Go straight to the TXT record.
 
 4. RESEND, TRANSACTIONAL EMAIL
-The adapter exists and sits behind ALLOW_LEAD_RESEND. Configure the API key and verify the sending domain first. Enable the flag as its own deliberate step, send one test to an address the human names, and report the flag change with the message ID.
+The adapter sits behind ALLOW_LEAD_RESEND, and that flag alone is not
+sufficient. Sending also requires ALLOW_LEAD_OUTBOX_DISPATCH, because the
+outbox is what performs the send, and ALLOW_EMAIL_SENDS. Runtime validation
+refuses to start if a provider flag is on without the dispatch flag, so a
+partial configuration fails loudly rather than sending nothing quietly.
+LEAD_OUTBOX_TEST_RECIPIENT_MODE defaults true and confines delivery to the
+allowlist; turning it off is a separate deliberate act. Configure the API key and verify the sending domain first. Enable the flag as its own deliberate step, send one test to an address the human names, and report the flag change with the message ID.
 
 5. TWILIO, SMS: KEEP CLOSED
 HUMAN BLOCKED AT THE CARRIER. NOT A CODE PROBLEM.
@@ -137,7 +154,14 @@ The A2P 10DLC campaign is REJECTED at the carrier, errors 30896 and 30917. The t
 6. GYMMASTERONLINE CRM: KEEP CLOSED
 A recording adapter and a documented, cited contract exist. The account behind them is empty: zero members, no membership types, no billing provider configured, and nobody has yet read a companyid out of it. The adapter refuses to construct without both ALLOW_GYMMASTER_PROSPECT_WRITES and a durable journal, which is correct behavior, not a bug to route around.
 
-Leave it off until all of these are true and evidenced: a companyid read from the live account, membership types configured, a billing provider connected, and a durable journal in place. Recording mode may run. Prospect and member writes stay off. Create nothing real in that CRM.
+Leave it off until all of these are true and evidenced: a companyid read from
+the live account, membership types configured, a billing provider connected,
+and a durable journal in place.
+
+On recording mode: ALLOW_LEAD_CRM_RECORDING exists and gates it, but nothing
+currently feeds it, so enabling it produces no records. It is a capability
+waiting on an intake path, not a feature you can switch on and observe. Do
+not report it as working because the flag flipped. Prospect and member writes stay off. Create nothing real in that CRM.
 
 7. ANALYTICS, AND THE ONE THIRD PARTY THAT LOADS BEFORE CONSENT
 
@@ -160,7 +184,15 @@ consent value in utils/analyticsConsent, not on a button nobody presses. Raise
 it with the owner first. Worth knowing that the customer records handled by
 this business include EU data subjects, so if a privacy review ever happens
 this frame is the thing it will land on.
-GA4 and Meta are consent gated and hostname gated. On the production domain, verify with an open network tab that neither fires before consent, that both fire after consent is granted, and that neither fires on a non production hostname. Report the four observations.
+GA4 is gated three ways: a build time flag, the production hostname, and explicit consent. All three must be true.
+
+Set REACT_APP_ALLOW_ANALYTICS=true on the production build or analytics can never load, whatever consent a visitor gives. It defaults off, like every other outbound capability here.
+
+There is no Meta pixel in this codebase. An earlier version of this document told you to verify one fires, which would have sent you looking for something that does not exist. If Meta is wanted it has to be added, and it should be added behind the same three gates.
+
+On the production domain, verify with an open network tab: GA4 does not fire before consent, does fire after consent is granted, and does not fire on a non production hostname. Report the three observations.
+
+One third party does load before consent and it is deliberate. See step 7 above regarding the map.
 
 === HOLD THESE LINES THROUGHOUT ===
 

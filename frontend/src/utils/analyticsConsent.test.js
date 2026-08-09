@@ -38,7 +38,29 @@ describe('analytics privacy choice', () => {
     expect(gtag).toHaveBeenCalledWith('consent', 'update', { analytics_storage: 'denied' });
   });
 
+  test('a build that was not told it may load analytics never loads it', () => {
+    // ALLOW_ANALYTICS was a backend variable that never reached a browser, so
+    // the flag advertised as controlling analytics could not stop it. This is
+    // that flag, made real, and it fails closed when unset.
+    delete process.env.REACT_APP_ALLOW_ANALYTICS;
+    const storage = createStorage();
+    const appendChild = jest.fn();
+    const documentRef = {
+      location: { hostname: 'santacruzstrength.com' },
+      cookie: '',
+      querySelector: jest.fn(() => null),
+      createElement: jest.fn(() => ({ dataset: {} })),
+      head: { appendChild },
+    };
+    const windowRef = { localStorage: storage, location: { hostname: 'santacruzstrength.com' } };
+
+    saveAnalyticsConsent(ANALYTICS_GRANTED, { storage, windowRef, documentRef });
+
+    expect(appendChild).not.toHaveBeenCalled();
+  });
+
   test('loads GA only after a grant on the production hostname', () => {
+    process.env.REACT_APP_ALLOW_ANALYTICS = 'true';
     const storage = createStorage();
     const appendChild = jest.fn();
     const documentRef = {
@@ -55,6 +77,7 @@ describe('analytics privacy choice', () => {
   });
 
   test('stores analytics and advertising measurement as separate choices', () => {
+    process.env.REACT_APP_ALLOW_ANALYTICS = 'true';
     const storage = createStorage();
     const appendChild = jest.fn();
     const documentRef = {

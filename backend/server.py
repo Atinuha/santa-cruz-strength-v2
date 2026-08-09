@@ -510,9 +510,17 @@ async def get_sms_staff_numbers() -> list:
     doc = await db.sms_settings.find_one({'_id': 'staff_numbers'})
     if doc:
         return doc.get('numbers', [])
-    # Seed from env on first call
+    # Seed from env on first call.
+    #
+    # This persists, and it is reached from a GET. The write gate only inspects
+    # the HTTP method, so protected read-only mode could not see it and a read
+    # endpoint could write to the database while the service believed it could
+    # not. Gate it on the same flag the middleware enforces, so read-only means
+    # read-only however the write is reached. The value is still returned, so
+    # the endpoint keeps working; it simply does not persist a cache it was
+    # never asked to persist.
     seed = [n.strip() for n in os.environ.get('SMS_STAFF_NUMBERS', '').split(',') if n.strip()]
-    if seed:
+    if seed and ALLOW_DATABASE_WRITES:
         await db.sms_settings.replace_one(
             {'_id': 'staff_numbers'},
             {'_id': 'staff_numbers', 'numbers': seed},
@@ -1231,6 +1239,32 @@ async def create_lead_public(lead: LeadCreate, request: Request):
         'schema_version': lead.schema_version or 'legacy',
         'request_id': request_id,
         'request_ids': [request_id],
+        # Recorded, not rejected. The legacy route accepts a lead with no
+        # schema, brand, location, form, offer or consent, and defaults them
+        # silently, so an incomplete lead is indistinguishable from a complete
+        # one once stored. Nothing in this application posts here any more, both
+        # public forms use /v1/leads, but an unknown external caller might, and
+        # answering it with 422 would lose a real lead to enforce a contract it
+        # never agreed to. Losing a lead is the one failure this site cannot
+        # take.
+        #
+        # So the gap is made visible instead: the lead is stored, and staff and
+        # any future CRM sync can see it arrived without a contract rather than
+        # discovering it at the point of a terminal provider failure. GymMaster
+        # hard requires a surname, so this is the field that turns an accepted
+        # lead into an undeliverable one later.
+        'contract_complete': bool(
+            lead.schema_version and lead.brand_id and lead.location_id
+            and lead.form_id and lead.offer_id and lead.consent
+        ),
+        'contract_missing_fields': [
+            name for name, value in (
+                ('schema_version', lead.schema_version), ('brand_id', lead.brand_id),
+                ('location_id', lead.location_id), ('form_id', lead.form_id),
+                ('offer_id', lead.offer_id), ('consent', lead.consent),
+                ('last_name', lead.last_name.strip() if lead.last_name else ''),
+            ) if not value
+        ],
         'brand_id': lead.brand_id or 'santa_cruz_strength',
         'location_id': lead.location_id or 'santa_cruz_ca',
         'form_id': lead.form_id or 'legacy_website_form',
@@ -4250,9 +4284,16 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
 
 @api_router.get('/webhooks/twilio-sms')
 async def twilio_sms_health():
-    """Health check - lets you verify the webhook URL is reachable from a browser."""
+    """Health check - lets you verify the webhook URL is reachable from a browser.
+
+    Returns an EMPTY TwiML document. A <Message> element is an instruction to
+    the carrier to send an SMS, so the old body made an unauthenticated GET with
+    no flag on it capable of causing an outbound message. An empty <Response> is
+    still valid TwiML and still proves the URL is reachable and parsing, which
+    is all a health check needs to do.
+    """
     return Response(
-        content='<Response><Message>Webhook is live.</Message></Response>',
+        content='<Response></Response>',
         media_type='application/xml',
     )
 
@@ -4298,12 +4339,28 @@ async def twilio_sms_webhook(request: Request):
                 "Call/Text: (408) 337-6709\n"
                 "Email: management@santacruzstrength.com\n"
                 "Visit: santacruzstrength.com\n\n"
-                "Hours: Mon-Sun 9am-9pm (staffed) | 24/7 member access"
+                "Contact us for current staffed hours. Members have 24/7 app access."
             )
             twiml = f'<Response><Message>{auto_reply}</Message></Response>'
 
         # Fire-and-forget: all DB/email work happens AFTER the response is sent
         asyncio.create_task(_twilio_inbound_background(from_number, message, msg_upper))
+
+        # A TwiML <Message> is an outbound SMS, billed and delivered like any
+        # other, so it belongs behind the flag that governs sending. It was
+        # behind ALLOW_TWILIO_WEBHOOKS only, which governs whether we ACCEPT
+        # inbound, a different question.
+        #
+        # The consent state above is applied either way and deliberately so.
+        # Honouring STOP is not an outbound capability to be switched off; a
+        # customer who opts out must be opted out whether or not this service is
+        # currently allowed to reply. Only the reply is suppressed.
+        if not ALLOW_SMS_SENDS:
+            logger.info(
+                '[TWILIO-INBOUND] Reply suppressed, ALLOW_SMS_SENDS is off. '
+                'Keyword state was still applied.'
+            )
+            return Response(content='<Response></Response>', media_type='application/xml')
 
         return Response(content=twiml, media_type='application/xml')
     except Exception as e:

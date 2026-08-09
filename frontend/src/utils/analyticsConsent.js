@@ -44,7 +44,18 @@ export function deleteAnalyticsCookies(documentRef) {
   });
 }
 
+// The same build time gate the inline bootstrap in public/index.html applies.
+// Both paths can load GA4, so gating one and not the other would leave the flag
+// half honest. Unset means off, matching every other outbound capability here.
+//
+// Read at call time rather than captured at module load, so a test can exercise
+// both states and so the value cannot be frozen by import order.
+export function analyticsBuildEnabled() {
+  return process.env.REACT_APP_ALLOW_ANALYTICS === 'true';
+}
+
 export function loadGoogleAnalytics(windowRef = typeof window !== 'undefined' ? window : null, documentRef = typeof document !== 'undefined' ? document : null) {
+  if (!analyticsBuildEnabled()) return false;
   if (!windowRef || !documentRef || windowRef.location.hostname !== 'santacruzstrength.com') return false;
   if (documentRef.querySelector('script[data-scs-analytics="ga4"]')) return true;
 
