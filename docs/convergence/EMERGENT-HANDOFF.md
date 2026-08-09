@@ -10,13 +10,20 @@ CLONE
 BUILD, exactly this
   cd frontend
   yarn install --frozen-lockfile
-  REACT_APP_BACKEND_URL=<api-url> REACT_APP_ALLOW_ANALYTICS=true npm run build
+  REACT_APP_BACKEND_URL=<api-url> PRERENDER_API_URL=<api-url> REACT_APP_ALLOW_ANALYTICS=true yarn build
 
-  Use yarn to install. npm cannot install this project: npm ci finds no lockfile, npm install
+  PRERENDER_API_URL is new and it is not optional. The public pages are rendered to static HTML
+  at build time by reading that API, which is what puts the copy and the article bodies into the
+  first response instead of behind a fetch. The backend must be running and seeded before you
+  build. Without it the build stops and says so, rather than emitting 38 pages with perfect
+  metadata and empty bodies. Boot the backend first, then build.
+
+  Use yarn throughout. npm cannot install this project: npm ci finds no lockfile, npm install
   dies on ERESOLVE, and --legacy-peer-deps installs 1510 packages, reports success, then fails
   the build on ajv. Seeing the ajv error means npm was used.
 
-  A correct build prints "34 canonical URLs" then "39 routes plus 404.html". Anything else,
+  A correct build prints "34 canonical URLs", then "38 routes plus 404.html and
+  app-shell.html", then "[prerender] 38 routes rendered into their shells". Anything else,
   discard the directory and rerun. Reaching for npx craco build skips those hooks and yields an
   artifact that looks fine and is silently missing the sitemap and every route shell.
 
@@ -34,7 +41,7 @@ BOOT, the five settings that decide whether it comes up
                           seeds nothing, and an empty blog reads as a broken deploy.
   Python 3.11, 3.12 or 3.13. On 3.14 the requirements are unresolvable.
 
-  A healthy first boot logs 27 blog posts, 7 team members, 29 content keys. Confirm all three.
+  A healthy first boot logs 26 blog posts, 7 team members, 33 content keys. Confirm all three.
 
 HOST RULE, the step that decides whether Google trusts the site
   deploy/ holds working configs for Netlify, Cloudflare Pages and Vercel with a README naming
@@ -92,8 +99,8 @@ HOLD THESE LINES
   customer file appearing in a commit as a stop-work event.
 
 CLOSE OUT WITH
-  Live URLs. Both curl outputs. Test counts from the deployed configuration: 148 backend, 61
-  frontend, 32 SEO. DNS verification and sitemap status. Every ALLOW_* flag you changed with its
+  Live URLs. Both curl outputs. Test counts from the deployed configuration: 154 backend, 68
+  frontend, 19 SEO. DNS verification and sitemap status. Every ALLOW_* flag you changed with its
   evidence. Open items listed as open.
 
 FIVE ANSWERS ONLY THE GYM OWNER HAS. Surface these to Muhammad at handoff and again at launch,

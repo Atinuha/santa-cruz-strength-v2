@@ -7,14 +7,14 @@ STEP 1, SET AND REBOOT
   ALLOW_DATABASE_WRITES=true
   ALLOW_SEEDING=true
   Restart the backend. A healthy boot logs three lines. Read them:
-    [SEED] Seeded 29 new site content keys
+    [SEED] Seeded 33 new site content keys
     [SEED] Created 7 team members
-    [SEED] Seeded 27 blog posts
+    [SEED] Seeded 26 blog posts
   Three lines, those numbers. Anything less means the seed is still gated; fix that before
   continuing, because every check below depends on it.
 
 STEP 2, PROVE THE DATA. Three commands, three numbers.
-  curl -s <api>/api/blog?limit=50 | grep -o '"slug"' | wc -l          expect 27
+  curl -s <api>/api/blog?limit=50 | grep -o '"slug"' | wc -l          expect 26
   curl -s <api>/api/team | grep -o '"name"' | wc -l                   expect 7
   curl -s <api>/api/content | grep -c "over 13 years"                 expect 1
 
@@ -28,16 +28,16 @@ STEP 3, PROVE THE PAGES. Loop, do not click.
   done
   Ten routes, ten 200s. Then four articles:
     /blog/gym-day-pass-santa-cruz  /blog/first-powerlifting-meet-guide
-    /blog/women-strength-training-santa-cruz  /blog/return-to-lifting-after-injury
+    /blog/women-strength-training-santa-cruz  /blog/how-many-days-a-week-should-you-lift
 
   Then open exactly three in a real browser and confirm text renders: the homepage, /about, and
   one article. A 200 with a blank body has shipped twice on this project, so a status code
   settles routing and a human eye settles rendering. Three pages is enough; the loop covers the
   rest.
 
-  The blog index links 25 while all 27 resolve. That gap is deliberate: two articles are
-  consolidated duplicates kept reachable so their canonical can be read. Count 25 on the index
-  and treat it as correct.
+  The blog index links 25 while all 26 resolve. That gap is deliberate: one article is a
+  consolidated duplicate, kept reachable so its canonical can be read, with a 301 in front of it
+  in the host config. Count 25 on the index and treat it as correct.
 
 STEP 4, PROVE THE FUNNEL. This is the only thing on the site that makes money.
   Submit the tour form at /contact with real-looking data, land on /thank-you, then resubmit the
@@ -63,7 +63,7 @@ WORK CHEAPLY, IT IS PART OF THE JOB
   Verify by counting, not by reading. Every check above is a command whose output is the proof,
   which is why none of them require opening a source file. Reach for the code only when a number
   comes back wrong, and then read only the file that number points at. Trust the repository:
-  148 backend tests, 61 frontend, 32 SEO checks all pass on a fresh clone, so a failure here is
+  154 backend tests, 68 frontend, 19 SEO checks all pass on a fresh clone, so a failure here is
   configuration rather than code, and configuration is where to look first.
 ```
 
