@@ -7,11 +7,12 @@ import PublicImage from '../components/PublicImage';
 import { SCS_MEDIA } from '../config/media';
 import { GYM_CONFIG } from '../config';
 import { User, ArrowRight } from 'lucide-react';
+import { preloaded } from '../lib/preload';
 
 export default function About() {
-  const [team, setTeam] = useState([]);
-  const [trainers, setTrainers] = useState([]);
-  const [content, setContent] = useState({});
+  const [team, setTeam] = useState(() => preloaded('team', []).filter(m => m.category === 'team'));
+  const [trainers, setTrainers] = useState(() => preloaded('team', []).filter(m => m.category === 'trainer'));
+  const [content, setContent] = useState(() => preloaded('content', {}));
   useEffect(() => {
     getTeamMembers().then(({ data }) => { setTeam(data.filter(m => m.category === 'team')); setTrainers(data.filter(m => m.category === 'trainer')); }).catch(() => {});
     getSiteContent().then(({ data }) => setContent(data)).catch(() => {});

@@ -4,8 +4,21 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import DOMPurify from 'dompurify';
 import { getBlogPost } from '../lib/api';
-import { Calendar, ArrowLeft, ArrowRight, Tag, AlertTriangle, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Tag, AlertTriangle, Clock } from 'lucide-react';
+
 import { GYM_CONFIG } from '../config';
+import { preloaded, hasPreloaded } from '../lib/preload';
+
+// created_at is not a publication date. It is the moment the seeder inserted
+// the row, so every article in the corpus reports the same value and that value
+// moves forward every time the backend restarts. Rendering it told a reader all
+// 27 articles were published today, which is false, and told a crawler the
+// whole corpus is republished on every deploy, which is worse.
+//
+// The build time JSON-LD already omits datePublished for exactly this reason.
+// The visible page now agrees with it. When a real publication date per article
+// exists, put it on the post record and render from that field; do not point
+// this back at a database timestamp.
 
 const sanitizeDashes = (s) => (s || '').replace(/[\u2013\u2014]/g, ',');
 const stripSuffix = (s) => (s || '').replace(/\s*\|\s*Santa Cruz Strength\s*$/i, '');
@@ -44,13 +57,24 @@ function readingTime(html) {
 
 export default function BlogPost() {
   const { slug } = useParams();
-  const [post, setPost] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Seeded from the prerender payload. Without it this component returns a
+  // spinner before it returns anything else, so the initial HTML of every
+  // article was a spinning div and the body of the article existed only after
+  // a fetch resolved. That is the one page on this site whose entire value is
+  // its text.
+  const [post, setPost] = useState(() => preloaded(`post:${slug}`, null));
+  const [loading, setLoading] = useState(() => !hasPreloaded(`post:${slug}`));
   const [notFound, setNotFound] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
 
   useEffect(() => {
-    setLoading(true); setNotFound(false); setIsDraft(false);
+    // Blanking to the spinner is only honest when there is nothing to show. On
+    // a prerendered article the text is already on screen and already correct,
+    // so replacing it with a spinner for the length of one fetch would be a
+    // flash of nothing in place of content the visitor can read. Refresh
+    // underneath instead.
+    if (!hasPreloaded(`post:${slug}`)) setLoading(true);
+    setNotFound(false); setIsDraft(false);
     // The staff draft fallback that used to sit in this catch called an
     // editorial-drafts endpoint this backend does not publish. An unpublished
     // slug is simply not found here.
@@ -106,7 +130,7 @@ export default function BlogPost() {
           <Link to="/blog" className="inline-flex items-center gap-1.5 text-sm mb-5 transition-colors duration-180" style={{ color: 'var(--scs-text-muted)' }}><ArrowLeft size={13} /> Blog</Link>
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--scs-stone)' }}>{post?.category}</span>
-            {post?.created_at && <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}><Calendar size={11} />{new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>}
+
             {post?.content && <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}><Clock size={11} />{readingTime(post.content)} min read</span>}
             {post?.author && <span className="text-xs" style={{ color: 'var(--scs-text-light)' }}>by {post.author}</span>}
           </div>

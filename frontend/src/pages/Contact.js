@@ -6,9 +6,10 @@ import { GYM_CONFIG } from '../config';
 import MapEmbed from '../components/MapEmbed';
 import { getSiteContent } from '../lib/api';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { preloaded } from '../lib/preload';
 
 export default function Contact() {
-  const [c, setC] = useState({});
+  const [c, setC] = useState(() => preloaded('content', {}));
   useEffect(() => {
     getSiteContent().then(({ data }) => setC(data)).catch(() => {});
   }, []);

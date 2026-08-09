@@ -68,10 +68,11 @@
     "build": "craco build",
     "prebuild:preview": "node scripts/generate-sitemap.mjs",
     "build:preview": "REACT_APP_PREVIEW_MODE=true craco build",
-    "postbuild:preview": "REACT_APP_PREVIEW_MODE=true node scripts/generate-route-heads.mjs",
-    "postbuild": "node scripts/generate-route-heads.mjs",
+    "postbuild:preview": "REACT_APP_PREVIEW_MODE=true node scripts/generate-route-heads.mjs && REACT_APP_PREVIEW_MODE=true node scripts/prerender.mjs",
+    "postbuild": "node scripts/generate-route-heads.mjs && node scripts/prerender.mjs",
     "validate:seo": "node scripts/generate-sitemap.mjs && node scripts/validate-seo.mjs",
-    "test": "craco test"
+    "test": "craco test",
+    "prerender": "node scripts/prerender.mjs"
   },
   "browserslist": {
     "production": [
@@ -96,6 +97,7 @@
     "eslint-plugin-react": "7.37.4",
     "eslint-plugin-react-hooks": "5.2.0",
     "globals": "15.15.0",
+    "jsdom": "^16.6.0",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.0"
   },

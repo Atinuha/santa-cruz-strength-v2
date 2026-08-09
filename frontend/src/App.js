@@ -81,10 +81,19 @@ function RouteTracker() {
   return null;
 }
 
-export default function App() {
+/**
+ * Everything inside the router, with the router itself left to the caller.
+ *
+ * The browser wraps this in BrowserRouter below. scripts/prerender.mjs wraps
+ * the same component in StaticRouter to render each route to HTML at build
+ * time. One route table, two entry points: a route that exists for a visitor
+ * cannot go missing from the prerender, because there is nowhere for it to go
+ * missing from.
+ */
+export function AppRoutes() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <>
         <RouteSeo />
         <RouteTracker />
         <div id="main-content">
@@ -168,7 +177,15 @@ export default function App() {
           }}
         />
         <AnalyticsConsent />
-      </BrowserRouter>
+      </>
     </AuthProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   );
 }

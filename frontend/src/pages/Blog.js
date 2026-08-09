@@ -4,7 +4,12 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { getBlogPosts } from '../lib/api';
 import { withoutConsolidated } from '../seo/consolidatedSlugs';
-import { Calendar, ArrowRight, Clock, FileText, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Clock, FileText, AlertTriangle } from 'lucide-react';
+
+import { preloaded, hasPreloaded } from '../lib/preload';
+
+// See the note in BlogPost.js: created_at is a seed timestamp, not a
+// publication date, so no card shows one.
 
 const sanitize = (s) => (s || '').replace(/[\u2013\u2014]/g, ',');
 const CATEGORIES = ['All', 'Outdoor Athletes', 'Strength Science', 'Getting Started', 'Gym Culture', 'Training Tips'];
@@ -34,11 +39,6 @@ function PostCard({ post, featured = false }) {
       <div className={`p-5 flex flex-col flex-1 ${featured ? 'md:p-6' : ''}`}>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--scs-stone)' }}>{post.category}</span>
-          {post.created_at && (
-            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}>
-              <Calendar size={10} />{new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
-          )}
           {mins > 0 && (
             <span className="text-xs flex items-center gap-1" style={{ color: 'var(--scs-text-light)' }}>
               <Clock size={10} />{mins} min read
@@ -76,14 +76,16 @@ function DraftCard({ draft }) {
 }
 
 export default function Blog() {
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState(() => preloaded('posts', []));
   const [drafts, setDrafts] = useState([]);
   const [cat, setCat] = useState('All');
-  const [loading, setLoading] = useState(true);
-  const isStaff = !!localStorage.getItem('token');
+  const [loading, setLoading] = useState(() => !hasPreloaded('posts'));
+  const isStaff = typeof localStorage !== 'undefined' && !!localStorage.getItem('token');
 
   useEffect(() => {
-    setLoading(true);
+    // Same reasoning as the article page: a prerendered index already lists the
+    // articles, so it refreshes underneath rather than emptying itself first.
+    if (!hasPreloaded('posts')) setLoading(true);
     // The API defaults to 20 and caps at 50 (server.py:2020). The index asked
     // for neither, so it silently showed the first 20 of 27 articles and seven
     // were unreachable except by direct URL. Ask for the maximum, and see the
