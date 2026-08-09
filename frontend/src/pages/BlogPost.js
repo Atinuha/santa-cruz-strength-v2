@@ -73,14 +73,27 @@ export default function BlogPost() {
     // so replacing it with a spinner for the length of one fetch would be a
     // flash of nothing in place of content the visitor can read. Refresh
     // underneath instead.
-    if (!hasPreloaded(`post:${slug}`)) setLoading(true);
+    const seeded = hasPreloaded(`post:${slug}`);
+    if (!seeded) setLoading(true);
     setNotFound(false); setIsDraft(false);
     // The staff draft fallback that used to sit in this catch called an
     // editorial-drafts endpoint this backend does not publish. An unpublished
     // slug is simply not found here.
+    //
+    // But "the request failed" and "this article does not exist" are different
+    // claims, and this catch was making the second one on the evidence of the
+    // first. On a prerendered article the full text is already on screen and
+    // already correct; a backend restart mid-refresh replaced it with a page
+    // saying the article is not here. The page whose entire value is its text
+    // was deleting its text on a network blip.
+    //
+    // So not-found is only asserted for a slug this route never had content
+    // for. A failed refresh of an article we already rendered keeps the
+    // article, which is the honest outcome: what is on screen is what the last
+    // successful build published.
     getBlogPost(slug)
       .then(r => { setPost(r.data); })
-      .catch(() => { setNotFound(true); })
+      .catch(() => { if (!seeded) setNotFound(true); })
       .finally(() => setLoading(false));
   }, [slug]);
 

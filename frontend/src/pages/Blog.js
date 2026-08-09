@@ -83,30 +83,42 @@ export default function Blog() {
   const [posts, setPosts] = useState(() => preloaded('posts', []));
   const [cat, setCat] = useState('All');
   const [loading, setLoading] = useState(() => !hasPreloaded('posts'));
+  const [loadFailed, setLoadFailed] = useState(false);
 
+  // One request, then filter in the browser.
+  //
+  // This used to refetch on every category tab, with `.catch(() => setPosts([]))`
+  // on the end. That catch was a live bug: the shell arrives from the prerender
+  // carrying all 26 articles, and the moment the refresh failed for any reason,
+  // a transient network blip, a backend restart, a wrong API base in a preview
+  // build, the page threw away 26 correct articles and rendered its own empty
+  // state. Content that was right became content that said there was none.
+  //
+  // Fetching once and filtering client side removes the whole class of problem:
+  // there is one load rather than six, the tabs are instant, and a failure can
+  // only ever leave the prerendered list in place rather than replace it. The
+  // API still defaults to 20 and caps at 50 (server.py), so the limit stays at
+  // the maximum, and utils/blogIndexLimit.test.js still fails the build if the
+  // corpus outgrows that cap.
   useEffect(() => {
-    // Same reasoning as the article page: a prerendered index already lists the
-    // articles, so it refreshes underneath rather than emptying itself first.
     if (!hasPreloaded('posts')) setLoading(true);
-    // The API defaults to 20 and caps at 50 (server.py:2020). The index asked
-    // for neither, so it silently showed the first 20 of 27 articles and seven
-    // were unreachable except by direct URL. Ask for the maximum, and see the
-    // test in utils/blogIndexLimit.test.js which fails once the corpus outgrows
-    // the cap rather than letting articles disappear again.
-    const p = { limit: 50 };
-    if (cat !== 'All') p.category = cat;
-    // Always fetch published posts regardless of environment/preview mode
-    getBlogPosts(p)
-      .then(r => setPosts(r.data.posts || []))
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
-  }, [cat]);
+    let cancelled = false;
+    getBlogPosts({ limit: 50 })
+      .then(r => { if (!cancelled) { setPosts(r.data.posts || []); setLoadFailed(false); } })
+      .catch(() => { if (!cancelled) setLoadFailed(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
-  const listed = withoutConsolidated(posts);
+  const listed = withoutConsolidated(posts)
+    .filter(post => cat === 'All' || post.category === cat);
   const showHierarchy = cat === 'All' && listed.length > 3;
   const lead = showHierarchy ? listed[0] : null;
   const seconds = showHierarchy ? listed.slice(1, 3) : [];
   const rest = showHierarchy ? listed.slice(3) : listed;
+  // Only the true zero-article case is a failure worth naming. An empty
+  // category with articles elsewhere on the page is just an empty category.
+  const nothingAtAll = withoutConsolidated(posts).length === 0;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>
@@ -174,13 +186,37 @@ export default function Blog() {
                 </div>
               </div>
             ) : listed.length === 0 ? (
+              /* Three different nothings, and they are not the same message.
+                 An empty category is normal. An empty site after a failed
+                 load is a problem the visitor should be told about rather
+                 than being shown a confident claim that nothing is written. */
               <div className="py-20 max-w-md">
                 <BlueprintIcon name="own-program" size={72} className="mb-5" />
-                <h2 className="font-display text-2xl mb-2" style={{ color: 'var(--scs-forest)' }}>Nothing here yet</h2>
-                <p className="text-sm mb-6" style={{ color: 'var(--scs-text-muted)' }}>
-                  No articles are published in this category. Try another category, or ask us in person.
-                </p>
-                <button onClick={() => setCat('All')} className="btn-outline text-sm">Show all articles</button>
+                {nothingAtAll && loadFailed ? (
+                  <>
+                    <h2 className="font-display text-2xl mb-2" style={{ color: 'var(--scs-forest)' }}>The articles did not load</h2>
+                    <p className="text-sm mb-6" style={{ color: 'var(--scs-text-muted)' }}>
+                      Something went wrong reaching the site. Reloading usually fixes it.
+                    </p>
+                    <button onClick={() => window.location.reload()} className="btn-primary text-sm">Reload the page</button>
+                  </>
+                ) : nothingAtAll ? (
+                  <>
+                    <h2 className="font-display text-2xl mb-2" style={{ color: 'var(--scs-forest)' }}>Nothing published yet</h2>
+                    <p className="text-sm mb-6" style={{ color: 'var(--scs-text-muted)' }}>
+                      There are no articles on the blog at the moment. The gym is still open.
+                    </p>
+                    <Link to="/contact" className="btn-clay text-sm">Book a Free Facility Tour</Link>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="font-display text-2xl mb-2" style={{ color: 'var(--scs-forest)' }}>Nothing in {cat} yet</h2>
+                    <p className="text-sm mb-6" style={{ color: 'var(--scs-text-muted)' }}>
+                      No articles carry this category. The rest of the writing is still there.
+                    </p>
+                    <button onClick={() => setCat('All')} className="btn-outline text-sm">Show all articles</button>
+                  </>
+                )}
               </div>
             ) : (
               <>
