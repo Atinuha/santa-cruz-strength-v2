@@ -35,7 +35,7 @@ const LEAD_ENDPOINTS = /['"`]\/(v1\/leads|leads|corporate-leads)['"`]/;
 const BUILDERS = /build(Member|Corporate)LeadPayload/;
 
 describe('lead submissions use the contract builder', () => {
-  const sources = walk(SRC).filter((file) => !file.includes(`${path.sep}tournament${path.sep}`));
+  const sources = walk(SRC);
 
   test('the scan found source files, so this is not vacuous', () => {
     expect(sources.length).toBeGreaterThan(20);
