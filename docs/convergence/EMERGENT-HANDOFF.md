@@ -136,7 +136,27 @@ A recording adapter and a documented, cited contract exist. The account behind t
 
 Leave it off until all of these are true and evidenced: a companyid read from the live account, membership types configured, a billing provider connected, and a durable journal in place. Recording mode may run. Prospect and member writes stay off. Create nothing real in that CRM.
 
-7. ANALYTICS
+7. ANALYTICS, AND THE ONE THIRD PARTY THAT LOADS BEFORE CONSENT
+
+Verified in a browser against the production build, not asserted. On the
+homepage and on /about the only hosts contacted are the site's own origin and
+its own API. No Google, no Meta, no font CDN, no social widget. Fonts are self
+hosted and the analytics tags are consent gated, so the invariant holds.
+
+One exception, and it is deliberate rather than an oversight. On /contact the
+Google Maps iframe loads immediately, which sends the visitor's IP to Google
+and sets Google cookies before the consent control has been answered. The owner
+reviewed this and asked for the map to be visible on arrival rather than behind
+a button, which is the right call for a local gym whose visitors are mostly
+working out how far away it is. The reasoning is recorded in
+frontend/src/components/MapEmbed.js rather than hidden.
+
+Do not silently "fix" this by putting the map back behind a click. If it ever
+has to change, the honest fix is to gate the frame on the existing marketing
+consent value in utils/analyticsConsent, not on a button nobody presses. Raise
+it with the owner first. Worth knowing that the customer records handled by
+this business include EU data subjects, so if a privacy review ever happens
+this frame is the thing it will land on.
 GA4 and Meta are consent gated and hostname gated. On the production domain, verify with an open network tab that neither fires before consent, that both fire after consent is granted, and that neither fires on a non production hostname. Report the four observations.
 
 === HOLD THESE LINES THROUGHOUT ===
