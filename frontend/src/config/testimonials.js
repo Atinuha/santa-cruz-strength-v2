@@ -7,10 +7,20 @@
  *   Nothing is edited. Not spelling, not grammar, not length, not the em dash in
  *   Jeremy's quote. A tidied review is a fabricated review.
  *
- *   No star ratings. The live site renders five filled stars on every card
- *   unconditionally, from `[...Array(5)]`, with no rating field behind it. That
- *   is decoration, not data. Reproducing it would be publishing a rating nobody
- *   gave, so this carries the words and not the stars.
+ *   Five stars render on every card, matching how the business already
+ *   publishes these on its live site. Worth knowing what that is and is not:
+ *   the live site draws them from `[...Array(5)]` with no rating field behind
+ *   any review, so the stars are presentation rather than per-review data. The
+ *   owner reviewed this and asked for them, and since these are genuine
+ *   positive reviews already shown this way on the site they came from,
+ *   reproducing the presentation is consistent rather than invented.
+ *
+ *   They carry aria-hidden, because a screen reader announcing "five stars"
+ *   five times over would be asserting a rating the data does not hold. The
+ *   words are the substance and the words are what gets read.
+ *
+ *   If a real rating ever arrives, put it in this file per review and render
+ *   from it. Do not add a rating field that defaults to five.
  *
  *   No dates and no source attribution, because the live site publishes neither.
  *   Several read like Google reviews and the site does link a Google review URL
