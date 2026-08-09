@@ -55,7 +55,7 @@ Keep personal data in the database where it belongs, never in the repository.
 
 === THE STANDING INVARIANT, HOLD IT THROUGHOUT ===
 
-Fourteen ALLOW_* environment flags exist, every one defaulting to disabled, behind a global write gate middleware. The invariant they encode: possessing an API key is never by itself sufficient to send anything outward. Keep it that way. Turning any outbound path on is a separate, deliberate, reviewed act, and each time you enable one you state in your report which flag you set, on which service, and the evidence that made it safe. Leave the flags present, leave their defaults disabled, and let configuration rather than code decide what is live.
+Sixteen ALLOW_* environment flags exist, every one defaulting to disabled, behind a global write gate middleware. Fourteen are declared in backend/runtime_safety.py; ALLOW_LEAD_CRM_RECORDING and ALLOW_GYMMASTER_PROSPECT_WRITES are read where they are used, in provider_dispatch.py and gymmaster_adapter.py. The invariant they encode: possessing an API key is never by itself sufficient to send anything outward. Keep it that way. One limit of the gate worth knowing before you trust it: it inspects the HTTP method, so a GET handler that performs an outbound call passes straight through it. Two such paths existed and are now flag gated, but the gate alone would not have stopped them, which is why the flags are the control that matters. Turning any outbound path on is a separate, deliberate, reviewed act, and each time you enable one you state in your report which flag you set, on which service, and the evidence that made it safe. Leave the flags present, leave their defaults disabled, and let configuration rather than code decide what is live.
 
 === BUILD ===
 
@@ -79,8 +79,8 @@ on a fresh clone of this repository, so treat any deviation as a real problem:
 Ship state to preserve, verify each after deploy:
   React 19 SPA on CRACO, FastAPI backend on Motor and MongoDB.
   Backend seeds 27 blog posts, site content, and 7 team members at startup.
-  132 backend tests, 35 frontend tests, 30 SEO validator checks, all passing. Run all three suites against the deployed configuration and paste the counts.
-  27 blog articles, 83 internal links, 34 URL sitemap, 99 FAQ schema pairs, 39 route shells.
+  137 backend tests, 60 frontend tests, 32 SEO validator checks, all passing. Run all three suites against the deployed configuration and paste the counts.
+  27 blog articles, 83 internal links, 34 URL sitemap, 89 FAQ schema pairs, 39 route shells.
   Approved design ported from the client approved preview: Barlow Condensed and DM Sans self hosted, chalk #E8E1D6, clay #A5543B. Keep the fonts self hosted and the tokens intact.
 
 === THE SEQUENCE ===
@@ -147,6 +147,28 @@ Keep all 14 ALLOW_* flags present and defaulting to disabled. Change what a depl
 Keep the customer lead export, and any file carrying personal data, out of every commit and every build artifact.
 Keep every photograph real. The client approved positioning forbids stock and AI generated imagery explicitly, and the previous build's AI gym photos were removed for exactly that reason. Where an image is missing, leave the slot empty and list it as needed rather than filling it.
 Keep the 25 [FACT NEEDED] markers in the blog articles exactly as they are. They are deliberate. The gym owner fills them or they stay visible. A plausible guess in that slot is a false claim on a live business website.
+
+=== TWO THINGS WRONG ON THE CURRENT LIVE SITE, CARRY THEM ACROSS ===
+
+Found by reading santacruzstrength.com directly. Neither is caused by this
+rebuild and neither is fixed by deploying it. Surface both to the owner.
+
+The day pass window contradicts itself three ways on the live site right now.
+The footer and hours block say 9:00 AM to 6:00 PM, Monday through Sunday. The
+day pass plan card says access during staffed hours, 9am to 9pm. The join page
+FAQ repeats 9am to 9pm. Published staffed hours are 8 to 7 on weekdays and 9 to
+2 at weekends, so 9am to 9pm matches nothing the business publishes anywhere.
+Under the footer's claim a Sunday day pass runs to 6 PM; under the tier terms it
+would end at 2 PM when the doors are staffed until. Somebody buys a pass and
+drives to a locked door. The owner has to settle which is true.
+
+The live structured data publishes hours the gym does not keep. Its JSON-LD
+says Monday to Friday 05:30 to 21:00 and Saturday 07:00 to 17:00, against
+visible copy of 8 to 7 and 9 to 2. That is what Google reads, so it may be
+telling people to arrive at half past five in the morning. This rebuild
+deliberately omits openingHoursSpecification rather than publish an unverified
+claim, and a validator check enforces that omission. Do not add hours to the
+schema until the owner has confirmed them in writing.
 
 === OPEN FACTS ONLY THE GYM OWNER CAN SUPPLY ===
 
