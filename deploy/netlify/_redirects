@@ -1,0 +1,22 @@
+# Host rule for Netlify and Cloudflare Pages. Same syntax on both.
+# Copy this file to frontend/public/_redirects before building, so Create React
+# App copies it into build/ where the host looks for it.
+#
+# Order matters. These are evaluated top to bottom and the first match wins, so
+# the three 200 rewrites must precede the catch all.
+#
+# Static files are served before any rule here is consulted, so the 39
+# prerendered route shells and every asset resolve normally and never reach the
+# catch all.
+
+# Client only routes with no prerendered directory. Without these, a staff
+# member who refreshes /staff/dashboard is locked out of the CRM and every
+# review link is dead.
+/staff/*                 /index.html   200
+/review/*                /index.html   200
+/implementation-preview  /index.html   200
+
+# Everything else that did not match a real file is genuinely not found.
+# A SPA catch all returning 200 here would get the sitemap rejected by Search
+# Console and the site mis-indexed.
+/*                       /404.html     404

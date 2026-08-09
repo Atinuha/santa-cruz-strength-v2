@@ -42,10 +42,13 @@ An earlier repository carried a 389 KB blob holding a real customer export:
 addresses, including EU data subjects. That repository has been abandoned. The
 one you are cloning was created fresh and its history never contained the file.
 
-Verified before the first push, against the isolated clone that seeded it: 134
-commits, 1679 objects, the export's blob sha absent from the object store, the
-commit that introduced it absent, and no blob anywhere carrying those column
-headers. The GitHub API returns 404 for that blob by direct sha lookup on this
+Verified before the first push, against the isolated clone that seeded it, and
+re-verified since on a fresh clone by scanning every blob in the object store: the export's blob sha absent from the object store, the
+commit that introduced it absent, and no blob anywhere carrying that export.
+Note that backend/server.py legitimately contains the strings date_of_birth and
+zip_code: it generates the staff CSV import template, with one fabricated
+sample row. A reviewer grepping for column names will hit that and should not
+escalate over it. The GitHub API returns 404 for that blob by direct sha lookup on this
 repository.
 
 What this means for you: the history you clone is clean, and it must stay that
@@ -69,7 +72,7 @@ A correct build prints these three lines and produces these artifacts. Measured
 on a fresh clone of this repository, so treat any deviation as a real problem:
 
   prebuild   Generated sitemap with 34 canonical URLs.
-  build      main.js about 267 kB gzipped, main.css about 21 kB
+  build      main.js about 268 kB gzipped, main.css about 19.6 kB gzipped
   postbuild  Generated route-specific head shells for 39 routes plus 404.html.
 
   build/sitemap.xml   exists, 34 <url> entries
@@ -96,7 +99,7 @@ The rule, in order:
   Rewrite only /staff/*, /review/*, and /implementation-preview to index.html with status 200.
   Send everything else to /404.html with a genuine 404 status.
 
-Vercel, Netlify, and Cloudflare Pages configurations already exist in the repo notes. Use the one matching the chosen host rather than authoring a new pattern. Verify with `curl -I https://<domain>/this-path-does-not-exist` and confirm the response line reads 404, then confirm /staff/anything returns 200.
+Working configurations for Netlify, Cloudflare Pages and Vercel are committed at deploy/ in this repository, with a README explaining which file goes where and how to verify it. Use the one matching your host rather than authoring a new pattern. An earlier version of this document claimed these existed when they did not, which an acceptance test caught. Verify with `curl -I https://<domain>/this-path-does-not-exist` and confirm the response line reads 404, then confirm /staff/anything returns 200.
 
 2b. FIVE THINGS THAT BREAK ON FIRST DEPLOY, HANDLE THEM IN STEP 1
 
@@ -166,7 +169,7 @@ Leave Twilio sending off while the A2P registration reads rejected.
 Keep all 14 ALLOW_* flags present and defaulting to disabled. Change what a deployment sets, never what the code defaults to.
 Keep the customer lead export, and any file carrying personal data, out of every commit and every build artifact.
 Keep every photograph real. The client approved positioning forbids stock and AI generated imagery explicitly, and the previous build's AI gym photos were removed for exactly that reason. Where an image is missing, leave the slot empty and list it as needed rather than filling it.
-Keep the 25 [FACT NEEDED] markers in the blog articles exactly as they are. They are deliberate. The gym owner fills them or they stay visible. A plausible guess in that slot is a false claim on a live business website.
+Keep the [FACT NEEDED] markers in the blog articles exactly as they are. There are 26 of them across 25 lines, one line carrying two, spread over blog_articles.py, blog_articles_segments.py and blog_articles_authority.py. They are deliberate. The gym owner fills them or they stay visible. A plausible guess in that slot is a false claim on a live business website.
 
 === TWO THINGS WRONG ON THE CURRENT LIVE SITE, CARRY THEM ACROSS ===
 
