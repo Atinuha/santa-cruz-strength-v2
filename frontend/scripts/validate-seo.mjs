@@ -173,10 +173,17 @@ check(
 // instead of letting stale schema ship.
 // Articles are split across backend/blog_articles*.py and the set grows, so glob
 // rather than name one file. A new sibling is picked up with no edit here.
+// server.py is named explicitly alongside the glob because the seven articles
+// the gym owner wrote himself are seeded there, not in blog_articles*.py. Until
+// they carried an FAQ this check simply never looked at them, so his seven, the
+// highest intent pages on the site, sat outside the one mechanism that stops
+// schema outliving copy. The extraction below keys off a Frequently Asked
+// Questions heading inside a slug block, so the rest of server.py contributes
+// nothing and cannot be picked up by accident.
 const backendDir = resolve(frontendRoot, '../backend');
 const articleSourcePaths = existsSync(backendDir)
   ? (await readdir(backendDir))
-    .filter((name) => /^blog_articles.*\.py$/.test(name))
+    .filter((name) => /^blog_articles.*\.py$/.test(name) || name === 'server.py')
     .map((name) => resolve(backendDir, name))
   : [];
 const blogFaq = JSON.parse(await readFile(resolve(frontendRoot, 'src/seo/blog-faq.json'), 'utf8'));
