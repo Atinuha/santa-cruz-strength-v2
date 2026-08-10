@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
@@ -12,9 +13,29 @@ import { preloaded } from '../lib/preload';
    unchanged; what is new is that each carries the equipment mark that
    matches it, so the list reads as four different people rather than
    four bullets. */
+/* Inline prose links. Same weight and underline the rest of the site uses
+   inside a sentence, so a link in body copy reads as part of the sentence
+   rather than as a button someone bolted on. */
+const INLINE_LINK = 'font-semibold underline underline-offset-4 decoration-1';
+const INLINE_LINK_STYLE = { color: 'var(--scs-forest)' };
+
 const AUDIENCES = [
-  { icon: 'first-timer', text: 'People new to lifting who want proper form from the start' },
-  { icon: 'plate', text: 'Athletes returning from injury or building injury resilience' },
+  {
+    icon: 'first-timer',
+    text: (
+      <>
+        People <Link to="/blog/beginner-strength-training-santa-cruz" className={INLINE_LINK} style={INLINE_LINK_STYLE}>new to lifting</Link> who want proper form from the start
+      </>
+    ),
+  },
+  {
+    icon: 'plate',
+    text: (
+      <>
+        Athletes <Link to="/blog/return-to-lifting-after-injury" className={INLINE_LINK} style={INLINE_LINK_STYLE}>returning from injury</Link> or building injury resilience
+      </>
+    ),
+  },
   { icon: 'own-program', text: 'Lifters who want structured programming' },
   { icon: 'competitor', text: 'Anyone who wants a clear plan and direct coaching' },
 ];
@@ -91,14 +112,14 @@ export default function PersonalTraining() {
             </h2>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {AUDIENCES.map((item, index) => (
-                <li key={item.text} data-reveal>
+                <li key={item.icon} data-reveal>
                   <BlueprintIcon name={item.icon} size={56} draw className="mb-4" />
                   <p className="text-base leading-relaxed m-0" style={{ color: 'var(--scs-text)' }}>{item.text}</p>
                 </li>
               ))}
             </ul>
             <p className="text-base leading-relaxed mt-12 pt-8 max-w-[68ch]" style={{ color: 'var(--scs-text-muted)', borderTop: '1px solid var(--scs-border)' }}>
-              Coaching is optional and separate from membership. You can train here on your own program, add coaching later, or start with a coach from your first session.
+              Coaching is optional and separate from membership. You can train here on your own program, add coaching later, or start with a coach from your first session. <Link to="/join" className={INLINE_LINK} style={INLINE_LINK_STYLE}>Membership plans and prices</Link> are listed on their own page, and <Link to="/blog/personal-trainer-vs-open-gym-santa-cruz" className={INLINE_LINK} style={INLINE_LINK_STYLE}>personal trainer vs open gym</Link> compares the two ways of training.
             </p>
           </div>
         </section>
@@ -147,7 +168,7 @@ export default function PersonalTraining() {
                   Bring anything a coach would otherwise have to guess at: a current program, a note from a physical therapist, a competition date, a list of the lifts that bother you. Wear something you could train in, in case it makes sense to move.
                 </p>
                 <p className="text-base leading-relaxed m-0 max-w-[68ch]" style={{ color: 'var(--scs-text-muted)' }}>
-                  You leave knowing what training with a coach here would look like for you. Deciding on the spot is not expected.
+                  You leave knowing what training with a coach here would look like for you. Deciding on the spot is not expected. If you would rather see the room before you talk about coaching, you can <Link to="/contact" className={INLINE_LINK} style={INLINE_LINK_STYLE}>book a free facility tour</Link> instead.
                 </p>
               </div>
             </div>

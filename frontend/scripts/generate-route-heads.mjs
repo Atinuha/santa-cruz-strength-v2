@@ -21,6 +21,31 @@ const blogFaq = JSON.parse(
 );
 const template = await readFile(resolve(buildRoot, 'index.html'), 'utf8');
 
+// Every route shell is a copy of build/index.html with its head rewritten. That
+// is correct exactly once per build, while index.html is still the empty shell,
+// and destructive the second time.
+//
+// Run this again after prerender.mjs has filled build/index.html, and the
+// template is no longer an empty shell: it is the rendered homepage. Every
+// other route then gets written as the homepage's body wearing that route's
+// title, canonical and schema. /join would serve homepage copy under an
+// OfferCatalog describing nine memberships that are nowhere on the page.
+//
+// This is not a hypothetical sequence. Re-running postbuild after a later step
+// in the chain failed starts here, and so does refreshing one title by hand
+// rather than rebuilding. Nothing downstream notices: validate-seo.mjs asserts
+// that a shell carries structured data, never that the body belongs to the
+// route it is filed under, and prerender.mjs would only object on the run
+// after next. A deploy taken in between ships every page but the homepage
+// looking complete and rendering the wrong one.
+if (!/<div id="root">\s*<\/div>/.test(template)) {
+  console.error('[route-heads] build/index.html is not an empty shell: its #root already');
+  console.error('[route-heads] has content, so this build has been prerendered. Copying it');
+  console.error('[route-heads] into every route would publish the homepage body under every');
+  console.error('[route-heads] other page metadata. Run a full build instead: yarn build');
+  process.exit(1);
+}
+
 const lastModifiedBySlug = new Map(
   posts.filter((post) => post.published).map((post) => [post.slug, post.lastModified])
 );

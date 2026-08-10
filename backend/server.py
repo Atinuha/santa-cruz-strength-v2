@@ -4,7 +4,7 @@ from fastapi.responses import StreamingResponse, Response, JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import BulkWriteError, DuplicateKeyError
 import os
 import logging
 import csv
@@ -1659,8 +1659,28 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
         try:
             result = await db.leads.insert_many(docs_to_insert, ordered=False)
             imported = len(result.inserted_ids)
+        except BulkWriteError as bulk_err:
+            # A partial write. Some rows landed, some collided. details carries
+            # the real count, so report it and say which rows did not make it.
+            imported = (bulk_err.details or {}).get('nInserted', 0)
+            for write_error in (bulk_err.details or {}).get('writeErrors', []):
+                errors.append(f"row {write_error.get('index', '?')}: {write_error.get('errmsg', 'write failed')}")
+            logger.warning('[LEADS] CSV import partially failed: %s of %s inserted',
+                           imported, len(docs_to_insert))
         except Exception as bulk_err:
-            imported = getattr(getattr(bulk_err, 'details', {}), 'get', lambda *a: len(docs_to_insert))('nInserted', len(docs_to_insert))
+            # Anything else, a dropped connection or a write concern timeout,
+            # means nothing is known to have been written. This used to answer
+            # with the full row count: the previous line read the missing
+            # nInserted key off an empty dict and fell back to len(docs). A
+            # staff member importing 2000 leads while the database was briefly
+            # unreachable was told 2000 were imported, and none were. Silence
+            # about a failure is worse than the failure.
+            logger.exception('[LEADS] CSV import failed, no rows are known to have been written')
+            raise HTTPException(
+                status_code=503,
+                detail='The import could not be written to the database. No leads were saved. '
+                       'Nothing was partially applied that you need to undo, and the file can be uploaded again.',
+            )
 
     return {'imported': imported, 'skipped': skipped, 'errors': errors[:20], 'total_rows': len(rows)}
 

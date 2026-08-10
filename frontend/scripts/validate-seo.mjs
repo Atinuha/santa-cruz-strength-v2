@@ -144,6 +144,29 @@ check(
   renderedFaq.length > 0 && JSON.stringify(renderedFaq) === JSON.stringify(encodedFaq),
   `homepage FAQ schema mirrors the questions the page renders (page ${renderedFaq.length}, schema ${encodedFaq.length})`
 );
+// The same rule, applied to money.
+//
+// MEMBERSHIP_OFFERS in generate-route-heads.mjs is a hand-kept duplicate of the
+// plan cards in Join.js. The homepage FAQ has a mirror above and the blog FAQ
+// has one below; the prices had neither, and a price is the thing on this site
+// most likely to actually change. A rate edited in Join.js would have shipped
+// with the OfferCatalog quietly telling Google the old number, and every gate
+// would still have gone green.
+//
+// Compared as a multiset rather than by plan name, because the schema name
+// folds in the plan subtitle and is not a mechanical transform of the rendered
+// one. What has to hold is that the figures the page shows and the figures the
+// schema asserts are the same figures.
+const joinSource = await readFile(resolve(frontendRoot, 'src/pages/Join.js'), 'utf8');
+const offersSource = await readFile(resolve(frontendRoot, 'scripts/generate-route-heads.mjs'), 'utf8');
+const renderedPrices = [...joinSource.matchAll(/\bprice:\s*'\$(\d+)'/g)].map((m) => m[1]).sort();
+const offersBlock = offersSource.match(/const MEMBERSHIP_OFFERS = \[([\s\S]*?)\n\];/)?.[1] ?? '';
+const encodedPrices = [...offersBlock.matchAll(/\bprice:\s*'(\d+)'/g)].map((m) => m[1]).sort();
+check(
+  renderedPrices.length > 0 && JSON.stringify(renderedPrices) === JSON.stringify(encodedPrices),
+  `membership schema prices mirror the plan cards (page ${renderedPrices.length}, schema ${encodedPrices.length})`
+);
+
 // Same rule for blog FAQ schema: it may only assert Q and A pairs the article
 // actually renders. The pairs live in the backend article source, so read that
 // rather than trust a hand-kept copy. If the source moves, this fails loudly

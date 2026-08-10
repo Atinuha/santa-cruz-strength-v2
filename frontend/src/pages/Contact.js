@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
@@ -14,9 +15,23 @@ import { trackDirectionsClick } from '../utils/analytics';
    because this is the page where a visitor decides to ask for one.
    Nothing is added: no duration, no availability window, no promise
    about who will be on the floor, because none of that is confirmed. */
+/* Inline prose links. Same weight and underline the rest of the site uses
+   inside a sentence, so a link in body copy reads as part of the sentence
+   rather than as a button someone bolted on. */
+const INLINE_LINK = 'font-semibold underline underline-offset-4 decoration-1';
+const INLINE_LINK_STYLE = { color: 'var(--scs-forest)' };
+
 const WHAT_TO_EXPECT = [
   { icon: 'building', title: 'See the full training floor', body: 'You walk through the space and see the racks, platforms, plates and open floor.' },
-  { icon: 'own-program', title: 'Ask how access works', body: 'Bring your questions about membership options and access before you decide anything.' },
+  {
+    icon: 'own-program',
+    title: 'Ask how access works',
+    body: (
+      <>
+        Bring your questions about <Link to="/join" className={INLINE_LINK} style={INLINE_LINK_STYLE}>membership options</Link> and access before you decide anything.
+      </>
+    ),
+  },
   { icon: 'contact', title: 'Talk to available staff', body: 'A team member walks you through the gym and answers what they can.' },
   { icon: 'first-timer', title: 'No paperwork to visit', body: 'A tour commits you to nothing. You can leave without signing anything.' },
 ];
@@ -103,7 +118,10 @@ export default function Contact() {
                             hours are published across this business and none is
                             confirmed current, so this page asks rather than
                             guesses. See the note in src/config/index.js. */}
-                        <dd className="text-sm m-0" style={{ color: 'var(--scs-text-muted)' }}>Contact us for current staffed hours and tour availability.</dd>
+                        <dd className="text-sm m-0" style={{ color: 'var(--scs-text-muted)' }}>
+                          Contact us for current staffed hours and tour availability.{' '}
+                          <Link to="/blog/how-24-7-gym-access-works-santa-cruz" className={INLINE_LINK} style={INLINE_LINK_STYLE}>How 24/7 gym access works</Link> covers what member access outside staffed hours involves.
+                        </dd>
                       </div>
                     </div>
                   </dl>
@@ -127,7 +145,9 @@ export default function Contact() {
               <div className="lg:col-span-6 lg:col-start-7">
                 <div className="p-6 sm:p-8" style={{ background: 'var(--scs-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius-card)' }}>
                   <h2 className="font-display text-2xl mb-1" style={{ color: 'var(--scs-forest)' }}>Request Your Free Facility Tour</h2>
-                  <p className="text-sm mb-6" style={{ color: 'var(--scs-text-muted)' }}>Tour requests, questions, or general inquiries.</p>
+                  <p className="text-sm mb-6" style={{ color: 'var(--scs-text-muted)' }}>
+                    Tour requests, questions, or general inquiries. If your question is about coaching, <Link to="/personal-training" className={INLINE_LINK} style={INLINE_LINK_STYLE}>personal training</Link> explains how it starts.
+                  </p>
                   <QuizForm source="contact_page" noAutoFocus />
                 </div>
               </div>
@@ -147,6 +167,9 @@ export default function Contact() {
                 </li>
               ))}
             </ul>
+            <p className="text-base leading-relaxed mt-10 mb-0 max-w-[68ch]" style={{ color: 'var(--scs-text-muted)' }}>
+              <Link to="/blog/first-visit-powerlifting-gym" className={INLINE_LINK} style={INLINE_LINK_STYLE}>First visit to a powerlifting gym</Link> covers the practical part of walking in. Published workshops and barbell club sessions are listed on the <Link to="/events" className={INLINE_LINK} style={INLINE_LINK_STYLE}>events page</Link>.
+            </p>
           </div>
         </section>
       </main>

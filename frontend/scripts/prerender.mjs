@@ -200,6 +200,73 @@ const payloadFor = (path) => {
   return { content };
 };
 
+/* -------------------------------------------------------------- the people */
+
+// Person nodes are written here rather than in generate-route-heads.mjs because
+// that script runs first and never reads the API. A coach encoded there could
+// only be a hardcoded copy of a record the backend owns, which is the drift the
+// FAQ mirror checks in validate-seo.mjs exist to prevent. This script already
+// holds the same /api/team response the page renders from, so the schema and the
+// markup cannot disagree: they are built from one object in one pass.
+//
+// Only three properties are encoded, and only when the record carries them:
+// name, jobTitle from role, image from photo_url. The About and Personal
+// Training cards render exactly those, plus bio when it is set. Nothing about
+// certifications, experience, specialties or contact details is asserted,
+// because no field in the record holds any of it and a Person node is precisely
+// where an invented credential would look most authoritative.
+const origin = registry.site.origin;
+
+// One @id per human, not per appearance. Two trainers are rendered on both
+// /about and /personal-training, and a route scoped @id would describe them as
+// two different people who happen to share a name and a face.
+const personId = (member) =>
+  `${origin}/#person-${member.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+
+const personNode = (member) => ({
+  '@type': 'Person',
+  '@id': personId(member),
+  name: member.name,
+  ...(member.role ? { jobTitle: member.role } : {}),
+  ...(member.photo_url
+    ? { image: /^https?:\/\//.test(member.photo_url) ? member.photo_url : `${origin}${member.photo_url}` }
+    : {}),
+  ...(member.bio ? { description: member.bio } : {}),
+  // worksFor rather than an employee array on the gym. The gym node is declared
+  // once, on the homepage, and the byte comparison in validate-seo.mjs pins
+  // src/seo/home-schema.json to public/index.html; pointing from the Person side
+  // states the same relation without editing a file that has to change in two
+  // places at once.
+  worksFor: { '@id': `${origin}/#gym` },
+});
+
+// Who each page actually renders. About.js splits the roster by category and
+// renders both halves; PersonalTraining.js renders the trainers only.
+//
+// The components do not filter on is_visible, they trust the endpoint to have
+// done it. Filtering again here means a record that slips through renders on the
+// page but claims nothing in the schema, which is the harmless direction of that
+// disagreement.
+const peopleFor = (path) => {
+  const visible = team.filter((member) => member.is_visible);
+  if (path === '/about') return visible;
+  if (path === '/personal-training') return visible.filter((member) => member.category === 'trainer');
+  return [];
+};
+
+const PAGE_SCHEMA = /(<script id="page-schema" type="application\/ld\+json">)([\s\S]*?)(<\/script>)/;
+
+/** Returns the shell with the people merged into its graph, or null if there is no graph. */
+const withPeople = (shell, path) => {
+  const people = peopleFor(path);
+  if (!people.length) return shell;
+  const match = shell.match(PAGE_SCHEMA);
+  if (!match) return null;
+  const graph = JSON.parse(match[2]);
+  graph['@graph'].push(...people.map(personNode));
+  return shell.replace(PAGE_SCHEMA, (_, open, __, close) => `${open}${embedJson(graph)}${close}`);
+};
+
 /* ------------------------------------------------------------- the bundle */
 
 const webpack = require('webpack');
@@ -370,6 +437,16 @@ for (const route of registry.routes) {
     '</body>',
     `<script id="scs-preload">window.__SCS_PRELOAD__=${embedJson(payloadFor(route.path))}</script>\n</body>`
   );
+
+  // A route that renders coaches and has no graph to put them in is a build that
+  // silently drops the entities, so stop instead of writing the shell.
+  const peopled = withPeople(shell, route.path);
+  if (peopled === null) {
+    failures.push(`${route.path}: renders team members but its shell carries no page-schema graph`);
+    continue;
+  }
+  shell = peopled;
+
   await writeFile(shellPath, shell, 'utf8');
   written += 1;
 }
