@@ -1,0 +1,212 @@
+<title>Santa Cruz Strength v2 — Release Gate</title>
+<style>
+  :root {
+    --ink: #1b1b19; --muted: #5c5c55; --line: #dcdcd4; --bg: #faf8f3;
+    --card: #ffffff; --forest: #1f4d3a; --mint: #dcece2; --warn: #8a5a1c;
+    --warnbg: #fdf3e3; --pass: #1f4d3a; --passbg: #e8f2ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #ececE4; --muted: #a3a39a; --line: #33332e; --bg: #14140f;
+      --card: #1c1c17; --forest: #8fd0ae; --mint: #1f3329; --warn: #e0b070;
+      --warnbg: #2a2015; --pass: #8fd0ae; --passbg: #17281f; }
+  }
+  :root[data-theme="dark"] {
+    --ink: #ececE4; --muted: #a3a39a; --line: #33332e; --bg: #14140f;
+    --card: #1c1c17; --forest: #8fd0ae; --mint: #1f3329; --warn: #e0b070;
+    --warnbg: #2a2015; --pass: #8fd0ae; --passbg: #17281f;
+  }
+  :root[data-theme="light"] {
+    --ink: #1b1b19; --muted: #5c5c55; --line: #dcdcd4; --bg: #faf8f3;
+    --card: #ffffff; --forest: #1f4d3a; --mint: #dcece2; --warn: #8a5a1c;
+    --warnbg: #fdf3e3; --pass: #1f4d3a; --passbg: #e8f2ec;
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 62rem; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.15; margin: 0 0 .4rem;
+    letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 2.5rem; font-size: .95rem; }
+  h2 { font-size: 1.15rem; margin: 3rem 0 .25rem; letter-spacing: .01em; }
+  h2 + .note { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+  .grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 1rem 1.1rem; }
+  .stat b { display: block; font-size: 1.7rem; line-height: 1.1; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; }
+  .stat span { display: block; color: var(--muted); font-size: .82rem; margin-top: .3rem; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); }
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .92rem; }
+  th, td { text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--line);
+    vertical-align: top; }
+  th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .tag { display: inline-block; padding: .12rem .5rem; border-radius: 99px;
+    font-size: .74rem; font-weight: 600; white-space: nowrap; }
+  .pass { background: var(--passbg); color: var(--pass); }
+  .open { background: var(--warnbg); color: var(--warn); }
+  code { font: .86em ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--mint); color: var(--forest); padding: .1em .4em; border-radius: 4px; }
+  pre { margin: 0; padding: 1rem; overflow-x: auto; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px;
+    font: .84rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  ul { padding-left: 1.15rem; }
+  li { margin: .35rem 0; }
+  .q { background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--warn);
+    border-radius: 8px; padding: .9rem 1.1rem; margin: .6rem 0; }
+  .q b { display: block; margin-bottom: .25rem; }
+  a { color: var(--forest); }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 3.5rem 0 0; }
+</style>
+
+<div class="wrap">
+
+<h1>Santa Cruz Strength v2 — release gate</h1>
+<p class="sub">
+  Run 10 August 2026 against the local build, before the push to
+  <code>Atinuha/santa-cruz-strength-v2</code>. Every number below came from a
+  command, not an impression.
+</p>
+
+<div class="grid">
+  <div class="stat"><b>154</b><span>backend tests, all passing</span></div>
+  <div class="stat"><b>68</b><span>frontend tests, all passing</span></div>
+  <div class="stat"><b>32</b><span>SEO assertions, all passing</span></div>
+  <div class="stat"><b>39</b><span>routes prerendered to HTML</span></div>
+  <div class="stat"><b>78</b><span>route audits, two widths</span></div>
+  <div class="stat"><b>0</b><span>audit findings remaining</span></div>
+</div>
+
+<h2>What the gate ran</h2>
+<p class="note">In order. A failure at any step stops the build rather than shipping.</p>
+<pre>python -m unittest discover -s tests          154 passed
+CI=true craco test --watchAll=false            68 passed, 16 suites
+yarn build                                     compiled, no new warnings
+  node scripts/generate-route-heads.mjs        39 routes + 404 + app-shell
+  node scripts/prerender.mjs                   33 content keys, 7 team, 27 posts
+                                               27/27 article bodies
+                                               39 routes rendered into shells
+node scripts/validate-seo.mjs                  SEO VALIDATION PASSED
+console audit, every public route, 1280 + 414  0 findings</pre>
+
+<h2>Three defects found, and fixed</h2>
+<p class="note">
+  All three were invisible on inspection. They surfaced only from measuring the
+  rendered page in a browser at two widths.
+</p>
+
+<div class="scroll">
+<table>
+  <tr><th>Where</th><th>What was wrong</th><th>Fix</th><th></th></tr>
+  <tr>
+    <td><code>/join</code>, mobile</td>
+    <td>Membership carousel dots were a 22&times;20 tap target, under the
+        24&times;24 minimum, on the page where a mis-tap costs a membership.</td>
+    <td><code>min-w</code>/<code>min-h</code> set a 24px floor on the button.
+        The 4px dot is unchanged.</td>
+    <td><span class="tag pass">fixed</span></td>
+  </tr>
+  <tr>
+    <td>Every article</td>
+    <td>The "All articles" link, the only way back out of an article, was 20px
+        tall.</td>
+    <td><code>py-1</code> takes it to 28px; <code>-my-1 mb-5</code> return the
+        8px, so the header rhythm is identical.</td>
+    <td><span class="tag pass">fixed</span></td>
+  </tr>
+  <tr>
+    <td><code>/events</code></td>
+    <td>Prerendered from no data at all: heading, address, two empty tabs. The
+        one indexable route whose entire value is its list was the one route
+        whose list was never fetched at build time.</td>
+    <td>The prerender now reads <code>/api/events?upcoming=true</code> and the
+        page seeds from that payload, the shape <code>/blog</code> already used.</td>
+    <td><span class="tag pass">fixed</span></td>
+  </tr>
+</table>
+</div>
+
+<h2>How the events fix was proved</h2>
+<p class="note">
+  An empty calendar cannot demonstrate a calendar renderer, so the calendar was
+  filled and then emptied again.
+</p>
+<ul>
+  <li>A probe event was created through the staff API against the in-memory
+      review database.</li>
+  <li>A full build put <code>PRERENDER PROBE MEET</code> into
+      <code>build/events/index.html</code>. Before the fix it could not have
+      appeared there at all.</li>
+  <li>The probe was deleted and the site rebuilt. The page returned to its
+      honest empty state: <em>"Nothing on the calendar right now"</em>, with the
+      tour CTA still in the initial HTML.</li>
+</ul>
+<p>
+  An empty calendar is deliberately <strong>not</strong> a shortfall in the
+  build gate. A quiet month is a true state, not an unseeded database, and the
+  site must not become unbuildable because nothing is booked.
+</p>
+
+<h2>The machine layer, still intact</h2>
+<p class="note">The visual convergence was checked against the thing it could most easily have broken.</p>
+<div class="scroll">
+<table>
+  <tr><th>Check</th><th>Result</th></tr>
+  <tr><td>Every public route ships body copy in the initial HTML</td><td>39/39</td></tr>
+  <tr><td>All nine membership tiers in <code>/join</code> HTML and <code>OfferCatalog</code></td><td>9 offers, priced</td></tr>
+  <tr><td>Collapsed content still in the document (plans, FAQ answers)</td><td><code>hidden</code>, never unmounted</td></tr>
+  <tr><td>Article body without JavaScript</td><td>429 words on the sample route</td></tr>
+  <tr><td>Sections hidden by a failed entrance animation</td><td>0, on every route checked</td></tr>
+  <tr><td>Unknown path returns a real 404</td><td>404, not a soft 200</td></tr>
+  <tr><td>Staff routes carry <code>X-Robots-Tag: noindex</code> and the no-canonical shell</td><td>confirmed</td></tr>
+  <tr><td>Canonicals point at <code>santacruzstrength.com</code>, not the preview host</td><td>confirmed</td></tr>
+  <tr><td>A failed refresh can destroy already-rendered content</td><td>no: blog, events and articles report failure instead</td></tr>
+</table>
+</div>
+
+<h2>What went to GitHub</h2>
+<div class="scroll">
+<table>
+  <tr><th>Item</th><th>State</th></tr>
+  <tr><td>Repository</td><td><code>Atinuha/santa-cruz-strength-v2</code>, private</td></tr>
+  <tr><td>Default branch</td><td><code>main</code> at <code>4930e1b</code>, identical to local</td></tr>
+  <tr><td>Second branch</td><td><code>visual-convergence</code>, same commit, kept for provenance</td></tr>
+  <tr><td>Files</td><td>350 tracked</td></tr>
+  <tr><td>Customer data, keys, <code>.env</code> files, anywhere in history</td><td>none, in the working tree or in any commit</td></tr>
+  <tr><td>Generated moodboards</td><td>excluded; the handoff brief that governs them is committed</td></tr>
+  <tr><td>The original <code>Atinuha/santa-cruz-strength</code></td><td>untouched at <code>94fd1f2</code></td></tr>
+</table>
+</div>
+
+<h2>Open, and not mine to close</h2>
+<p class="note">Nothing below blocks the repository. All of it blocks production.</p>
+
+<div class="q"><b>Owner facts still missing</b>
+  The day-pass window has three contradictory published answers, 24/7 member
+  access is unconfirmed, Weekend Warrior access rules are unwritten, and 26
+  equipment counts are still marked <code>[FACT NEEDED]</code>. No
+  <code>openingHoursSpecification</code> is emitted until the hours agree,
+  because publishing hours that contradict the door is worse than publishing
+  none.</div>
+
+<div class="q"><b>Two editorial calls waiting on Mike</b>
+  Whether the surfer article should be listed on the blog index rather than
+  consolidated, and whether the two lifting-frequency articles stay separate.
+  They do overlap. That is his call, not a technical one.</div>
+
+<div class="q"><b>Photography</b>
+  Two trainers have no photograph. Four frames wait on written likeness
+  permission. Four media slots are honestly empty rather than filled with a
+  different subject.</div>
+
+<div class="q"><b>Local note</b>
+  In this working copy <code>frontend/node_modules</code> is a symlink to the
+  other repository's tree, because a direct install stalled on the iCloud-backed
+  Desktop. It is git-ignored and affects nothing that was pushed. A plain
+  <code>yarn install --frozen-lockfile</code> replaces it whenever convenient.</div>
+
+<hr>
+
+</div>
