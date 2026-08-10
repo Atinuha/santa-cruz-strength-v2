@@ -121,3 +121,12 @@ test_reports/
 memory/test_credentials.md
 fitprintbros_blueprint.md
 plan.md
+
+# Generated moodboards from the visual convergence brief. Design direction only,
+# never a factual source: the image model synthesised prices, hours and names
+# that do not exist. Kept out of the repo so nobody downstream can mistake a
+# rendered sign for a photograph of the gym. The brief itself is committed.
+resources/*.png
+resources/*.jpg
+resources/*.jpeg
+resources/*.webp
