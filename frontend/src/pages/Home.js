@@ -286,20 +286,25 @@ export default function Home() {
         <section className="py-16 sm:py-24" style={{ background: 'var(--scs-sand)' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-              {/* The frame is portrait because the photograph is. Forcing a
-                  1080 by 1974 camera original into a landscape band cropped
-                  out the wall seal and most of the rack, which is the whole
-                  reason to show it. */}
+              {/* The list beside this photograph names four things: the wall
+                  seal, plate storage, racks and the open platform floor. The
+                  frame has to show all four or the section is a claim with no
+                  evidence beside it. This one does, at the file's own 5:4, so
+                  nothing is cropped at render time and the seal cannot be
+                  clipped by a box that disagrees with the picture. The frame
+                  this replaced was a close range shot of one bench upright
+                  with the seal cut off by the top edge: one of the four, and
+                  no sense of the room at all. */}
               <div className="lg:col-span-5" data-reveal>
                 <figure className="m-0 scs-frame">
                   <img
-                    {...photo('racks', { sizes: '(min-width: 1024px) 40vw, 100vw' })}
-                    alt="Power racks, plate storage and the painted SCS wall seal on the Santa Cruz Strength floor"
+                    {...photo('training-floor', { sizes: '(min-width: 1024px) 40vw, 100vw' })}
+                    alt="The Santa Cruz Strength training floor: the painted SCS wall seal, bumper and iron plates stored at floor level, power racks along the wall, and wooden lifting platforms on the open floor"
                     className="w-full object-cover scs-photo"
-                    style={{ aspectRatio: '4 / 5', objectPosition: 'center 38%' }}
+                    style={{ aspectRatio: '5 / 4' }}
                   />
                   <figcaption className="px-4 py-3 text-sm" style={{ background: 'var(--scs-forest-deep)', color: 'var(--scs-text-on-dark)' }}>
-                    Racks, plate storage and the painted seal, photographed on the floor.
+                    The floor as it looks from the door: the seal, the racks, plate storage and the platforms.
                   </figcaption>
                 </figure>
               </div>

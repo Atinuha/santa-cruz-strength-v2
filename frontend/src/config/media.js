@@ -50,10 +50,18 @@ export const SCS_MEDIA = Object.freeze({
   coachBriefing: `${REAL}/coaching-crew.jpg`,
   coachingCloseup: `${REAL}/portrait-lexi.jpg`,
 
-  // The building itself. No people in either frame, so both publish now
+  // The building itself. No people in any of these frames, so they publish now
   // without waiting on likeness permission.
   heroFacility: `${SCS_ASSETS}/facility.jpg`, // wide floor, wall seal, racks, platforms
   openGym: `${SCS_ASSETS}/racks.jpg`,         // rack and bench area, plate storage
+  // A crop of facility.jpg, not a second photograph, and not retouched: the
+  // ceiling is cut away so the frame is the floor. The homepage section it
+  // serves names four things, the wall seal, plate storage, racks and the open
+  // platform floor, and this is the only frame in the library that shows all
+  // four at once. racks.jpg held that slot and showed a bench upright from
+  // close range with the seal clipped by the top edge, which illustrated one
+  // of the four and none of the space.
+  trainingFloor: `${SCS_ASSETS}/training-floor.jpg`,
 
   // The seal. Not a photograph, so no permission question, but it belongs here
   // rather than as a literal in each component: the navbar, the footer, the
@@ -105,6 +113,10 @@ const SIZED = '/assets/scs/sized';
 const SIZED_SET = {
   facility:           { w: 1080, h: 1440, widths: [640, 960, 1400] },
   racks:              { w: 1080, h: 1974, widths: [640, 960, 1400] },
+  // Tops out at 1080, not 1400, because the source is 1080 wide. A 1400
+  // derivative of a 1080 original is an upscale: a bigger file, a softer
+  // picture, and a srcSet that misdescribes what the browser is choosing.
+  'training-floor':   { w: 1080, h: 864,  widths: [640, 960, 1080] },
   'coaching-crew':    { w: 1024, h: 683,  widths: [640, 960, 1400] },
   'community-group':  { w: 1024, h: 683,  widths: [640, 960, 1400] },
   'community-strength': { w: 1024, h: 683, widths: [640, 960, 1400] },
