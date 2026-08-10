@@ -167,7 +167,11 @@ function MobileCarousel({ children }) {
         {React.Children.map(children, (child, i) => <div key={`mc-${i}`} className="snap-center shrink-0" style={{ width: '85vw', maxWidth: '340px' }}>{child}</div>)}
       </div>
       <div className="flex justify-center gap-2 mt-3">
-        {Array.from({ length: count }).map((_, i) => <button key={`d-${i}`} onClick={() => scrollTo(i)} aria-label={`Plan ${i + 1}`} className="p-2" style={{ lineHeight: 0 }}><span className="block transition-all duration-200" style={{ width: i === active ? '20px' : '6px', height: '4px', background: i === active ? 'var(--scs-forest)' : 'rgba(27,27,25,0.25)', borderRadius: '2px' }} /></button>)}
+        {/* The dot is 4px tall on purpose. The button around it is not: padding
+            alone left a 22x20 target, under the 24x24 minimum, on the one page
+            where a mis-tap costs a membership. min-w/min-h sets the floor
+            without touching the mark. */}
+        {Array.from({ length: count }).map((_, i) => <button key={`d-${i}`} onClick={() => scrollTo(i)} aria-label={`Plan ${i + 1}`} className="p-2 min-w-[24px] min-h-[24px] flex items-center justify-center" style={{ lineHeight: 0 }}><span className="block transition-all duration-200" style={{ width: i === active ? '20px' : '6px', height: '4px', background: i === active ? 'var(--scs-forest)' : 'rgba(27,27,25,0.25)', borderRadius: '2px' }} /></button>)}
       </div>
     </div>
   );

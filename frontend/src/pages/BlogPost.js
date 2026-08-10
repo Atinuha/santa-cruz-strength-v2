@@ -172,7 +172,12 @@ export default function BlogPost() {
 
         <header className={`px-4 sm:px-6 ${post?.cover_image ? 'pt-10' : isReview ? 'pt-12' : 'pt-14'} pb-8`} style={{ background: 'var(--scs-cream)' }}>
           <div className="max-w-3xl mx-auto">
-            <Link to="/blog" className="scs-advance inline-flex items-center gap-2 text-sm mb-6" style={{ color: 'var(--scs-forest)' }}><ArrowLeft size={14} /> All articles</Link>
+            {/* 14px text on a 20px line box is a legible link and an undersized
+                tap target, and this is the only route out of an article. py-1
+                takes it to 28px; -my-1 and mb-5 give back the 8px it gained, so
+                the text sits where it sat and the next element starts on the
+                same pixel. Bigger target, identical header. */}
+            <Link to="/blog" className="scs-advance inline-flex items-center gap-2 text-sm py-1 -my-1 mb-5" style={{ color: 'var(--scs-forest)' }}><ArrowLeft size={14} /> All articles</Link>
             <p className="flex flex-wrap items-center gap-4 m-0 mb-4">
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--scs-forest)' }}>{post?.category}</span>
               {post?.content && <span className="text-xs flex items-center gap-1.5" style={{ color: 'var(--scs-text-muted)' }}><Clock size={12} aria-hidden="true" />{readingTime(post.content)} min read</span>}

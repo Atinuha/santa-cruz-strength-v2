@@ -112,12 +112,18 @@ let content;
 let team;
 let postsIndex;
 let postsHome;
+let upcomingEvents;
 try {
-  [content, team, postsIndex, postsHome] = await Promise.all([
+  [content, team, postsIndex, postsHome, upcomingEvents] = await Promise.all([
     getJson('/api/content'),
     getJson('/api/team'),
     getJson('/api/blog?limit=50'),
     getJson('/api/blog?limit=8'),
+    // /events is an indexable route whose entire value is its list, and it was
+    // the one public page rendering from no data at all: heading, address, two
+    // empty tabs. That reads as a gym with nothing on, which is a claim, and
+    // one the site would keep making to crawlers on the day a meet is booked.
+    getJson('/api/events?upcoming=true'),
   ]);
 } catch (error) {
   console.error(`[prerender] failed: ${error.message}`);
@@ -187,6 +193,10 @@ const payloadFor = (path) => {
     return post ? { content, [`post:${slug}`]: post } : { content };
   }
   if (path === '/about' || path === '/personal-training') return { content, team };
+  // Deliberately not in the shortfall check above: a gym with nothing booked is
+  // a true state, not an unseeded database, and refusing to build on an empty
+  // calendar would stop the site over a quiet month.
+  if (path === '/events') return { content, events: Array.isArray(upcomingEvents) ? upcomingEvents : [] };
   return { content };
 };
 

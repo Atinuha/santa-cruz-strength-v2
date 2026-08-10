@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import BlueprintIcon from '../components/BlueprintIcon';
 import { photo } from '../config/media';
 import { GYM_CONFIG } from '../config';
+import { preloaded, hasPreloaded } from '../lib/preload';
 import { Calendar, MapPin, Ticket, X, Check, Loader2 } from 'lucide-react';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
@@ -130,8 +131,12 @@ function RSVPModal({ event, onClose }) {
 }
 
 export default function Events() {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // The upcoming list is captured at build time, so the calendar is in the
+  // initial HTML rather than arriving after mount. Hydration reads the same
+  // payload the server rendered from, which is why this has to be the initial
+  // state and not something an effect fills in.
+  const [events, setEvents] = useState(() => preloaded('events', []));
+  const [loading, setLoading] = useState(() => !hasPreloaded('events'));
   const [filter, setFilter] = useState('upcoming');
   const [rsvpEvent, setRsvpEvent] = useState(null);
   const [catFilter, setCatFilter] = useState('All');
@@ -142,9 +147,13 @@ export default function Events() {
   // sentences, and this used to say the first on the evidence of the second.
   // The blog index had the same bug in a worse place. A failed request now
   // leaves whatever is on screen alone and is reported as a failure.
+  // The first pass is a refresh of a list that is already on screen, so it does
+  // not get a spinner. Switching tabs does, because that list is not there yet.
+  const firstLoad = useRef(true);
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (!(firstLoad.current && hasPreloaded('events'))) setLoading(true);
+    firstLoad.current = false;
     fetch(`${BACKEND}/api/events?upcoming=${filter === 'upcoming'}`)
       .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .then(data => { if (!cancelled) { setEvents(Array.isArray(data) ? data : []); setLoadFailed(false); } })
