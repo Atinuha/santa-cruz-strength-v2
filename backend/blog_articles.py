@@ -1194,6 +1194,14 @@ def get_articles():
 #
 # All four are also small, between 168x300 and 533x400, which is workable for a
 # card and thin for anything larger.
+#
+# 2026-08-10: the image files were removed from this repository when it was made
+# public so Emergent could pull without a token. Holding a photograph back from
+# the website while shipping it in a public repository is the same disclosure
+# with one more step in it. The paths stay here because they are the record of
+# what is waiting on permission. The binaries are recoverable from this
+# repository's history at db58179 and earlier, and from the private v1
+# repository, on the day permission arrives.
 BLOG_COVERS_AWAITING_PERMISSION = {
     'group_class_floor': '/assets/scs/blog/group-class-floor.jpg',
     'group_class_wall_seal': '/assets/scs/blog/group-class-wall-seal.jpg',

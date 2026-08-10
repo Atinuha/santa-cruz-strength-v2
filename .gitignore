@@ -130,3 +130,9 @@ resources/*.png
 resources/*.jpg
 resources/*.jpeg
 resources/*.webp
+
+# Photographs of identifiable members that carry no written likeness permission.
+# The seed already refuses to publish them; a public repository would have
+# distributed them anyway. Recoverable from this history before commit db58179,
+# and from the private v1 repository, on the day permission lands.
+frontend/public/assets/scs/blog/
