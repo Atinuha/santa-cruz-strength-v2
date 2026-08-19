@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import QuizForm from '../components/QuizForm';
@@ -41,6 +41,16 @@ const WHAT_TO_EXPECT = [
    or approved static copy. Removing it takes one request off the route
    that most needs to be fast. */
 export default function Contact() {
+  const { hash } = useLocation();
+
+  useEffect(() => {
+    if (hash !== '#tour-request') return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('tour-request')?.scrollIntoView({ block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [hash]);
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>
       <Navbar />
@@ -142,7 +152,7 @@ export default function Contact() {
 
               {/* The form. On its own light card, on the widest column,
                   because it is the reason this route exists. */}
-              <div className="lg:col-span-6 lg:col-start-7">
+              <div id="tour-request" className="lg:col-span-6 lg:col-start-7 scroll-mt-24">
                 <div className="p-6 sm:p-8" style={{ background: 'var(--scs-white)', border: '1px solid var(--scs-border)', borderRadius: 'var(--scs-radius-card)' }}>
                   <h2 className="font-display text-2xl mb-1" style={{ color: 'var(--scs-forest)' }}>Request Your Free Facility Tour</h2>
                   <p className="text-sm mb-6" style={{ color: 'var(--scs-text-muted)' }}>

@@ -1,0 +1,291 @@
+{
+  "manifest_version": "1.0",
+  "target": {
+    "name": "Santa Cruz Strength V2 P0 local repair candidate 3",
+    "revision": "codex/scs-v2-p0-tour-resend at b44aae9 plus reviewed dirty snapshot 2026-08-19T09:15:38Z",
+    "target_class": "release"
+  },
+  "scope": {
+    "included": [
+      "tour form acceptance",
+      "lead idempotency and outbox repair",
+      "Resend webhook verification and state handling",
+      "health and production URL safety",
+      "privacy-safe operational logging"
+    ],
+    "excluded": [
+      "production mutation",
+      "live form submission",
+      "provider activation",
+      "GymMaster writes",
+      "Twilio MFA bypass"
+    ],
+    "constraints": [
+      "no disposable MongoDB was available",
+      "local builds skipped prerender",
+      "no live provider test was authorized"
+    ],
+    "safety_boundary": [
+      "local repository implementation and verification only"
+    ]
+  },
+  "claim_custody": {
+    "observed": [
+      {
+        "id": "O-101",
+        "statement": "The complete backend suite passed 179 tests",
+        "basis": "fresh local unittest discovery in the project virtual environment",
+        "confidence": "high"
+      },
+      {
+        "id": "O-102",
+        "statement": "The complete frontend suite passed 99 tests",
+        "basis": "fresh local CRACO test run outside the restricted socket sandbox",
+        "confidence": "high"
+      },
+      {
+        "id": "O-103",
+        "statement": "Candidate 3 received an independent PASS_WITH_CONDITIONS review",
+        "basis": "bounded read-only verification review on the exact dirty snapshot",
+        "confidence": "high"
+      }
+    ],
+    "inferred": [],
+    "assumed": [],
+    "unresolved": [
+      {
+        "id": "U-101",
+        "statement": "MongoDB partial-failure behavior is not proved against a real disposable database",
+        "basis": "no local MongoDB runtime is available",
+        "confidence": "high"
+      },
+      {
+        "id": "U-102",
+        "statement": "Production provider and deployment behavior is not proved",
+        "basis": "no live provider or deployment change was authorized",
+        "confidence": "high"
+      }
+    ]
+  },
+  "impact_map": [
+    "Visitor -> tour form -> accepted API response -> lead -> outbox -> approved provider -> staff follow-up"
+  ],
+  "invariants": [
+    {
+      "id": "INV-101",
+      "statement": "The visitor cannot see success before durable backend acceptance"
+    },
+    {
+      "id": "INV-102",
+      "statement": "A retry cannot silently change the accepted request payload"
+    },
+    {
+      "id": "INV-103",
+      "statement": "Provider failure cannot erase an accepted lead"
+    },
+    {
+      "id": "INV-104",
+      "statement": "Sensitive values and provider exception text cannot enter reviewed operational logs"
+    }
+  ],
+  "risks": [
+    {
+      "id": "R-101",
+      "statement": "The form reports success before backend acceptance",
+      "severity": "critical",
+      "likelihood": "medium",
+      "confidence": "high",
+      "disposition": "covered",
+      "verification": ["S-101", "T-101"]
+    },
+    {
+      "id": "R-102",
+      "statement": "A retry or partial write creates duplicate or missing effects",
+      "severity": "high",
+      "likelihood": "medium",
+      "confidence": "medium",
+      "disposition": "blocked",
+      "verification": ["S-102", "T-102"]
+    },
+    {
+      "id": "R-103",
+      "statement": "Resend event order or retry behavior loses delivery state",
+      "severity": "high",
+      "likelihood": "medium",
+      "confidence": "high",
+      "disposition": "covered",
+      "verification": ["S-103", "T-103"]
+    },
+    {
+      "id": "R-104",
+      "statement": "Sensitive exception or caller detail enters operational logs",
+      "severity": "high",
+      "likelihood": "medium",
+      "confidence": "high",
+      "disposition": "covered",
+      "verification": ["S-104", "T-104"]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "S-101",
+      "risk_ids": ["R-101"],
+      "title": "Form acceptance and double submission",
+      "layer": "component",
+      "preconditions": ["controlled API promises"],
+      "action": ["return malformed, conflict, server failure, duplicate, and accepted responses"],
+      "expected": ["success only after matching acceptance", "one pending request"],
+      "forbidden": ["early navigation", "early conversion analytics"],
+      "evidence": ["T-101"],
+      "status": "passed"
+    },
+    {
+      "id": "S-102",
+      "risk_ids": ["R-102"],
+      "title": "Lead idempotency and partial outbox repair",
+      "layer": "integration",
+      "preconditions": ["fake collections for local checks", "disposable MongoDB for release proof"],
+      "action": ["replay requests and inject partial failures"],
+      "expected": ["stable accepted lead", "deterministic outbox", "visible pending marker"],
+      "forbidden": ["silent payload change", "silent missing job"],
+      "evidence": ["T-102"],
+      "status": "blocked"
+    },
+    {
+      "id": "S-103",
+      "risk_ids": ["R-103"],
+      "title": "Signed Resend replay and event order",
+      "layer": "integration",
+      "preconditions": ["synthetic signed fixtures"],
+      "action": ["apply duplicate, unmatched, old, delivered, and terminal events"],
+      "expected": ["retryable unmatched event", "monotonic delivery state"],
+      "forbidden": ["unsigned change", "terminal state regression"],
+      "evidence": ["T-103"],
+      "status": "passed"
+    },
+    {
+      "id": "S-104",
+      "risk_ids": ["R-104"],
+      "title": "Sensitive operational log containment",
+      "layer": "security",
+      "preconditions": ["sentinel PII and secret text"],
+      "action": ["raise provider and startup exceptions and exercise deploy-hook statuses"],
+      "expected": ["fixed operational text only"],
+      "forbidden": ["PII", "secret", "caller detail", "exception text"],
+      "evidence": ["T-104"],
+      "status": "passed"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-101",
+      "scenario_ids": ["S-101"],
+      "path": "frontend/src/components/leadForms.behavior.test.js",
+      "status": "passed",
+      "execution_id": "E-101"
+    },
+    {
+      "id": "T-102",
+      "scenario_ids": ["S-102"],
+      "path": "backend/tests/test_lead_acceptance.py",
+      "status": "blocked",
+      "execution_id": "E-102"
+    },
+    {
+      "id": "T-103",
+      "scenario_ids": ["S-103"],
+      "path": "backend/tests/test_resend_webhook.py",
+      "status": "passed",
+      "execution_id": "E-103"
+    },
+    {
+      "id": "T-104",
+      "scenario_ids": ["S-104"],
+      "path": "backend/tests/test_privacy_logging.py",
+      "status": "passed",
+      "execution_id": "E-104"
+    }
+  ],
+  "executions": [
+    {
+      "id": "E-101",
+      "command": ["CI=true", "craco", "test", "--watchAll=false", "--runInBand"],
+      "working_directory": "frontend",
+      "status": "passed",
+      "exit_code": 0,
+      "raw_evidence": "99 tests passed"
+    },
+    {
+      "id": "E-102",
+      "command": ["protected-staging", "disposable-mongo", "fault-injection"],
+      "working_directory": "protected staging",
+      "status": "blocked",
+      "exit_code": null,
+      "raw_evidence": "No disposable MongoDB runtime is available locally"
+    },
+    {
+      "id": "E-103",
+      "command": ["python", "-m", "unittest", "discover", "-s", "backend/tests"],
+      "working_directory": "repository root",
+      "status": "passed",
+      "exit_code": 0,
+      "raw_evidence": "179 tests passed"
+    },
+    {
+      "id": "E-104",
+      "command": ["verification-reviewer", "candidate-3", "read-only"],
+      "working_directory": "exact dirty snapshot",
+      "status": "passed",
+      "exit_code": 0,
+      "raw_evidence": "PASS_WITH_CONDITIONS at 2026-08-19T09:15:38Z"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-101",
+      "classification": "INSUFFICIENT_EVIDENCE",
+      "severity": "high",
+      "statement": "Real MongoDB partial-failure behavior and production deployment are not yet proved",
+      "evidence": ["U-101", "U-102", "S-102"],
+      "confidence": "high",
+      "next_action": "run the protected-staging sequence in SCS-P0-LOCAL-HANDOFF-2026-08-19.md",
+      "status": "open"
+    }
+  ],
+  "residual_risks": [
+    {
+      "id": "RR-101",
+      "statement": "The live site still uses its current deployed release until an approved deployment occurs",
+      "treatment": "keep production unchanged and complete protected staging first",
+      "owner": "Muhammad Atif and Mike Lucero",
+      "revisit_condition": "protected staging and rollback proof pass"
+    },
+    {
+      "id": "RR-102",
+      "statement": "Twilio and GymMaster remain unproved and disabled for this candidate",
+      "treatment": "restore owner-approved access and verify each boundary separately",
+      "owner": "Mike Lucero",
+      "revisit_condition": "MFA, A2P, tenant, and ownership facts are approved"
+    }
+  ],
+  "review": {
+    "status": "REVIEW_PASS_WITH_CONDITIONS",
+    "findings": [
+      "No local product defect remains in Candidate 3 scope",
+      "Protected staging and release proof are still required"
+    ]
+  },
+  "decision": {
+    "status": "NOT_READY",
+    "basis": [
+      "local candidate is ready for protected staging only",
+      "real MongoDB failure behavior is not proved",
+      "real prerender, provider, deployment, and rollback proof are not complete"
+    ],
+    "authority_required": [
+      "Atif approves protected staging execution",
+      "Mike approves business facts and provider actions",
+      "action-time confirmation before any live provider or deployment change"
+    ]
+  }
+}

@@ -8,11 +8,33 @@ import { trackThankYouPageView } from '../utils/analytics';
 
 export default function ThankYou() {
   const { state } = useLocation();
-  const source = state?.source || 'website_form';
+  const accepted = state?.accepted === true && Boolean(state?.leadId) && Boolean(state?.requestId);
 
   useEffect(() => {
-    trackThankYouPageView();
-  }, []);
+    if (accepted) trackThankYouPageView();
+  }, [accepted]);
+
+  if (!accepted) {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>
+        <Navbar />
+        <section className="pt-32 pb-20 min-h-[70vh] flex items-center" data-testid="thank-you-unconfirmed">
+          <div className="max-w-lg mx-auto px-4 sm:px-6 text-center">
+            <h1 className="font-display text-2xl sm:text-3xl mb-4" style={{ color: 'var(--scs-charcoal)' }}>
+              We do not have a confirmed request for this page.
+            </h1>
+            <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--scs-text-muted)' }}>
+              If you still want to visit, use the tour request form. Your confirmation will appear only after the request is saved.
+            </p>
+            <Link to="/contact#tour-request" className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm">
+              Open the Tour Request Form <ArrowRight size={14} />
+            </Link>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--scs-bg)' }}>

@@ -35,6 +35,11 @@ def parse_cors_origins(raw: str | None, app_env: str) -> list[str]:
             raise RuntimeError(f"Invalid CORS origin: {value}")
         if parsed.path not in {"", "/"}:
             raise RuntimeError(f"CORS origins cannot contain a path: {value}")
+        if parsed.scheme == "http" and (
+            app_env not in {"development", "test"}
+            or parsed.hostname not in {"localhost", "127.0.0.1", "::1"}
+        ):
+            raise RuntimeError("HTTP CORS origins are permitted only for local development and test")
         if app_env in {"staging", "preview", "production"} and parsed.hostname in {
             "localhost", "127.0.0.1", "::1"
         }:

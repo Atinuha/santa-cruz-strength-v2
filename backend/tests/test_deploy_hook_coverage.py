@@ -112,7 +112,8 @@ class DeployHookCoverageTests(unittest.TestCase):
     def test_a_failed_hook_cannot_undo_a_saved_edit(self):
         """The write is the source of truth. The rebuild is a consequence of it."""
         source = (BACKEND / "deploy_hook.py").read_text()
-        self.assertIn("except Exception as exc:", source)
+        self.assertIn("except Exception:", source)
+        self.assertNotIn("except Exception as exc:", source)
         # No raise anywhere in the module: a dead hook must never surface as a
         # failed save to a staff member whose edit already committed.
         tree = ast.parse(source)

@@ -17,9 +17,29 @@ from security_controls import (  # noqa: E402
 
 class SecurityControlTests(unittest.TestCase):
     def test_cors_rejects_wildcard_and_non_origin_values(self):
-        for value in ('*', 'https://example.com/path', 'https://user:pass@example.com', 'http://localhost:3000'):
+        for value in (
+            '*',
+            'https://example.com/path',
+            'https://user:pass@example.com',
+            'http://localhost:3000',
+            'http://example.com',
+        ):
             with self.assertRaises(RuntimeError):
                 parse_cors_origins(value, 'production')
+
+    def test_protected_origins_require_https_and_local_http_is_local_only(self):
+        for app_env in ('staging', 'preview', 'production'):
+            with self.subTest(app_env=app_env):
+                with self.assertRaisesRegex(RuntimeError, 'HTTP CORS origins'):
+                    parse_cors_origins('http://example.com', app_env)
+        for app_env in ('development', 'test'):
+            with self.subTest(app_env=app_env):
+                self.assertEqual(
+                    parse_cors_origins('http://localhost:3000', app_env),
+                    ['http://localhost:3000'],
+                )
+                with self.assertRaisesRegex(RuntimeError, 'HTTP CORS origins'):
+                    parse_cors_origins('http://example.com', app_env)
 
     def test_cors_normalizes_and_deduplicates_exact_origins(self):
         self.assertEqual(

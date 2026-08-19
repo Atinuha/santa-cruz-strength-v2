@@ -66,11 +66,18 @@ async def _post(url: str, surface: str, detail: str) -> None:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(url, json={'surface': surface, 'detail': detail})
         if response.status_code >= 400:
-            logger.warning('[DEPLOY] hook returned %s for %s (%s)', response.status_code, surface, detail)
+            logger.warning(
+                '[DEPLOY] hook returned status=%s for surface=%s',
+                response.status_code,
+                surface,
+            )
         else:
-            logger.info('[DEPLOY] rebuild requested after %s change (%s)', surface, detail)
-    except Exception as exc:  # noqa: BLE001 - a failed rebuild must not undo a saved edit
-        logger.warning('[DEPLOY] hook failed for %s (%s): %s', surface, detail, exc)
+            logger.info('[DEPLOY] rebuild requested for surface=%s', surface)
+    except Exception:  # noqa: BLE001 - a failed rebuild must not undo a saved edit
+        # Provider exceptions can contain the hook URL, credentials, or request
+        # payload. The public-content write has already succeeded, so record only
+        # the fixed operational failure and never the exception text.
+        logger.warning('[DEPLOY] hook request failed; saved content remains authoritative')
 
 
 def notify_public_content_changed(surface: str, detail: str = '') -> None:
@@ -80,7 +87,7 @@ def notify_public_content_changed(surface: str, detail: str = '') -> None:
     of a write that then fails would publish the old content and report success.
     """
     if surface not in PUBLIC_SURFACES:
-        logger.warning('[DEPLOY] unknown public surface %r, not requesting a rebuild', surface)
+        logger.warning('[DEPLOY] unknown public surface; rebuild not requested')
         return
 
     url = _hook_url()
@@ -90,9 +97,9 @@ def notify_public_content_changed(surface: str, detail: str = '') -> None:
         # database, so a stale page can be explained after the fact rather than
         # investigated as a bug.
         logger.info(
-            '[DEPLOY] %s changed (%s). Static HTML is now stale until the next build. '
+            '[DEPLOY] surface=%s changed. Static HTML is now stale until the next build. '
             'Set ALLOW_DEPLOY_HOOK=true and DEPLOY_HOOK_URL to automate this.',
-            surface, detail or 'no detail',
+            surface,
         )
         return
 
@@ -101,4 +108,7 @@ def notify_public_content_changed(surface: str, detail: str = '') -> None:
     except RuntimeError:
         # No loop, which means this was called from synchronous context. Log
         # rather than block; the standing warning in the staff UI still applies.
-        logger.info('[DEPLOY] %s changed (%s) outside an event loop, rebuild not requested', surface, detail)
+        logger.info(
+            '[DEPLOY] surface=%s changed outside an event loop; rebuild not requested',
+            surface,
+        )

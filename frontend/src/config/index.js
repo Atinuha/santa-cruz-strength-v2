@@ -21,7 +21,7 @@
 export const MEMBERSHIP = {
   sellsOnline: false,
   onlineJoinUrl: '',
-  tourUrl: 'https://santacruzstrength.com/join#book-a-tour',
+  tourUrl: 'https://santacruzstrength.com/contact#tour-request',
 };
 
 // The single membership destination. Falls back to the tour whenever online

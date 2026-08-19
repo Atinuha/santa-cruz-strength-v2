@@ -20,6 +20,7 @@ import { trackFormStart, trackLeadSubmit } from '../utils/analytics';
 import { getLeadAttribution } from '../utils/attribution';
 import { buildTourLeadPayload, createInitialTourForm, isTourPreviewMode } from '../utils/tourLead';
 import { createLeadRequestId } from '../utils/leadContracts';
+import { getLeadSubmissionErrorMessage } from '../utils/leadSubmission';
 
 const INTEREST_OPTIONS = [
   { value: 'General Membership', label: 'General membership', icon: Dumbbell },
@@ -47,6 +48,7 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
   const firstInputRef = useRef(null);
   const formStarted = useRef(false);
   const requestIdRef = useRef(null);
+  const submitPendingRef = useRef(false);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -132,6 +134,9 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
       return;
     }
 
+    if (submitPendingRef.current) return;
+    submitPendingRef.current = true;
+
     setLoading(true);
     setSubmitError('');
     try {
@@ -146,14 +151,23 @@ export default function QuizForm({ source = 'book_a_tour', onSuccess, noAutoFocu
         setPreviewComplete(true);
         return;
       }
-      await createLead(payload);
+      const response = await createLead(payload);
+      const acceptance = response.data;
       requestIdRef.current = createLeadRequestId();
       trackLeadSubmit({ interest_type: form.interest_type, lead_source: source || 'website_form' });
       if (onSuccess) onSuccess();
-      else navigate('/thank-you', { state: { source } });
+      else navigate('/thank-you', {
+        state: {
+          source,
+          accepted: true,
+          leadId: acceptance.lead_id,
+          requestId: acceptance.request_id,
+        },
+      });
     } catch (error) {
-      setSubmitError(error.response?.data?.detail || 'We could not send the request. Please try again or call the gym.');
+      setSubmitError(getLeadSubmissionErrorMessage(error));
     } finally {
+      submitPendingRef.current = false;
       setLoading(false);
     }
   };

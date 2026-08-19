@@ -13,7 +13,7 @@ class ServerLifecycleContractTests(unittest.TestCase):
             "# --------------- Staff Lead Routes ---------------", 1
         )[0]
 
-        self.assertIn('enqueue_lead_received_jobs', lead_route)
+        self.assertIn('_enqueue_public_lead_outbox', lead_route)
         self.assertNotIn('send_lead_emails', lead_route)
         self.assertNotIn('send_lead_sms', lead_route)
         self.assertNotIn('send_sms(', lead_route)
@@ -208,7 +208,7 @@ class ServerLifecycleContractTests(unittest.TestCase):
         self.assertEqual(len(duplicate_recoveries), 2)
         for recovery in duplicate_recoveries:
             with self.subTest(recovery=recovery[:80]):
-                enqueue_position = recovery.find('enqueue_lead_received_jobs')
+                enqueue_position = recovery.find('_enqueue_public_lead_outbox')
                 return_position = recovery.find('return _public_lead_response')
                 self.assertGreaterEqual(enqueue_position, 0)
                 self.assertGreater(return_position, enqueue_position)

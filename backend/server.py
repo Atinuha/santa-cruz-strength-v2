@@ -124,6 +124,54 @@ try:
 except ImportError:
     from .provider_dispatch import DispatchConfig, build_adapters, dispatch_batch
 
+try:
+    from health import readiness_report
+except ImportError:
+    from .health import readiness_report
+
+try:
+    from privacy_logging import log_operational_event
+except ImportError:
+    from .privacy_logging import log_operational_event
+
+try:
+    from lead_acceptance import (
+        LeadIdempotencyConflict,
+        enqueue_and_confirm_lead_outbox,
+        lead_request_digest,
+        require_matching_request_digest,
+    )
+except ImportError:
+    from .lead_acceptance import (
+        LeadIdempotencyConflict,
+        enqueue_and_confirm_lead_outbox,
+        lead_request_digest,
+        require_matching_request_digest,
+    )
+
+try:
+    from resend_webhook import (
+        ResendOutboxNotFound,
+        ResendWebhookReceiptConflict,
+        ResendWebhookVerificationError,
+        SUPPRESSION_EVENTS,
+        apply_resend_outbox_event,
+        begin_resend_receipt,
+        finish_resend_receipt,
+        verify_resend_webhook,
+    )
+except ImportError:
+    from .resend_webhook import (
+        ResendOutboxNotFound,
+        ResendWebhookReceiptConflict,
+        ResendWebhookVerificationError,
+        SUPPRESSION_EVENTS,
+        apply_resend_outbox_event,
+        begin_resend_receipt,
+        finish_resend_receipt,
+        verify_resend_webhook,
+    )
+
 mongo_url = os.environ['MONGO_URL']
 
 # Refuse an unacknowledged connection rather than inherit one.
@@ -154,6 +202,19 @@ db = client[database_name]
 
 app = FastAPI(title='Santa Cruz Strength API')
 api_router = APIRouter(prefix='/api')
+
+
+@api_router.get('/health')
+async def health():
+    """Report side-effect-free service and database readiness."""
+    report, ready = await readiness_report(
+        db,
+        database_writes_enabled=ALLOW_DATABASE_WRITES,
+        deploy_hook_enabled=bool(runtime_summary().get('deploy_hook')),
+    )
+    if not ready:
+        return JSONResponse(status_code=503, content=report)
+    return report
 
 JWT_SECRET = os.environ.get('JWT_SECRET', '').strip()
 if not JWT_SECRET:
@@ -361,16 +422,16 @@ async def send_resend_email(to: str, subject: str, html: str, reply_to: str = No
         logger.warning('[EMAIL] Recipient blocked by non-production allowlist')
         return False
     if not resend.api_key:
-        logger.info(f'[EMAIL] RESEND_API_KEY not set - skipping to {to}')
+        log_operational_event(logger, logging.INFO, 'email_provider_not_configured')
         return False
     allowed, lead = await _email_delivery_allowed(to, message_kind)
     if not allowed:
-        logger.info(f'[EMAIL] Suppressed {message_kind} email to {to}')
+        log_operational_event(logger, logging.INFO, 'email_suppressed')
         return False
     try:
         if message_kind == 'marketing':
             if not lead:
-                logger.warning(f'[EMAIL] Marketing send blocked because no lead record was found for {to}')
+                log_operational_event(logger, logging.WARNING, 'email_marketing_lead_missing')
                 return False
             html = _append_consumer_unsubscribe(html, lead)
         sender = from_override or FROM_EMAIL
@@ -380,10 +441,10 @@ async def send_resend_email(to: str, subject: str, html: str, reply_to: str = No
         if cc:
             params['cc'] = [c for c in cc if c and c != to]
         result = await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f'[EMAIL] Sent via Resend to {to} - id={result.get("id","?")}')
+        log_operational_event(logger, logging.INFO, 'email_send_succeeded')
         return True
-    except Exception as e:
-        logger.warning(f'[EMAIL] Resend failed to {to}: {e}')
+    except Exception:
+        log_operational_event(logger, logging.WARNING, 'email_send_failed')
         return False
 
 
@@ -484,12 +545,12 @@ async def send_sms(
                     to=number,
                     status_callback=require_frontend_origin() + '/api/webhooks/twilio-status',
                 )
-                logger.info(f'[SMS-TWILIO] Sent to {number} (SID: {msg.sid})')
+                log_operational_event(logger, logging.INFO, 'sms_send_succeeded')
             return True
-        except Exception as e:
-            logger.warning(f'[SMS-TWILIO] Failed: {e}')
+        except Exception:
+            log_operational_event(logger, logging.WARNING, 'sms_send_failed')
 
-    logger.info(f'[SMS] Twilio unavailable or failed - skipping to {valid}')
+    log_operational_event(logger, logging.INFO, 'sms_provider_unavailable')
     if lead_info:
         await _log_sms_failure(valid, 'all_providers_failed', lead_info)
     return False
@@ -639,7 +700,7 @@ async def run_sms_followup_job():
             # genuinely cannot be dialled.
             phone = to_e164(lead.get('phone', ''))
             if not phone:
-                logger.warning(f"[SMS] Lead {lead.get('id')} has an undiallable phone, skipping")
+                logger.warning('[SMS] Undiallable lead phone skipped')
                 continue
             # Skip if already in stop status
             if lead.get('status') in STOP_STATUSES:
@@ -652,7 +713,7 @@ async def run_sms_followup_job():
                     {'id': lead['id']},
                     {'$push': {'sms_log': {'type': seq['key'], 'sent_at': now.isoformat()}}}
                 )
-                logger.info(f"[SMS FOLLOWUP] {seq['key']} sent to {phone}")
+                log_operational_event(logger, logging.INFO, 'sms_followup_sent')
 
 async def run_review_request_job():
     """Scheduled every 30 min: send review request 3 days after member joined (up to 7 days)."""
@@ -671,9 +732,9 @@ async def run_review_request_job():
         try:
             await _send_review_request(lead)
             await db.leads.update_one({'id': lead['id']}, {'$set': {'review_sent': True}})
-            logger.info(f"[REVIEW] Sent to {lead.get('first_name', '')} {lead.get('last_name', '')}")
-        except Exception as e:
-            logger.warning(f"[REVIEW] Failed for lead {lead.get('id')}: {e}")
+            log_operational_event(logger, logging.INFO, 'review_request_sent')
+        except Exception:
+            log_operational_event(logger, logging.WARNING, 'review_request_failed')
 
 
 # --------------- Pydantic Models ---------------
@@ -911,7 +972,7 @@ async def login(req: LoginRequest):
 
     # 2FA is disabled - issue JWT directly on valid credentials
     token = create_token({'sub': user['id']})
-    logger.info(f'[AUTH] Direct login for {user["email"]} - 2FA disabled')
+    log_operational_event(logger, logging.INFO, 'auth_login_succeeded')
 
     # Always issue a long-lived device token (90 days)
     device_token = str(uuid.uuid4())
@@ -981,7 +1042,7 @@ async def verify_otp(req: dict):
         })
         response['device_token'] = device_token
         response['device_token_expires'] = device_expires.isoformat()
-        logger.info(f'[AUTH] Device token issued for {email} - expires {device_expires.date()}')
+        log_operational_event(logger, logging.INFO, 'auth_device_token_issued')
 
     return response
 
@@ -1179,6 +1240,39 @@ def _public_lead_response(request: Request, lead_id: str, request_id: Optional[s
     return {'id': lead_id, 'status': 'updated' if duplicate else 'created'}
 
 
+def _lead_request_payload_digest(lead: LeadCreate, request_id: str) -> str:
+    payload = lead.model_dump(mode='json')
+    payload.update({
+        'request_id': request_id,
+        'first_name': lead.first_name.strip(),
+        'last_name': lead.last_name.strip(),
+        'email': lead.email.strip().lower(),
+        'phone': normalize_phone(lead.phone.strip()),
+    })
+    return lead_request_digest(payload)
+
+
+def _require_idempotent_lead_replay(stored_lead: dict, request_id: str, digest: str) -> None:
+    try:
+        require_matching_request_digest(stored_lead, request_id, digest)
+    except LeadIdempotencyConflict:
+        raise HTTPException(
+            status_code=409,
+            detail='Idempotency-Key was already used for a different or unverifiable request',
+        )
+
+
+async def _enqueue_public_lead_outbox(lead: dict, request_id: str, now: datetime):
+    return await enqueue_and_confirm_lead_outbox(
+        db.leads,
+        db.lead_outbox,
+        lead,
+        request_id,
+        now,
+        enqueue=enqueue_lead_received_jobs,
+    )
+
+
 @api_router.post('/v1/leads')
 @api_router.post('/leads')
 async def create_lead_public(lead: LeadCreate, request: Request):
@@ -1198,6 +1292,7 @@ async def create_lead_public(lead: LeadCreate, request: Request):
             uuid.UUID(request_id)
         except ValueError:
             raise HTTPException(status_code=422, detail='request_id must be a valid UUID')
+        request_digest = _lead_request_payload_digest(lead, request_id)
         existing_request = await db.leads.find_one(
             {'$or': [{'request_id': request_id}, {'request_ids': request_id}]},
             {
@@ -1206,13 +1301,13 @@ async def create_lead_public(lead: LeadCreate, request: Request):
                 'location_id': 1,
                 'sms_operational_opt_in': 1,
                 'sms_opted_out': 1,
+                'request_payload_digests': 1,
                 '_id': 0,
             },
         )
         if existing_request:
-            await enqueue_lead_received_jobs(
-                db.lead_outbox, existing_request, request_id, now_utc()
-            )
+            _require_idempotent_lead_replay(existing_request, request_id, request_digest)
+            await _enqueue_public_lead_outbox(existing_request, request_id, now_utc())
             return _public_lead_response(request, existing_request['id'], request_id, True)
 
     if request.url.path.endswith('/v1/leads'):
@@ -1244,6 +1339,8 @@ async def create_lead_public(lead: LeadCreate, request: Request):
         'schema_version': lead.schema_version or 'legacy',
         'request_id': request_id,
         'request_ids': [request_id],
+        'request_payload_digests': {request_id: request_digest},
+        'outbox_pending_request_ids': [request_id],
         # Recorded, not rejected. The legacy route accepts a lead with no
         # schema, brand, location, form, offer or consent, and defaults them
         # silently, so an incomplete lead is indistinguishable from a complete
@@ -1330,7 +1427,10 @@ async def create_lead_public(lead: LeadCreate, request: Request):
         try:
             await db.leads.update_one(
                 {'email': lead.email.lower().strip(), 'location': lead.location},
-                {'$set': update_fields,
+                {'$set': {
+                    **update_fields,
+                    f'request_payload_digests.{request_id}': request_digest,
+                },
                  '$addToSet': {'request_ids': request_id},
                  '$push': {'activity_log': {'action': 'Re-inquiry', 'note': f'Re-submitted via {lead.lead_source}', 'staff_id': None, 'staff_name': 'System', 'timestamp': now.isoformat()}}}
             )
@@ -1343,11 +1443,13 @@ async def create_lead_public(lead: LeadCreate, request: Request):
                     'location_id': 1,
                     'sms_operational_opt_in': 1,
                     'sms_opted_out': 1,
+                    'request_payload_digests': 1,
                     '_id': 0,
                 },
             )
             if prior:
-                await enqueue_lead_received_jobs(db.lead_outbox, prior, request_id, now_utc())
+                _require_idempotent_lead_replay(prior, request_id, request_digest)
+                await _enqueue_public_lead_outbox(prior, request_id, now_utc())
                 return _public_lead_response(request, prior['id'], request_id, True)
             raise
         outbox_lead = await db.leads.find_one(
@@ -1358,12 +1460,13 @@ async def create_lead_public(lead: LeadCreate, request: Request):
                 'location_id': 1,
                 'sms_operational_opt_in': 1,
                 'sms_opted_out': 1,
+                'request_payload_digests': 1,
                 '_id': 0,
             },
         )
         if not outbox_lead:
             raise HTTPException(status_code=500, detail='Lead persistence could not be confirmed')
-        await enqueue_lead_received_jobs(db.lead_outbox, outbox_lead, request_id, now)
+        await _enqueue_public_lead_outbox(outbox_lead, request_id, now)
         return _public_lead_response(request, existing['id'], request_id, True)
     try:
         await db.leads.insert_one(doc)
@@ -1376,6 +1479,7 @@ async def create_lead_public(lead: LeadCreate, request: Request):
                 'location_id': 1,
                 'sms_operational_opt_in': 1,
                 'sms_opted_out': 1,
+                'request_payload_digests': 1,
                 '_id': 0,
             },
         )
@@ -1389,7 +1493,10 @@ async def create_lead_public(lead: LeadCreate, request: Request):
             # worse than the duplicate it exists to prevent.
             await db.leads.update_one(
                 {'email': doc['email'], 'location': doc['location']},
-                {'$addToSet': {'request_ids': request_id}},
+                {
+                    '$addToSet': {'request_ids': request_id},
+                    '$set': {f'request_payload_digests.{request_id}': request_digest},
+                },
             )
             existing_request = await db.leads.find_one(
                 {'email': doc['email'], 'location': doc['location']},
@@ -1399,16 +1506,16 @@ async def create_lead_public(lead: LeadCreate, request: Request):
                     'location_id': 1,
                     'sms_operational_opt_in': 1,
                     'sms_opted_out': 1,
+                    'request_payload_digests': 1,
                     '_id': 0,
                 },
             )
         if existing_request:
-            await enqueue_lead_received_jobs(
-                db.lead_outbox, existing_request, request_id, now_utc()
-            )
+            _require_idempotent_lead_replay(existing_request, request_id, request_digest)
+            await _enqueue_public_lead_outbox(existing_request, request_id, now_utc())
             return _public_lead_response(request, existing_request['id'], request_id, True)
         raise
-    await enqueue_lead_received_jobs(db.lead_outbox, doc, request_id, now)
+    await _enqueue_public_lead_outbox(doc, request_id, now)
     return _public_lead_response(request, lead_id, request_id, False)
 
 # --------------- Staff Lead Routes ---------------
@@ -1675,7 +1782,7 @@ async def import_leads_csv(file: UploadFile = File(...), user=Depends(require_st
             # staff member importing 2000 leads while the database was briefly
             # unreachable was told 2000 were imported, and none were. Silence
             # about a failure is worse than the failure.
-            logger.exception('[LEADS] CSV import failed, no rows are known to have been written')
+            log_operational_event(logger, logging.ERROR, 'lead_csv_import_failed')
             raise HTTPException(
                 status_code=503,
                 detail='The import could not be written to the database. No leads were saved. '
@@ -1889,7 +1996,7 @@ async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(require_staff
                 {'id': lead_id},
                 {'$set': {'review_send_at': review_send_at, 'review_sent': False}}
             )
-            logger.info(f'[REVIEW] Scheduled for {updated.get("first_name","")} at {review_send_at}')
+            log_operational_event(logger, logging.INFO, 'review_request_scheduled')
     return updated
 
 @api_router.post('/staff/leads/{lead_id}/notes')
@@ -2071,7 +2178,7 @@ async def update_user(user_id: str, data: UserUpdate, user=Depends(require_admin
     # Auto-revoke all device tokens when deactivating a user
     if data.is_active is False:
         await db.device_tokens.delete_many({'email': target['email']})
-        logger.info(f'[AUTH] Device tokens revoked for deactivated user {target["email"]}')
+        log_operational_event(logger, logging.INFO, 'auth_device_tokens_revoked')
     updated = await db.users.find_one({'id': user_id}, {'_id': 0, 'password_hash': 0})
     return updated
 
@@ -2098,7 +2205,7 @@ async def revoke_user_devices(user_id: str, user=Depends(require_admin)):
     if not target:
         raise HTTPException(status_code=404, detail='User not found')
     result = await db.device_tokens.delete_many({'email': target['email']})
-    logger.info(f'[AUTH] Admin {user["email"]} revoked {result.deleted_count} device(s) for {target["email"]}')
+    log_operational_event(logger, logging.INFO, 'auth_device_tokens_revoked')
     return {'message': f'Revoked {result.deleted_count} device token(s) for {target["email"]}', 'revoked': result.deleted_count}
 
 # --------------- Staffed Hours Settings ---------------
@@ -2323,8 +2430,8 @@ async def _refresh_blog_ideas_background():
     try:
         await _generate_blog_ideas_core()
         logger.info('[BLOG IDEAS] Background refresh completed')
-    except Exception as e:
-        logger.warning(f'[BLOG IDEAS] Background refresh failed: {e}')
+    except Exception:
+        logger.warning('[BLOG IDEAS] Background refresh failed')
 
 
 async def _generate_blog_ideas_core():
@@ -2396,8 +2503,8 @@ Generate 6 blog ideas. Return ONLY a JSON array, no other text:
             upsert=True,
         )
         return {'ideas': ideas, 'trends_used': trend_topics, 'generated_at': generated_at}
-    except Exception as e:
-        logger.error(f'[BLOG IDEAS] LLM error: {e}')
+    except Exception:
+        logger.error('[BLOG IDEAS] LLM request failed')
         return None
 
 
@@ -2418,8 +2525,8 @@ def _fetch_google_trends():
         topics = list(dict.fromkeys(topics))[:15]
         logger.info(f'[BLOG IDEAS] Trends: {topics}')
         return topics
-    except Exception as e:
-        logger.warning(f'[BLOG IDEAS] pytrends failed: {e} - using fallback')
+    except Exception:
+        logger.warning('[BLOG IDEAS] pytrends failed - using fallback')
         return ['strength training beginners', 'powerlifting program',
                 'gym for surfers', 'how to deadlift', 'strength training over 40']
 
@@ -2717,7 +2824,7 @@ async def confirm_corporate_unsubscribe(lead_id: str):
             }}
         }
     )
-    logger.info(f'[CORPORATE] Unsubscribe: {lead.get("email", "")} ({lead.get("business_name", "")})')
+    log_operational_event(logger, logging.INFO, 'corporate_unsubscribed')
     return Response(content=_unsub_page(lead.get('business_name', ''), True), media_type='text/html')
 
 
@@ -2985,7 +3092,7 @@ async def discover_businesses(user=Depends(require_staff), category: str = 'cafe
             resp = await client.post('https://overpass.kumi.systems/api/interpreter', data={'data': query})
         logger.info(f'[CORPORATE-DISCOVER] Overpass status={resp.status_code} len={len(resp.text)}')
         if resp.status_code != 200:
-            logger.warning(f'[CORPORATE-DISCOVER] Overpass returned {resp.status_code}: {resp.text[:300]}')
+            logger.warning('[CORPORATE-DISCOVER] Overpass returned status=%s', resp.status_code)
             raise HTTPException(
                 status_code=502,
                 detail=f'Business discovery upstream returned {resp.status_code}.',
@@ -3029,11 +3136,11 @@ async def discover_businesses(user=Depends(require_staff), category: str = 'cafe
         # The upstream-status branch above raises deliberately. Without this it
         # would be caught below and flattened into the generic message.
         raise
-    except Exception as e:
+    except Exception:
         # The exception text used to be returned to the client, which leaked
         # internal detail including full outbound URLs. It belongs in the log,
         # where staff can find it, and not in the response.
-        logger.error(f'[CORPORATE-DISCOVER] Overpass error: {e}')
+        logger.error('[CORPORATE-DISCOVER] Overpass request failed')
         raise HTTPException(
             status_code=502,
             detail='Business discovery upstream is unavailable. See server logs.',
@@ -4005,7 +4112,14 @@ async def _run_single_campaign(campaign_id: str):
     }})
     total_actions = sent_wave1 + sent_wave2 + sent_wave3
     if total_actions:
-        logger.info(f'[CAMPAIGN] {campaign["name"]}: w1={sent_wave1} w2={sent_wave2} w3={sent_wave3} ({total_w1}/{total_eligible} through pipeline)')
+        logger.info(
+            '[CAMPAIGN] Progress w1=%s w2=%s w3=%s pipeline=%s/%s',
+            sent_wave1,
+            sent_wave2,
+            sent_wave3,
+            total_w1,
+            total_eligible,
+        )
 
 async def run_campaign_scheduler():
     """Runs every hour - sends daily campaign batches (waves 2+3 also checked here)."""
@@ -4042,7 +4156,7 @@ async def _send_review_request(lead: dict):
         sms = (f"Hey {name.split()[0]}, welcome to Santa Cruz Strength! "
                f"We'd love to hear about your experience - takes 10 seconds: {review_page_url} - SCS")
         await send_sms([phone], sms)
-    logger.info(f'[REVIEW] Request sent to {name} - token {token}')
+    log_operational_event(logger, logging.INFO, 'review_request_sent')
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#F7F5F0;font-family:'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
@@ -4171,7 +4285,11 @@ async def _apply_verified_resend_suppression(event_type: str, to_addr: str) -> N
         return
     suppression_field = 'email_complained' if event_type == 'email.complained' else 'email_bounced'
     await db.leads.update_many(
-        {'email': email_lower},
+        {
+            'email': email_lower,
+            'brand_id': 'santa_cruz_strength',
+            'location_id': 'santa_cruz_ca',
+        },
         {'$set': {
             suppression_field: True,
             'bounce_type': event_type,
@@ -4181,9 +4299,49 @@ async def _apply_verified_resend_suppression(event_type: str, to_addr: str) -> N
     )
 
 @api_router.post('/webhooks/resend')
-async def resend_webhook():
-    """Fail closed until the installed Resend SDK verifier is validated."""
-    raise HTTPException(status_code=503, detail='Resend webhooks are disabled pending verified signature support')
+async def resend_webhook(request: Request):
+    """Verify a raw Resend event, then persist its minimal receipt and effects."""
+    if not ALLOW_RESEND_WEBHOOKS:
+        raise HTTPException(status_code=503, detail='Resend webhooks are disabled')
+    signing_secret = os.environ.get('RESEND_WEBHOOK_SECRET', '').strip()
+    if not signing_secret:
+        raise HTTPException(status_code=503, detail='Resend webhook configuration is unavailable')
+    raw_body = await request.body()
+    if len(raw_body) > 262_144:
+        raise HTTPException(status_code=413, detail='Webhook payload is too large')
+    try:
+        event = verify_resend_webhook(raw_body, request.headers, signing_secret)
+    except ResendWebhookVerificationError:
+        raise HTTPException(status_code=400, detail='Invalid webhook')
+    if not event.supported:
+        return JSONResponse(status_code=202, content={'ok': True, 'ignored': True})
+
+    received_at = now_utc()
+    try:
+        _, already_processed = await begin_resend_receipt(
+            db.webhook_receipts, event, received_at
+        )
+        if already_processed:
+            return {'ok': True, 'duplicate': True}
+        await apply_resend_outbox_event(db.lead_outbox, event, received_at)
+        if event.event_type in SUPPRESSION_EVENTS:
+            if not event.recipients:
+                raise RuntimeError('Verified suppression event has no recipient')
+            for recipient in event.recipients:
+                await _apply_verified_resend_suppression(event.event_type, recipient)
+        await finish_resend_receipt(db.webhook_receipts, event, now_utc())
+    except ResendOutboxNotFound:
+        logger.warning('resend_webhook_outbox_not_found')
+        raise HTTPException(status_code=503, detail='Webhook is waiting for its message record')
+    except ResendWebhookReceiptConflict:
+        logger.error('resend_webhook_receipt_conflict')
+        raise HTTPException(status_code=503, detail='Webhook could not be recorded')
+    except Exception:
+        # Database exceptions can include the failed filter. That filter can hold
+        # an email address for suppression, so do not attach exception text here.
+        logger.error('resend_webhook_processing_failed')
+        raise HTTPException(status_code=503, detail='Webhook could not be recorded')
+    return {'ok': True, 'duplicate': False}
 
 
 @api_router.get('/staff/bounce-log')
@@ -4276,7 +4434,7 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
     try:
         if msg_upper in ('STOP', 'UNSUBSCRIBE', 'CANCEL', 'QUIT'):
             lead = await db.leads.find_one(phone_match_query(from_number), {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
-            logger.info(f'[TWILIO-BG] STOP processed for {from_number}')
+            log_operational_event(logger, logging.INFO, 'twilio_stop_processed')
             await db.daily_bounce_log.insert_one({
                 'type': 'sms_optout',
                 'event': 'SMS STOP received (Twilio)',
@@ -4288,7 +4446,7 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
                 'date': now_utc().date().isoformat(),
             })
         elif msg_upper == 'START':
-            logger.info(f'[TWILIO-BG] START/resubscribe processed for {from_number}')
+            log_operational_event(logger, logging.INFO, 'twilio_start_processed')
         else:
             lead = await db.leads.find_one(phone_match_query(from_number), {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1})
             lead_name = f"{(lead or {}).get('first_name', '')} {(lead or {}).get('last_name', '')}".strip() or 'Unknown'
@@ -4312,9 +4470,9 @@ async def _twilio_inbound_background(from_number: str, message: str, msg_upper: 
                         'timestamp': now_utc().isoformat(),
                     }}}
                 )
-            logger.info(f'[TWILIO-BG] Reply from {from_number} ({lead_name}): {message[:80]} - forwarded')
-    except Exception as e:
-        logger.error(f'[TWILIO-BG] Background processing failed for {from_number}: {e}')
+            log_operational_event(logger, logging.INFO, 'twilio_reply_forwarded')
+    except Exception:
+        log_operational_event(logger, logging.ERROR, 'twilio_background_failed')
 
 
 @api_router.get('/webhooks/twilio-sms')
@@ -4351,7 +4509,7 @@ async def twilio_sms_webhook(request: Request):
             return Response(content='<Response></Response>', media_type='application/xml')
 
         msg_upper = message.strip().upper()
-        logger.info(f'[TWILIO-INBOUND] From {from_number}: {message[:80]}')
+        log_operational_event(logger, logging.INFO, 'twilio_inbound_received')
 
         # Apply consent state before sending a response that describes that state.
         state_applied = False
@@ -4398,8 +4556,8 @@ async def twilio_sms_webhook(request: Request):
             return Response(content='<Response></Response>', media_type='application/xml')
 
         return Response(content=twiml, media_type='application/xml')
-    except Exception as e:
-        logger.error(f'[TWILIO-INBOUND] Webhook handler error: {e}')
+    except Exception:
+        log_operational_event(logger, logging.ERROR, 'twilio_inbound_failed')
         return Response(content='<Response></Response>', media_type='application/xml')
 
 
@@ -4418,7 +4576,7 @@ async def twilio_status_webhook(request: Request):
     error_code = form.get('ErrorCode', '')
 
     if msg_status in ('failed', 'undelivered'):
-        logger.warning(f'[TWILIO-STATUS] {msg_status} to {to_number} (SID: {msg_sid}, Error: {error_code})')
+        log_operational_event(logger, logging.WARNING, 'twilio_status_failure')
         lead = await db.leads.find_one({'phone': to_number}, {'_id': 0, 'first_name': 1, 'last_name': 1, 'email': 1, 'lead_source': 1})
         if lead:
             await db.daily_bounce_log.insert_one({
@@ -4432,7 +4590,7 @@ async def twilio_status_webhook(request: Request):
                 'date': now_utc().date().isoformat(),
             })
     else:
-        logger.info(f'[TWILIO-STATUS] {msg_status} to {to_number} (SID: {msg_sid})')
+        log_operational_event(logger, logging.INFO, 'twilio_status_received')
 
     return {'ok': True}
 
@@ -4459,7 +4617,7 @@ async def upload_image(file: UploadFile = File(...), user=Depends(require_admin)
         'created_by': user['id'],
         'created_at': now_utc().isoformat(),
     })
-    logger.info(f'[UPLOAD] {file.filename} ({len(content)//1024}KB) by {user["email"]}')
+    log_operational_event(logger, logging.INFO, 'upload_completed')
     return {'url': f'/api/media/{media_id}', 'id': media_id, 'filename': file.filename}
 
 @api_router.get('/media/{media_id}')
@@ -5081,12 +5239,12 @@ async def startup():
             name='unique_lead_identity',
             partialFilterExpression={'email': {'$type': 'string'}},
         )
-    except Exception as exc:
+    except Exception:
         logger.error(
-            '[INDEX] Could not enforce one lead per email and location: %s. '
+            '[INDEX] Could not enforce one lead per email and location. '
             'Existing duplicates must be merged before this can be applied, '
             'and until it is, simultaneous enquiries from one person can '
-            'create two records.', exc,
+            'create two records.'
         )
     await db.leads.create_index('status')
     await db.leads.create_index('lead_source')

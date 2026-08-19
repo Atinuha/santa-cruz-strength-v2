@@ -9,6 +9,7 @@ import { trackFormStart, trackLeadSubmit } from '../utils/analytics';
 import PreviewNotice from './PreviewNotice';
 import { PREVIEW_MODE } from '../utils/previewSafety';
 import { buildMemberLeadPayload, createLeadRequestId } from '../utils/leadContracts';
+import { getLeadSubmissionErrorMessage } from '../utils/leadSubmission';
 
 const createEmptyForm = (source) => ({
   first_name: '',
@@ -31,6 +32,7 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
   const [previewComplete, setPreviewComplete] = useState(false);
   const formStartTracked = useRef(false);
   const requestIdRef = useRef(null);
+  const submitPendingRef = useRef(false);
   const [form, setForm] = useState(() => createEmptyForm(source));
 
   if (!requestIdRef.current) requestIdRef.current = createLeadRequestId();
@@ -59,11 +61,13 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitPendingRef.current) return;
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
+    submitPendingRef.current = true;
     setLoading(true);
     try {
       if (PREVIEW_MODE) {
@@ -79,17 +83,26 @@ export default function LeadForm({ source = 'website_form', variant = 'default',
         formId: 'legacy_lead_form',
         offerId: 'free_facility_tour',
       });
-      await createLead(payload);
+      const response = await createLead(payload);
+      const acceptance = response.data;
       requestIdRef.current = createLeadRequestId();
       trackLeadSubmit({ interest_type: form.interest_type, lead_source: source });
       if (onSuccess) {
         onSuccess();
       } else {
-        navigate('/thank-you', { state: { source } });
+        navigate('/thank-you', {
+          state: {
+            source,
+            accepted: true,
+            leadId: acceptance.lead_id,
+            requestId: acceptance.request_id,
+          },
+        });
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Something went wrong. Please try again.');
+      toast.error(getLeadSubmissionErrorMessage(err, 'We could not send the request. Please try again or call the gym.'));
     } finally {
+      submitPendingRef.current = false;
       setLoading(false);
     }
   };

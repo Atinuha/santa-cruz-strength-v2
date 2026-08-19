@@ -5,6 +5,7 @@ import {
   isMutationMethod,
   resolveApiBaseUrl,
 } from '../utils/previewSafety';
+import { requireAcceptedLeadResponse } from '../utils/leadSubmission';
 
 const BASE_URL = resolveApiBaseUrl();
 
@@ -41,9 +42,13 @@ api.interceptors.response.use(
 );
 
 // Public
-export const createLead = (data) => api.post('/v1/leads', data, {
-  headers: data.request_id ? { 'Idempotency-Key': data.request_id } : undefined,
-});
+export const createLead = async (data) => {
+  const response = await api.post('/v1/leads', data, {
+    headers: data.request_id ? { 'Idempotency-Key': data.request_id } : undefined,
+  });
+  requireAcceptedLeadResponse(response, data.request_id);
+  return response;
+};
 export const createCorporateLead = (data) => api.post('/corporate-leads', data, {
   headers: data.request_id ? { 'Idempotency-Key': data.request_id } : undefined,
 });

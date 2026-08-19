@@ -9,6 +9,15 @@ class ServerSecurityContractTests(unittest.TestCase):
     def test_server_uses_exact_cors_and_idempotency_controls(self):
         self.assertIn("allow_origins=parse_cors_origins", SOURCE)
         self.assertNotIn("CORS_ORIGINS', '*'", SOURCE)
+
+    def test_general_health_route_is_read_only_and_reports_readiness(self):
+        self.assertIn("@api_router.get('/health')", SOURCE)
+        health_route = SOURCE.split("@api_router.get('/health')", 1)[1].split('JWT_SECRET', 1)[0]
+        self.assertIn('readiness_report', health_route)
+        self.assertIn('database_writes_enabled=ALLOW_DATABASE_WRITES', health_route)
+        self.assertNotIn('insert_one', health_route)
+        self.assertNotIn('update_one', health_route)
+        self.assertNotIn('delete_one', health_route)
         self.assertIn("request_id or Idempotency-Key is required", SOURCE)
         self.assertIn("unique_lead_request_id", SOURCE)
         self.assertIn("except DuplicateKeyError", SOURCE)
@@ -18,7 +27,17 @@ class ServerSecurityContractTests(unittest.TestCase):
         self.assertIn("X-Twilio-Signature", SOURCE)
         self.assertIn("RequestValidator", SOURCE)
         self.assertIn("db.webhook_receipts.insert_one", SOURCE)
-        self.assertIn("Resend webhooks are disabled pending verified signature support", SOURCE)
+        self.assertIn("verify_resend_webhook(raw_body, request.headers, signing_secret)", SOURCE)
+        self.assertIn("begin_resend_receipt", SOURCE)
+        self.assertIn("finish_resend_receipt", SOURCE)
+        resend_route = SOURCE.split("@api_router.post('/webhooks/resend')", 1)[1].split(
+            "@api_router.get('/staff/bounce-log')", 1
+        )[0]
+        self.assertIn('ResendOutboxNotFound', resend_route)
+        self.assertLess(
+            resend_route.find('apply_resend_outbox_event'),
+            resend_route.find('finish_resend_receipt'),
+        )
         # MailerSend was removed as a provider, inbound surface included, so the
         # count that used to be asserted here is now zero by design. Absence of
         # the whole surface is asserted in test_no_vendor_residue.

@@ -118,9 +118,11 @@ def validate_runtime_safety(database_name: str, mongo_url: str = "") -> None:
             raise RuntimeError("Twilio webhooks require TWILIO_WEBHOOK_BASE_URL")
 
     if ALLOW_RESEND_WEBHOOKS:
-        raise RuntimeError(
-            "Resend webhooks remain disabled until the installed SDK verifier is validated"
-        )
+        if not ALLOW_DATABASE_WRITES:
+            raise RuntimeError("Resend webhooks require database writes")
+        signing_secret = os.environ.get("RESEND_WEBHOOK_SECRET", "").strip()
+        if not signing_secret.startswith("whsec_") or len(signing_secret) < 16:
+            raise RuntimeError("Resend webhooks require RESEND_WEBHOOK_SECRET")
 
     if ALLOW_LEAD_OUTBOX_DISPATCH and not (
         ALLOW_DATABASE_WRITES and ALLOW_SCHEDULERS

@@ -87,13 +87,22 @@ class RuntimeSafetyTests(unittest.TestCase):
         )
         safety.validate_runtime_safety('santa_cruz_staging')
 
-    def test_unverified_provider_webhooks_cannot_be_enabled(self):
-        # This used to assert on MailerSend. That provider and its flag are gone,
-        # so the property now rides on Resend, which carries the same guard: a
-        # webhook whose signature verifier is not validated cannot be turned on.
+    def test_resend_webhooks_require_writes_and_a_separate_signing_secret(self):
         safety = self.load_safety(APP_ENV='staging', ALLOW_RESEND_WEBHOOKS='true')
-        with self.assertRaisesRegex(RuntimeError, 'remain disabled'):
+        with self.assertRaisesRegex(RuntimeError, 'database writes'):
             safety.validate_runtime_safety('santa_cruz_staging')
+
+        safety = self.load_safety(
+            APP_ENV='staging', ALLOW_RESEND_WEBHOOKS='true', ALLOW_DATABASE_WRITES='true',
+        )
+        with self.assertRaisesRegex(RuntimeError, 'RESEND_WEBHOOK_SECRET'):
+            safety.validate_runtime_safety('santa_cruz_staging')
+
+        safety = self.load_safety(
+            APP_ENV='staging', ALLOW_RESEND_WEBHOOKS='true', ALLOW_DATABASE_WRITES='true',
+            RESEND_WEBHOOK_SECRET='whsec_dGVzdC13ZWJob29rLXNlY3JldA==',
+        )
+        safety.validate_runtime_safety('santa_cruz_staging')
 
     def test_frontend_origin_is_required_and_normalized(self):
         safety = self.load_safety(APP_ENV='preview')

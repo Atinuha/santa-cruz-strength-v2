@@ -144,7 +144,7 @@ function PlanCard({ plan }) {
         </ul>
       )}
 
-      <a href={plan.direct === 'call' ? GYM_CONFIG.phoneHref : '#book-a-tour'} data-testid={`join-${plan.id}`}
+      <a href={plan.direct === 'call' ? GYM_CONFIG.phoneHref : '/contact#tour-request'} data-testid={`join-${plan.id}`}
         className={`w-full text-sm ${pop ? 'btn-clay' : dark ? 'btn-outline btn-outline-on-dark' : 'btn-primary'}`}>
         {plan.direct === 'call' ? `Call ${GYM_CONFIG.phone}` : 'Book a tour'}
       </a>
@@ -268,7 +268,7 @@ export default function Join() {
                     {p.savings && <p className="text-xs font-semibold m-0" style={{ color: 'var(--scs-forest)' }}>{p.savings}</p>}
                     {p.compareText && <p className="text-xs mb-2 m-0" style={{ color: 'var(--scs-text-muted)' }}>{p.compareText}</p>}
                     <p className="text-xs mb-auto pt-2" style={{ color: 'var(--scs-text-muted)' }}>{p.terms?.[0]}</p>
-                    <a href="#book-a-tour" data-testid={`join-${p.id}`} className="btn-outline w-full text-sm mt-4">Book a tour</a>
+                    <a href="/contact#tour-request" data-testid={`join-${p.id}`} className="btn-outline w-full text-sm mt-4">Book a tour</a>
                   </li>
                 ))}
               </ul>
@@ -371,7 +371,7 @@ export default function Join() {
                 Call {GYM_CONFIG.phone}
               </a>{' '}
               during staffed hours, or{' '}
-              <a href="/contact" className="scs-advance font-semibold underline underline-offset-4 decoration-1 inline-flex items-center gap-1" style={{ color: 'var(--scs-mint)' }}>
+              <a href="/contact#tour-request" className="scs-advance font-semibold underline underline-offset-4 decoration-1 inline-flex items-center gap-1" style={{ color: 'var(--scs-mint)' }}>
                 book a facility tour <ArrowRight size={13} />
               </a>.
             </p>
