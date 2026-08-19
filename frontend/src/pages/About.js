@@ -140,7 +140,7 @@ export default function About() {
               </div>
               <div className="lg:col-span-4 lg:col-start-9">
                 <div className="flex flex-col gap-3">
-                  <Link to="/contact" className="btn-clay text-sm" data-testid="about-tour-btn">Book a Free Facility Tour</Link>
+                  <Link to="/contact#tour-request" className="btn-clay text-sm" data-testid="about-tour-btn">Book a Free Facility Tour</Link>
                   <Link to="/join" className="btn-outline btn-outline-on-dark text-sm" data-testid="about-join-btn">Compare Memberships</Link>
                 </div>
                 <div className="flex flex-col gap-3 mt-6 pt-6" style={{ borderTop: '1px solid var(--scs-border-dark)' }}>

@@ -24,7 +24,7 @@ export default function NotFound() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mb-10">
               <Link to="/" data-testid="not-found-home-link" className="btn-primary px-7 text-sm">Back to the gym</Link>
-              <Link to="/contact" data-testid="not-found-contact-link" className="btn-outline px-7 text-sm">Book a Free Facility Tour</Link>
+              <Link to="/contact#tour-request" data-testid="not-found-contact-link" className="btn-outline px-7 text-sm">Book a Free Facility Tour</Link>
             </div>
             <ul className="flex flex-wrap gap-x-8 gap-y-2 pt-6 mb-8" style={{ borderTop: '1px solid var(--scs-border)' }}>
               <li><Link to="/join" className="text-sm font-semibold" style={{ color: 'var(--scs-forest)' }}>Membership and pricing</Link></li>

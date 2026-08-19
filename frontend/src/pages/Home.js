@@ -159,7 +159,7 @@ export default function Home() {
                   {copy('home_hero_subtitle_v2', 'See the racks, platforms, training floor, and access setup before you choose a membership.')}
                 </p>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                  <Link to="/contact" data-testid="home-hero-book-visit-button"
+                  <Link to="/contact#tour-request" data-testid="home-hero-book-visit-button"
                     className="btn-clay px-7 text-sm uppercase tracking-wider font-semibold w-full sm:w-auto"
                     onClick={() => trackBookTourClick('hero')}>
                     Book a Free Facility Tour <ArrowRight size={15} />
@@ -185,7 +185,7 @@ export default function Home() {
               <span className="text-sm" style={{ color: 'var(--scs-text-on-dark)' }}>151 Harvey West Blvd Ste D, Santa Cruz, CA 95060</span>
             </p>
             <div className="flex items-center gap-5">
-              <Link to="/contact" className="text-sm font-semibold underline underline-offset-4 decoration-1 py-1.5 inline-block" style={{ color: 'var(--scs-mint)' }}>
+              <Link to="/contact#tour-request" className="text-sm font-semibold underline underline-offset-4 decoration-1 py-1.5 inline-block" style={{ color: 'var(--scs-mint)' }}>
                 Book a Free Facility Tour
               </Link>
               <a href={GYM_CONFIG.phoneHref} onClick={() => trackPhoneClick()} className="flex items-center gap-1.5 text-sm py-1.5" style={{ color: 'var(--scs-text-on-dark)' }}>
@@ -333,7 +333,7 @@ export default function Home() {
                   You can also ask about membership options and access, meet available staff, and leave without filling in any paperwork.
                 </p>
 
-                <Link to="/contact" className="btn-clay px-7 text-sm" onClick={() => trackBookTourClick('walkthrough')}>
+                <Link to="/contact#tour-request" className="btn-clay px-7 text-sm" onClick={() => trackBookTourClick('walkthrough')}>
                   Book a Free Facility Tour <ArrowRight size={15} />
                 </Link>
               </div>
@@ -445,7 +445,7 @@ export default function Home() {
 
             <p className="text-sm mt-12 pt-8" style={{ color: 'var(--scs-text-on-dark-muted)', borderTop: '1px solid var(--scs-border-dark)' }}>
               Not sure which of these you are?{' '}
-              <Link to="/contact" className="font-semibold underline underline-offset-4 decoration-1" style={{ color: 'var(--scs-mint)' }}>
+              <Link to="/contact#tour-request" className="font-semibold underline underline-offset-4 decoration-1" style={{ color: 'var(--scs-mint)' }}>
                 Book a free facility tour
               </Link>{' '}
               and walk the floor before you decide.
@@ -547,7 +547,7 @@ export default function Home() {
               <Link to="/join" className="btn-primary px-7 text-sm">
                 Compare All Memberships <ArrowRight size={15} />
               </Link>
-              <Link to="/contact" className="btn-outline px-7 text-sm" onClick={() => trackBookTourClick('membership_preview')}>
+              <Link to="/contact#tour-request" className="btn-outline px-7 text-sm" onClick={() => trackBookTourClick('membership_preview')}>
                 Book a Free Facility Tour
               </Link>
             </div>

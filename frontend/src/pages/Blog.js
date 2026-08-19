@@ -206,7 +206,7 @@ export default function Blog() {
                     <p className="text-sm mb-6" style={{ color: 'var(--scs-text-muted)' }}>
                       There are no articles on the blog at the moment. The gym is still open.
                     </p>
-                    <Link to="/contact" className="btn-clay text-sm">Book a Free Facility Tour</Link>
+                    <Link to="/contact#tour-request" className="btn-clay text-sm">Book a Free Facility Tour</Link>
                   </>
                 ) : (
                   <>
@@ -239,7 +239,7 @@ export default function Blog() {
         <section className="py-16 on-dark" style={{ background: 'var(--scs-forest-deep)' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <h2 className="font-display text-2xl sm:text-3xl m-0" style={{ color: 'var(--scs-white)' }}>Reading about it is not the same as standing in it.</h2>
-            <Link to="/contact" className="btn-clay text-sm shrink-0">Book a Free Facility Tour <ArrowRight size={14} /></Link>
+            <Link to="/contact#tour-request" className="btn-clay text-sm shrink-0">Book a Free Facility Tour <ArrowRight size={14} /></Link>
           </div>
         </section>
       </main>

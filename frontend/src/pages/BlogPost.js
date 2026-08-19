@@ -198,7 +198,7 @@ export default function BlogPost() {
               <p className="font-display-medium text-xl mb-2" style={{ color: 'var(--scs-white)' }}>Train at Santa Cruz Strength</p>
               <p className="text-sm mb-5" style={{ color: 'var(--scs-text-on-dark-muted)' }}>{GYM_CONFIG.address.full} &middot; {GYM_CONFIG.phone}</p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Link to="/contact" className="btn-clay text-sm">Book a Free Facility Tour <ArrowRight size={14} /></Link>
+                <Link to="/contact#tour-request" className="btn-clay text-sm">Book a Free Facility Tour <ArrowRight size={14} /></Link>
                 <Link to="/join" className="btn-outline btn-outline-on-dark text-sm">Compare Memberships</Link>
               </div>
             </aside>

@@ -168,7 +168,7 @@ export default function PersonalTraining() {
                   Bring anything a coach would otherwise have to guess at: a current program, a note from a physical therapist, a competition date, a list of the lifts that bother you. Wear something you could train in, in case it makes sense to move.
                 </p>
                 <p className="text-base leading-relaxed m-0 max-w-[68ch]" style={{ color: 'var(--scs-text-muted)' }}>
-                  You leave knowing what training with a coach here would look like for you. Deciding on the spot is not expected. If you would rather see the room before you talk about coaching, you can <Link to="/contact" className={INLINE_LINK} style={INLINE_LINK_STYLE}>book a free facility tour</Link> instead.
+                  You leave knowing what training with a coach here would look like for you. Deciding on the spot is not expected. If you would rather see the room before you talk about coaching, you can <Link to="/contact#tour-request" className={INLINE_LINK} style={INLINE_LINK_STYLE}>book a free facility tour</Link> instead.
                 </p>
               </div>
             </div>

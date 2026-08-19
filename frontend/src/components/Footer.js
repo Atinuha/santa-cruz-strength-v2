@@ -47,7 +47,7 @@ export default function Footer() {
             <ul className="space-y-2.5">
               <li><Link to="/" className="text-sm" style={{ color: 'var(--scs-text-on-dark-muted)' }}>Home</Link></li>
               <li><Link to="/join" className="text-sm" style={{ color: 'var(--scs-text-on-dark-muted)' }}>Membership</Link></li>
-              <li><Link to="/contact" className="text-sm" style={{ color: 'var(--scs-text-on-dark-muted)' }}>Book a Facility Tour</Link></li>
+              <li><Link to="/contact#tour-request" className="text-sm" style={{ color: 'var(--scs-text-on-dark-muted)' }}>Book a Facility Tour</Link></li>
             </ul>
           </nav>
 

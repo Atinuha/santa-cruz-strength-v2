@@ -252,7 +252,7 @@ export default function Events() {
                         ? 'When a meet, workshop or community night is scheduled, it appears here with the date, the cost and how to sign up.'
                         : 'Past events will be archived here as they happen.'}
                     </p>
-                    <a href="/contact" className="btn-clay text-sm">Book a Free Facility Tour</a>
+                    <a href="/contact#tour-request" className="btn-clay text-sm">Book a Free Facility Tour</a>
                   </>
                 )}
               </div>

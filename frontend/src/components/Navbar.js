@@ -94,7 +94,7 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-4 shrink-0">
-            <Link to="/contact"
+            <Link to="/contact#tour-request"
               data-testid="navbar-free-tour-btn"
               className="btn-clay px-5 text-xs uppercase font-semibold"
               style={{ letterSpacing: '0.08em', minHeight: '40px', padding: '0.5rem 1.25rem' }}>
@@ -135,7 +135,7 @@ export default function Navbar() {
                 className="block px-3 py-2 text-sm" style={{ color: 'var(--scs-text-on-dark)' }}>
                 {GYM_CONFIG.phone}
               </a>
-              <Link to="/contact" onClick={() => setOpen(false)}
+              <Link to="/contact#tour-request" onClick={() => setOpen(false)}
                 className="btn-clay w-full text-sm mt-3 uppercase tracking-wider">
                 Book a Free Facility Tour
               </Link>
