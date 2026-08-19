@@ -44,8 +44,10 @@ def require_loopback_origin(value: str, label: str) -> str:
 
 def is_loopback_request_url(value: str) -> bool:
     parsed = urlparse(value)
-    if parsed.scheme not in {"http", "https"}:
+    if parsed.scheme in {"about", "blob", "data"}:
         return True
+    if parsed.scheme not in {"http", "https", "ws", "wss"}:
+        return False
     if not parsed.hostname:
         return False
     hostname = parsed.hostname.rstrip(".").lower()

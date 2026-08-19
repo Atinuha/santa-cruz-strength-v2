@@ -2,8 +2,9 @@
 """Real-browser checks for the local Santa Cruz Strength tour funnel.
 
 The harness fails before navigation unless both configured origins are local.
-Every non-loopback browser request is aborted. The only identity used by the
-form is synthetic and belongs to the reserved .invalid top-level domain.
+Every non-loopback HTTP, HTTPS, WS, and WSS request is aborted. Service workers
+are disabled. The only form identity is synthetic and uses the reserved
+.invalid top-level domain.
 """
 
 from __future__ import annotations
@@ -70,6 +71,11 @@ def origin(value: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}"
 
 
+async def new_safe_context(browser, **kwargs) -> BrowserContext:
+    """Create a browser context that cannot hide traffic in a service worker."""
+    return await browser.new_context(service_workers="block", **kwargs)
+
+
 async def wait_for_service(url: str, label: str) -> None:
     import urllib.request
 
@@ -95,7 +101,7 @@ async def install_network_guard(
         request_url = request.url
         parsed = urlparse(request_url)
 
-        if parsed.scheme in {"http", "https"} and not is_loopback_request_url(request_url):
+        if not is_loopback_request_url(request_url):
             external_origin = origin(request_url)
             if external_origin not in evidence.blocked_external_origins:
                 evidence.blocked_external_origins.append(external_origin)
@@ -118,16 +124,37 @@ async def install_network_guard(
         delayed_lead["started"].set()
         await delayed_lead["release"].wait()
 
+        response_override = delayed_lead.get("response_override")
+        if response_override is not None:
+            delayed_lead["responses"].append(response_override)
+            await route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(response_override),
+            )
+            return
+
         response = await route.fetch()
         body = await response.json()
         delayed_lead["responses"].append(body)
         await route.fulfill(response=response)
 
+    async def guard_websocket(websocket_route) -> None:
+        request_url = websocket_route.url
+        if not is_loopback_request_url(request_url):
+            external_origin = origin(request_url)
+            if external_origin not in evidence.blocked_external_origins:
+                evidence.blocked_external_origins.append(external_origin)
+            await websocket_route.close(code=1008, reason="Local staging blocks external WebSockets")
+            return
+        websocket_route.connect_to_server()
+
     await context.route("**/*", guard)
+    await context.route_web_socket("**/*", guard_websocket)
 
 
 async def check_ctas(browser, evidence: Evidence, viewport: dict[str, int]) -> None:
-    context = await browser.new_context(viewport=viewport)
+    context = await new_safe_context(browser, viewport=viewport)
     await install_network_guard(context, evidence)
     page = await context.new_page()
     found = 0
@@ -193,9 +220,32 @@ async def complete_quiz(page: Page) -> None:
 
 async def check_form(browser, evidence: Evidence, label: str, viewport: dict[str, int]) -> None:
     expected_request_id = REQUEST_IDS[label]
-    context = await browser.new_context(viewport=viewport)
+    context = await new_safe_context(browser, viewport=viewport)
     await context.add_init_script(
-        f"Object.defineProperty(globalThis.crypto, 'randomUUID', {{ value: () => '{expected_request_id}' }});"
+        f"""
+        Object.defineProperty(globalThis.crypto, 'randomUUID', {{ value: () => '{expected_request_id}' }});
+        globalThis.__scsLeadTransportStarts = 0;
+        const originalOpen = XMLHttpRequest.prototype.open;
+        const originalSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.open = function(method, url, ...rest) {{
+          this.__scsLeadRequest = String(method).toUpperCase() === 'POST' &&
+            new URL(String(url), location.href).pathname === '/api/v1/leads';
+          return originalOpen.call(this, method, url, ...rest);
+        }};
+        XMLHttpRequest.prototype.send = function(...args) {{
+          if (this.__scsLeadRequest) globalThis.__scsLeadTransportStarts += 1;
+          return originalSend.apply(this, args);
+        }};
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = function(input, init = {{}}) {{
+          const url = typeof input === 'string' ? input : input.url;
+          const method = String(init.method || (typeof input === 'string' ? 'GET' : input.method || 'GET')).toUpperCase();
+          if (method === 'POST' && new URL(url, location.href).pathname === '/api/v1/leads') {{
+            globalThis.__scsLeadTransportStarts += 1;
+          }}
+          return originalFetch.call(this, input, init);
+        }};
+        """
     )
     delayed = {
         "request_count": 0,
@@ -229,6 +279,7 @@ async def check_form(browser, evidence: Evidence, label: str, viewport: dict[str
     await submit.evaluate("element => { element.click(); element.click(); }")
     await asyncio.wait_for(delayed["started"].wait(), timeout=10)
     await page.get_by_text("Sending request...").wait_for(state="visible")
+    transport_starts = await page.evaluate("globalThis.__scsLeadTransportStarts")
 
     evidence.check(
         f"{label} no premature success",
@@ -237,8 +288,8 @@ async def check_form(browser, evidence: Evidence, label: str, viewport: dict[str
     )
     evidence.check(
         f"{label} rapid double submit",
-        delayed["request_count"] == 1,
-        f"observed {delayed['request_count']} POST requests before acceptance",
+        transport_starts == 1 and delayed["request_count"] == 1,
+        f"browser initiated {transport_starts} transport and interception observed {delayed['request_count']} POST request",
     )
 
     delayed["release"].set()
@@ -277,7 +328,7 @@ async def check_form(browser, evidence: Evidence, label: str, viewport: dict[str
 
 
 async def check_direct_thank_you(browser, evidence: Evidence) -> None:
-    context = await browser.new_context(viewport={"width": 1280, "height": 900})
+    context = await new_safe_context(browser, viewport={"width": 1280, "height": 900})
     await install_network_guard(context, evidence)
     page = await context.new_page()
     await page.goto(f"{evidence.frontend_url}/thank-you", wait_until="domcontentloaded")
@@ -292,6 +343,89 @@ async def check_direct_thank_you(browser, evidence: Evidence) -> None:
         "unconfirmed recovery link",
         await link.count() == 1,
         "unconfirmed page links to /contact#tour-request",
+    )
+    await context.close()
+
+
+async def check_mismatched_acceptance(browser, evidence: Evidence) -> None:
+    expected_request_id = str(uuid.uuid4())
+    context = await new_safe_context(browser, viewport={"width": 1280, "height": 900})
+    await context.add_init_script(
+        f"Object.defineProperty(globalThis.crypto, 'randomUUID', {{ value: () => '{expected_request_id}' }});"
+    )
+    release = asyncio.Event()
+    release.set()
+    delayed = {
+        "request_count": 0,
+        "payloads": [],
+        "responses": [],
+        "started": asyncio.Event(),
+        "release": release,
+        "response_override": {
+            "status": "accepted",
+            "lead_id": "local-mismatch-probe",
+            "request_id": "wrong-request-id",
+        },
+    }
+    await install_network_guard(context, evidence, delayed)
+    page = await context.new_page()
+    await page.goto(f"{evidence.frontend_url}/contact#tour-request", wait_until="domcontentloaded")
+    await complete_quiz(page)
+    await page.get_by_test_id("lead-form-submit-button").click()
+    await asyncio.wait_for(delayed["started"].wait(), timeout=10)
+    await page.get_by_text(re.compile(r"We could not send the request", re.IGNORECASE)).wait_for(
+        state="visible", timeout=10000
+    )
+    evidence.check(
+        "mismatched accepted response stays unconfirmed",
+        delayed["request_count"] == 1
+        and urlparse(page.url).path == "/contact"
+        and await page.get_by_test_id("thank-you").count() == 0,
+        f"wrong request ID was rejected at {page.url}",
+    )
+    await context.close()
+
+
+async def check_browser_egress_controls(browser, evidence: Evidence) -> None:
+    context = await new_safe_context(browser, viewport={"width": 800, "height": 600})
+    await install_network_guard(context, evidence)
+    page = await context.new_page()
+    await page.goto(evidence.frontend_url, wait_until="domcontentloaded")
+
+    websocket_result = await page.evaluate(
+        """() => new Promise((resolve) => {
+          const socket = new WebSocket('wss://example.invalid/local-staging-probe');
+          socket.addEventListener('open', () => resolve('opened'), { once: true });
+          socket.addEventListener('error', () => resolve('blocked'), { once: true });
+          socket.addEventListener('close', () => resolve('blocked'), { once: true });
+          setTimeout(() => resolve('timeout'), 3000);
+        })"""
+    )
+    evidence.check(
+        "external WebSocket is blocked",
+        websocket_result == "blocked" and "wss://example.invalid" in evidence.blocked_external_origins,
+        f"WebSocket result was {websocket_result}",
+    )
+
+    service_worker_result = await page.evaluate(
+        """async () => {
+          if (!('serviceWorker' in navigator)) return 'unavailable';
+          try {
+            const registration = await navigator.serviceWorker.register('/local-staging-service-worker-probe.js');
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            const controlled = Boolean(navigator.serviceWorker.controller);
+            const running = Boolean(registration?.installing || registration?.waiting || registration?.active);
+            if (registration) await registration.unregister();
+            return controlled || running ? 'running' : 'blocked';
+          } catch (error) {
+            return 'blocked';
+          }
+        }"""
+    )
+    evidence.check(
+        "service-worker registration is blocked",
+        service_worker_result in {"blocked", "unavailable"},
+        f"service-worker result was {service_worker_result}",
     )
     await context.close()
 
@@ -313,6 +447,8 @@ async def run(args) -> int:
             await check_form(browser, evidence, "desktop", {"width": 1440, "height": 1000})
             await check_form(browser, evidence, "mobile", {"width": 390, "height": 844})
             await check_direct_thank_you(browser, evidence)
+            await check_mismatched_acceptance(browser, evidence)
+            await check_browser_egress_controls(browser, evidence)
         finally:
             await browser.close()
 

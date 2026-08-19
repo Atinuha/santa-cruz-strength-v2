@@ -6,8 +6,10 @@ dependency and does not change the lockfile.
 Safety rules:
 
 - Frontend and backend origins must use an explicit loopback port.
-- Emergent, preview, production, and other non-loopback HTTP requests are
-  rejected or aborted before network delivery.
+- Emergent, preview, production, and other non-loopback HTTP, HTTPS, WS, and
+  WSS requests are rejected or aborted before network delivery.
+- Every browser context disables service workers so they cannot bypass route
+  interception.
 - The form uses only `scs-local-tour@example.invalid` and `8315550100`.
 - SMS consent stays off.
 - Provider flags must stay off in the backend environment.
