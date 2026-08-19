@@ -1,0 +1,24 @@
+{
+  "files": {
+    "main.css": "/static/css/main.d2bf2c40.css",
+    "main.js": "/static/js/main.4ec5acfe.js",
+    "static/media/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K6z9mXg.woff2": "/static/media/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K6z9mXg.9b78e592d53d050d9625.woff2",
+    "static/media/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6z9mXgjU0.woff2": "/static/media/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6z9mXgjU0.f7dcd9129a200dbb1954.woff2",
+    "static/media/rP2rp2ywxg089UriCZaSExd86J3t9jz86Mvy4qCRAL19DksVat-JDV30TGcro9o45zw.woff2": "/static/media/rP2rp2ywxg089UriCZaSExd86J3t9jz86Mvy4qCRAL19DksVat-JDV30TGcro9o45zw.0d6365f380cb2f4449ff.woff2",
+    "static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3bWuYMBYro.woff2": "/static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3bWuYMBYro.d49c854ea0755ac6239d.woff2",
+    "static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3bWuYMBYro.woff2": "/static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3bWuYMBYro.8321c71ee6ae0ca9b7e7.woff2",
+    "static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B47b1z3bWuYMBYro.woff2": "/static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B47b1z3bWuYMBYro.c4d1404c5b52bd91bacb.woff2",
+    "static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B45L0z3bWuYMBYro.woff2": "/static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B45L0z3bWuYMBYro.98b5ecb83c47fd87a4a5.woff2",
+    "static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3jWuYMBYrp0xg.woff2": "/static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3jWuYMBYrp0xg.031f5efa6d845e552ced.woff2",
+    "static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3jWuYMBYrp0xg.woff2": "/static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3jWuYMBYrp0xg.195523cfdd60afeccdbf.woff2",
+    "static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B47b1z3jWuYMBYrp0xg.woff2": "/static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B47b1z3jWuYMBYrp0xg.21e2800308bd6b49e736.woff2",
+    "static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B45L0z3jWuYMBYrp0xg.woff2": "/static/media/HTxwL3I-JCGChYJ8VI-L6OO_au7B45L0z3jWuYMBYrp0xg.4bb2a870316297d91564.woff2",
+    "index.html": "/index.html",
+    "main.d2bf2c40.css.map": "/static/css/main.d2bf2c40.css.map",
+    "main.4ec5acfe.js.map": "/static/js/main.4ec5acfe.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.d2bf2c40.css",
+    "static/js/main.4ec5acfe.js"
+  ]
+}

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /staff/
+Disallow: /thank-you
+Disallow: /review/
+
+Sitemap: https://santacruzstrength.com/sitemap.xml

@@ -1,0 +1,197 @@
+<title>SCS Convergence Gate Review, after T-1</title>
+<style>
+:root{--green:#0D5D3E;--green-dk:#094831;--green-mut:#E8F5EE;--coral:#FA5A5C;--bg:#F7F5F0;--card:#FFF;--text:#2A2A2A;--muted:#5C6370;--line:rgba(28,28,28,.12);--crit:#C42B2B;--major:#C77700;--mono:ui-monospace,Menlo,monospace;--sans:system-ui,-apple-system,"Segoe UI",Helvetica,sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#12160F;--card:#191E17;--text:#E8E6E0;--muted:#9AA394;--line:rgba(232,230,224,.14);--green-mut:#16281F;--green:#4FBF8B;--green-dk:#3FA876}}
+:root[data-theme="dark"]{--bg:#12160F;--card:#191E17;--text:#E8E6E0;--muted:#9AA394;--line:rgba(232,230,224,.14);--green-mut:#16281F;--green:#4FBF8B}
+:root[data-theme="light"]{--bg:#F7F5F0;--card:#FFF;--text:#2A2A2A;--muted:#5C6370;--line:rgba(28,28,28,.12);--green-mut:#E8F5EE;--green:#0D5D3E}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.6}
+.wrap{max-width:1020px;margin:0 auto;padding:0 20px 80px}
+header.hero{background:var(--crit);color:#fff;padding:38px 0 30px;margin-bottom:24px}
+header.hero .wrap{padding-bottom:0}
+h1{font-size:clamp(25px,5vw,36px);margin:0 0 10px;font-weight:800;letter-spacing:-.02em}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.85;margin:0 0 8px}
+.sub{font-size:17px;opacity:.95;margin:0 0 16px;max-width:64ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px}.meta span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);padding:5px 11px;border-radius:999px;font-size:12.5px}
+section{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:22px 24px;margin-bottom:20px}
+@media(max-width:640px){section{padding:18px 16px}}
+section>h2{margin:0 0 12px;font-size:21px}
+h3{font-size:16px;margin:20px 0 8px}
+p{margin:0 0 11px}ul,ol{margin:0 0 11px;padding-left:22px}li{margin-bottom:4px}
+code{font-family:var(--mono);font-size:.87em;background:var(--green-mut);padding:1.5px 5px;border-radius:4px}
+pre{background:var(--green-mut);padding:12px 14px;border-radius:8px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;margin:10px 0}
+.scroll{overflow-x:auto;margin:12px 0 14px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--green-mut);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--green-dk);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+.pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.p-ok{background:var(--green);color:#fff}.p-crit{background:var(--crit);color:#fff}.p-major{background:var(--major);color:#fff}.p-na{background:var(--muted);color:#fff}
+.warn{border-left:3px solid var(--crit);background:rgba(196,43,43,.07);padding:12px 15px;border-radius:0 8px 8px 0;margin:14px 0}
+.ok{border-left:3px solid var(--green);background:var(--green-mut);padding:12px 15px;border-radius:0 8px 8px 0;margin:14px 0}
+footer{text-align:center;color:var(--muted);font-size:13.5px;padding-top:24px;border-top:1px solid var(--line);margin-top:30px}
+</style>
+
+<header class="hero"><div class="wrap">
+<p class="eyebrow">Interim Gate Review, not a release review</p>
+<h1>Convergence stopped at T-1 of 9</h1>
+<p class="sub">This is not the converged system. Two tickets of nine are integrated. Public lead capture is currently broken by design of the sequence, and no browser verification is possible yet.</p>
+<div class="meta"><span>2026-08-07</span><span>branch convergence/t1-backend</span><span>nothing pushed</span><span>VERDICT: NOT READY</span></div>
+</div></header>
+
+<div class="wrap">
+
+<section>
+<h2>Why this is not a release review</h2>
+<div class="warn">
+<b>The requested review assumes all approved tickets are integrated. They are not.</b> T-0 and T-1 are done. T-2 through T-9 have not been started, on instruction. Producing a final verdict now would report green on checks that cannot run and would misrepresent the state of the work.
+</div>
+<div class="scroll"><table>
+<thead><tr><th>Ticket</th><th>Scope</th><th>State</th></tr></thead>
+<tbody>
+<tr><td>T-0</td><td>Remote protection</td><td><span class="pill p-ok">DONE</span></td></tr>
+<tr><td>T-1</td><td>Backend convergence</td><td><span class="pill p-ok">DONE</span></td></tr>
+<tr><td>T-2</td><td>Frontend replacement</td><td><span class="pill p-crit">NOT STARTED</span></td></tr>
+<tr><td>T-3</td><td>Media truth and hero</td><td><span class="pill p-crit">NOT STARTED</span></td></tr>
+<tr><td>T-4</td><td>Blog corpus</td><td><span class="pill p-crit">NOT STARTED</span></td></tr>
+<tr><td>T-5</td><td>Provider authority</td><td><span class="pill p-crit">NOT STARTED</span></td></tr>
+<tr><td>T-6</td><td>Vendor residue</td><td><span class="pill p-crit">NOT STARTED</span></td></tr>
+<tr><td>T-7</td><td>CRM disabled boundary</td><td><span class="pill p-crit">NOT STARTED</span></td></tr>
+<tr><td>T-8</td><td>Credential rotation</td><td><span class="pill p-crit">NOT STARTED</span></td></tr>
+<tr><td>T-9</td><td>Integrated review</td><td><span class="pill p-na">BLOCKED, this document</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>Route inventory, derived from source</h2>
+<p>Taken from the application, not from a checklist.</p>
+<div class="scroll"><table>
+<thead><tr><th>Surface</th><th>Count</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Backend routes, total</td><td>103</td><td>Was 95 before convergence, a strict superset</td></tr>
+<tr><td>Authenticated</td><td>72</td><td></td></tr>
+<tr><td>Unauthenticated</td><td>31</td><td>Includes 6 webhooks, all gated or hardcoded 503</td></tr>
+<tr><td>Unauthenticated and mutating</td><td>18</td><td>Was 16. See open risks</td></tr>
+<tr><td>Public frontend routes</td><td>14</td><td>Still the pre-convergence frontend</td></tr>
+</tbody></table></div>
+<p>Public frontend routes: <code>/</code>, <code>/about</code>, <code>/join</code>, <code>/personal-training</code>, <code>/events</code>, <code>/blog</code>, <code>/blog/:slug</code>, <code>/contact</code>, <code>/local-wellness</code>, <code>/pride</code>, <code>/privacy</code>, <code>/terms</code>, <code>/thank-you</code>, <code>/review/:token</code>.</p>
+</section>
+
+<section>
+<h2>Verification evidence, exact commands</h2>
+<pre>$ python3 -m compileall backend/*.py
+  OK
+
+$ python -m unittest tests.&lt;module&gt;      # per module, 9 modules
+  tests.test_lead_consent                 2   OK
+  tests.test_lead_lifecycle               6   OK
+  tests.test_lead_outbox                  16  OK
+  tests.test_provider_dispatch            12  OK
+  tests.test_runtime_safety               12  OK
+  tests.test_security_controls            5   OK
+  tests.test_server_lifecycle_contract    8   OK
+  tests.test_server_security_contract     7   OK
+  tests.test_write_gate_http              2   OK
+  TOTAL 70 tests, 0 failing        (was 0 tests before convergence)</pre>
+<div class="scroll"><table>
+<thead><tr><th>Verification</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Backend suite</td><td><span class="pill p-ok">70 PASS</span></td></tr>
+<tr><td>Backend compile</td><td><span class="pill p-ok">PASS</span></td></tr>
+<tr><td>Frontend suite</td><td><span class="pill p-na">UNREACHABLE</span> no test files in this repository yet, arrives with T-2</td></tr>
+<tr><td>Production build</td><td><span class="pill p-na">UNREACHABLE</span> <code>node_modules</code> absent</td></tr>
+<tr><td>Search validator</td><td><span class="pill p-na">UNREACHABLE</span> no route registry or scripts yet, arrive with T-2</td></tr>
+<tr><td>Browser QA, desktop and mobile</td><td><span class="pill p-na">NOT PERFORMED</span> see below</td></tr>
+<tr><td>Accessibility audit</td><td><span class="pill p-na">NOT PERFORMED</span> depends on the above</td></tr>
+</tbody></table></div>
+<div class="warn">
+<b>No screenshots in this artifact, deliberately.</b> The frontend in this repository is scheduled for wholesale replacement by T-2. Installing dependencies to photograph a composition that is about to be deleted would produce evidence about a system that will never ship. Browser and accessibility verification is owed after T-2, against the composition that will actually ship.
+</div>
+</section>
+
+<section>
+<h2>Conversion chain</h2>
+<p>The specification requires: visitor action, validation, consent, persistence, outbox transition, fake downstream, success or failure UI, analytics gate.</p>
+<div class="warn">
+<b>The chain is broken at step one and cannot be exercised end to end.</b> The converged backend requires an idempotency identifier on every lead submission. The unreplaced frontend does not send one. Every public lead form returns 422.
+</div>
+<div class="scroll"><table>
+<thead><tr><th>Stage</th><th>State</th></tr></thead>
+<tbody>
+<tr><td>Visitor action</td><td><span class="pill p-crit">422</span> contract mismatch, resolved by T-2</td></tr>
+<tr><td>Validation</td><td><span class="pill p-ok">Present</span> blank name, email format, size cap, rate limit</td></tr>
+<tr><td>Consent</td><td><span class="pill p-ok">Present</span> channel split, re-read live at dispatch</td></tr>
+<tr><td>Persistence</td><td><span class="pill p-ok">Gated</span> 503 unless writes explicitly enabled</td></tr>
+<tr><td>Outbox transition</td><td><span class="pill p-ok">16 tests</span> claim, lease, quarantine, replay</td></tr>
+<tr><td>Fake downstream</td><td><span class="pill p-ok">12 tests</span> no live provider reachable</td></tr>
+<tr><td>Success or failure UI</td><td><span class="pill p-crit">Unverifiable</span> needs T-2 plus a browser</td></tr>
+<tr><td>Analytics gate</td><td><span class="pill p-crit">Absent</span> consent component arrives with T-2</td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>Convergence decision audit</h2>
+<div class="scroll"><table>
+<thead><tr><th>Required outcome</th><th>State</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Hardened backend behaviour survives</td><td><span class="pill p-ok">PASS</span></td><td>70 tests, 43 gate references</td></tr>
+<tr><td>Quarantined SMS cannot be blindly replayed</td><td><span class="pill p-ok">PASS</span></td><td>Refusal type plus 4 regression tests</td></tr>
+<tr><td>Consent re-read at dispatch, fail closed</td><td><span class="pill p-ok">PASS</span></td><td>Live record re-read, 4 suppression checks</td></tr>
+<tr><td>Provider writes disabled locally</td><td><span class="pill p-ok">PASS</span></td><td>All flags deny with credentials present</td></tr>
+<tr><td>No production mutation, push or deploy</td><td><span class="pill p-ok">PASS</span></td><td>Push target is <code>no_push</code>, local branch only</td></tr>
+<tr><td>Acknowledgement-email fix survives</td><td><span class="pill p-major">PARTIAL</span></td><td>Backend reads the field. The frontend that sends it arrives with T-2, so the fix is currently inert</td></tr>
+<tr><td>Provider authority explicit</td><td><span class="pill p-crit">FAIL</span></td><td>Both email providers still wired, precedence undeclared. T-5</td></tr>
+<tr><td>No rejected imagery, media traceable</td><td><span class="pill p-crit">FAIL</span></td><td>14 vendor CDN references, no local asset directory. T-3 and T-6</td></tr>
+<tr><td>Unsupported ratings and rankings absent</td><td><span class="pill p-crit">FAIL</span></td><td>A rating and a ranking claim remain on the community page. T-2</td></tr>
+<tr><td>Useful blogs intact</td><td><span class="pill p-crit">FAIL</span></td><td>Ten written bodies still in the content donor. T-4</td></tr>
+<tr><td>Public copy dash clean</td><td><span class="pill p-ok">PASS</span></td><td>Zero em or en dashes in source</td></tr>
+<tr><td>Analytics and consent truthful</td><td><span class="pill p-crit">FAIL</span></td><td>No consent gate in this repository yet. T-2</td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>Media provenance and missing shots</h2>
+<p>Current state: this repository holds <b>no local imagery</b>. Fourteen references point at a vendor CDN.</p>
+<p>Established during reconnaissance, and correcting the earlier record: the referenced files are genuine camera originals, not generated. Two are already vendored bit-identically in the engineering donor, confirmed by checksum. Nothing generated was found in the reference set.</p>
+<div class="scroll"><table>
+<thead><tr><th>Subject</th><th>Provenance</th><th>People</th><th>Publishable</th></tr></thead>
+<tbody>
+<tr><td>Wide empty facility floor</td><td>Device capture, 1080x1440</td><td>None</td><td><span class="pill p-ok">Yes, hero</span></td></tr>
+<tr><td>Rack and bench area, vertical</td><td>1080x1974</td><td>None</td><td><span class="pill p-ok">Yes</span></td></tr>
+<tr><td>Entrance and signage</td><td>Digital SLR, 6000x4000</td><td>One</td><td>Hold, permission</td></tr>
+<tr><td>Bench press action, unwatermarked</td><td>Phone, 4032x3024</td><td>Two</td><td>Hold, permission</td></tr>
+<tr><td>Lifters with medals at the wall seal</td><td>Phone, 4032x3024</td><td>Three</td><td>Hold, permission</td></tr>
+<tr><td>Meet-day crowd</td><td>Phone, 4032x3024</td><td>Many</td><td>Hold, permission</td></tr>
+<tr><td>Circle logo, transparent</td><td>480x486</td><td>None</td><td><span class="pill p-ok">Yes</span></td></tr>
+</tbody></table></div>
+<p><b>Still missing:</b> higher-resolution originals of the two facility frames, which are device captures adequate for standard presentation and thin for a full-bleed hero. Quality request, not an existence blocker.</p>
+</section>
+
+<section>
+<h2>Backend, provider and CRM state</h2>
+<div class="ok"><b>Safety posture, verified behaviourally rather than by inspection.</b> With provider credentials present and no enable flags set, the application logs sixteen runtime controls all false, completes startup with no datastore running, starts zero scheduler jobs, and returns <code>503 database_writes_disabled</code> for every mutating request including the webhooks.</div>
+<h3>CRM readiness</h3>
+<p>Verified capability: <b>none</b>. Exactly one reference exists in the backend, inside a comment listing providers the outbox is generic over. No client, no environment variable, no field mapping, no test, no fake. The migration has not started.</p>
+<p>Blockers, all external and all unchanged: credentials and a sandbox, the prospect and member field mapping confirmed against the vendor's real schema, whether prospect creation is idempotent and on what key, and the cutover date relative to the incumbent membership provider. No vendor behaviour is assumed anywhere in this work.</p>
+</section>
+
+<section>
+<h2>Open risks</h2>
+<div class="scroll"><table>
+<thead><tr><th>Risk</th><th>Severity</th><th>Owner</th></tr></thead>
+<tbody>
+<tr><td><b>1,386 real customer records tracked in git.</b> 1,323 distinct emails, 1,282 phones, 1,374 rows with free-text notes, including a cluster of university addresses. Private remote, but already pushed and permanent in history</td><td><span class="pill p-crit">CRITICAL</span></td><td>Consultant and owner</td></tr>
+<tr><td>Public lead capture returns 422 until T-2</td><td><span class="pill p-crit">CRITICAL</span></td><td>T-2</td></tr>
+<tr><td>Disclosed owner credential in history. Now actually rotatable, because the startup force-reset is gone</td><td><span class="pill p-crit">TIME SENSITIVE</span></td><td>T-8</td></tr>
+<tr><td>Unauthenticated review-token minting, discloses a lead name when chained. Needs a lead identifier, which is not in the exported file</td><td><span class="pill p-major">MAJOR</span></td><td>Unassigned</td></tr>
+<tr><td>Two email providers wired, precedence undeclared</td><td><span class="pill p-major">MAJOR</span></td><td>T-5</td></tr>
+<tr><td>Outbox has no retention policy</td><td><span class="pill p-na">MINOR</span></td><td>Deferred</td></tr>
+<tr><td>Lease expiry uses a worker-host clock, not one authoritative clock</td><td><span class="pill p-na">MINOR</span></td><td>Deferred, single worker</td></tr>
+<tr><td>New HTTP test mutates process environment without restoring. No pollution observed across 54 tests in one process</td><td><span class="pill p-na">LATENT</span></td><td>Unassigned</td></tr>
+</tbody></table></div>
+</section>
+
+<footer>
+Interim gate review after T-1 of 9 &middot; 2026-08-07<br>
+Nothing pushed, nothing deployed, no provider activated, no production data touched.
+</footer>
+</div>

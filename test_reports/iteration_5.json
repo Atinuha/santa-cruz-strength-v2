@@ -1,0 +1,48 @@
+{
+  "summary": "V2 Santa Cruz Strength full stack verified. Backend 9/9 API tests pass (100%). All public pages (/, /join, /personal-training, /contact, /about, /blog, /local-wellness, /pride) render correctly. Staff login (management@santacruzstrength.com / ***REDACTED***) authenticates directly (no OTP in this env) returning access_token, and redirects to /staff/dashboard which loads Kanban board with 1405 leads and stat cards. All CRM sidebar routes (/staff/blog, /staff/events, /staff/campaigns, /staff/team, /staff/content, /staff/corporate) load successfully with no errors. Public lead form POST /api/v1/leads works when full V2 schema payload sent (schema_version, brand_id, location_id, form_id, consent, etc.). GET /api/content returns 30+ content keys. GET /api/team returns team members. Lead form on /join has correct data-testid attributes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "GET /api/content -> 200 with dict of content keys",
+    "GET /api/team -> 200 with list of team members",
+    "GET /api/blog -> 200 with {posts, total}",
+    "POST /api/auth/login (valid) -> 200 {step: authenticated, access_token, user}",
+    "POST /api/auth/login (invalid password) -> 401/403",
+    "POST /api/v1/leads (full V2 schema) -> 201",
+    "GET /api/staff/leads (auth) -> 200",
+    "GET /api/staff/stats (auth) -> 200",
+    "GET /api/staff/leads (no auth) -> 401/403",
+    "Homepage renders navbar (THE GYM, COACHING, MEMBERSHIP, ABOUT, BLOG) and hero CTA",
+    "All public pages load: /join, /personal-training, /contact, /about, /blog, /local-wellness, /pride",
+    "Staff login form submits, JWT stored in localStorage as scs_token, navigates to /staff/dashboard",
+    "Dashboard shows stats (NEW 7 DAYS, TOUR BOOKED, MEMBERS, TOTAL LEADS 1405) and Kanban board with lead cards",
+    "Staff nav routes load: blog, events, campaigns (Iron Roses campaign present), team, content, corporate B2B",
+    "Lead form on /join exposes data-testid lead-form-name-input, lead-form-phone-input, lead-form-email-input"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_v2_smoke.py",
+    "/app/test_reports/pytest/v2_smoke.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is 5326 lines - exceeds 700 line guideline; should be split into routers per resource (auth, leads, staff, content, team, blog, campaigns, corporate) for maintainability",
+    "Public lead form schema is complex (requires brand_id, location_id, form_id, offer_id, consent versions) - ensure frontend leadContracts.js stays in sync with backend Pydantic model; consider server default fallbacks to reduce 422 surface",
+    "test_credentials.md mentions 2FA required but backend/env now returns authenticated directly - update credentials doc to reflect current dev auth flow"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_v2_smoke.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "management@santacruzstrength.com / ***REDACTED*** (direct login, no OTP in this environment)",
+  "seed_data_creation": "Public lead form test creates one TEST_ prefixed lead per pytest run (test_public_lead_creation_v1). No cleanup implemented; leads are prefixed for identification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "V2 codebase replacement verified as working. Login flow is direct (returns step=authenticated with access_token, no OTP). Frontend uses POST /api/v1/leads with full contract from leadContracts.js. Content, team, blog public endpoints working. 1405 existing leads preserved from V1 database. Note that /app/memory/test_credentials.md incorrectly claims 2FA - it is actually direct login in this environment. When testing staff login via Playwright, use wait_until='networkidle' before submitting and wait_for_url('**/staff/dashboard**') after."
+}

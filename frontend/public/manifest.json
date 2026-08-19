@@ -1,0 +1,25 @@
+{
+  "name": "SCS Staff Portal",
+  "short_name": "SCS Mobile",
+  "description": "Santa Cruz Strength - Staff Mobile Portal",
+  "start_url": "/staff/mobile",
+  "scope": "/staff/",
+  "display": "standalone",
+  "background_color": "#0a0f0d",
+  "theme_color": "#0D5D3E",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/scs/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/scs/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

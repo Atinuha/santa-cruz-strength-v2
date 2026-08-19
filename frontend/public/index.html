@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#0D5D3E" />
+        <meta name="description" content="Train at Santa Cruz Strength with 24/7 member access, strength equipment, personal training and free facility tours." />
+        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" href="/assets/scs/logo.png" />
+        <link rel="apple-touch-icon" href="/assets/scs/logo.png" />
+
+        <!-- PWA -->
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="SCS Staff" />
+
+        <!-- Open Graph / Facebook / iMessage link previews -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://santacruzstrength.com/" />
+        <meta property="og:site_name" content="Santa Cruz Strength" />
+        <meta property="og:title" content="Santa Cruz Strength | Strength Gym in Santa Cruz, CA" />
+        <meta property="og:description" content="Train at Santa Cruz Strength with 24/7 member access, strength equipment, personal training and free facility tours." />
+        <meta property="og:image" content="https://santacruzstrength.com/assets/scs/facility.jpg" />
+        <meta property="og:image:width" content="1080" />
+        <meta property="og:image:height" content="1440" />
+        <meta property="og:image:alt" content="Santa Cruz Strength training floor" />
+        <meta property="og:locale" content="en_US" />
+
+        <!-- Twitter / X Card -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Santa Cruz Strength | Strength Gym in Santa Cruz, CA" />
+        <meta name="twitter:description" content="Train at Santa Cruz Strength with 24/7 member access, strength equipment, personal training and free facility tours." />
+        <meta name="twitter:image" content="https://santacruzstrength.com/assets/scs/facility.jpg" />
+
+        <!-- Canonical -->
+        <link rel="canonical" href="https://santacruzstrength.com/" />
+        <!-- Fonts are self hosted, so there is no font host to preconnect to.
+             Preload links are injected per route at build time by
+             scripts/generate-route-heads.mjs, which reads the hashed filenames
+             webpack actually emitted. -->
+        <title>Santa Cruz Strength | Strength Gym in Santa Cruz, CA</title>
+        <script id="site-schema" type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "@id": "https://santacruzstrength.com/#website", "url": "https://santacruzstrength.com/", "name": "Santa Cruz Strength", "inLanguage": "en-US", "publisher": {"@id": "https://santacruzstrength.com/#gym"}}, {"@type": "WebPage", "@id": "https://santacruzstrength.com/#webpage", "url": "https://santacruzstrength.com/", "name": "Santa Cruz Strength | Strength Gym in Santa Cruz, CA", "description": "Santa Cruz Strength is a local strength gym with 24/7 member access, strength equipment, personal training and free facility tours.", "inLanguage": "en-US", "isPartOf": {"@id": "https://santacruzstrength.com/#website"}, "mainEntity": {"@id": "https://santacruzstrength.com/#gym"}}, {"@type": "ExerciseGym", "@id": "https://santacruzstrength.com/#gym", "name": "Santa Cruz Strength", "url": "https://santacruzstrength.com/", "image": "https://santacruzstrength.com/assets/scs/facility.jpg", "telephone": "+14083376709", "description": "A strength training gym serving Santa Cruz, California with 24/7 member access, personal training and free facility tours.", "address": {"@type": "PostalAddress", "streetAddress": "151 Harvey West Blvd Ste D", "addressLocality": "Santa Cruz", "addressRegion": "CA", "postalCode": "95060", "addressCountry": "US"}, "mainEntityOfPage": {"@id": "https://santacruzstrength.com/#webpage"}}, {"@type": "FAQPage", "@id": "https://santacruzstrength.com/#faq", "isPartOf": {"@id": "https://santacruzstrength.com/#webpage"}, "mainEntity": [{"@type": "Question", "name": "Do I need experience to start?", "acceptedAnswer": {"@type": "Answer", "text": "No. The gym works for people at every level. Staff can help you get oriented."}}, {"@type": "Question", "name": "What happens on a facility tour?", "acceptedAnswer": {"@type": "Answer", "text": "You walk through the space, see the equipment, ask questions, and talk through which membership fits."}}, {"@type": "Question", "name": "What equipment is available?", "acceptedAnswer": {"@type": "Answer", "text": "Power racks, barbells, bumper and iron plates, specialty bars, dumbbells, kettlebells, and conditioning equipment."}}, {"@type": "Question", "name": "Is coaching available?", "acceptedAnswer": {"@type": "Answer", "text": "Staff can help during staffed hours. Structured personal training is a separate service."}}, {"@type": "Question", "name": "Where is the gym?", "acceptedAnswer": {"@type": "Answer", "text": "151 Harvey West Blvd Ste D, Santa Cruz, CA 95060. Harvey West Business Park."}}]}]}</script>
+        <!-- Analytics loads only when the build was told it may, AND on the
+             production hostname, AND after explicit consent. All three.
+
+             The build time gate is new. ALLOW_ANALYTICS is a backend variable
+             that never reaches a browser, so it was advertised as controlling
+             analytics while being incapable of stopping this script. Every
+             other outbound capability in this project defaults disabled and
+             this one could not be disabled at all.
+
+             Written so that an unsubstituted placeholder is falsy: if the
+             variable is not set at build time the comparison fails and
+             analytics stays off. Fail closed, like the rest. -->
+        <script>
+          window.SCS_GA_ID = 'G-GJVM3NJVJH';
+          window.SCS_ANALYTICS_BUILD_ENABLED = '%REACT_APP_ALLOW_ANALYTICS%' === 'true';
+          if (window.SCS_ANALYTICS_BUILD_ENABLED && window.location.hostname === 'santacruzstrength.com' && window.localStorage && window.localStorage.getItem('scs_analytics_consent') === 'granted') {
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function(){window.dataLayer.push(arguments);};
+            window.gtag('js', new Date());
+            window.gtag('config', window.SCS_GA_ID, {
+              send_page_view: false,
+              cookie_flags: 'SameSite=None;Secure'
+            });
+            var ga = document.createElement('script');
+            ga.async = true;
+            ga.dataset.scsAnalytics = 'ga4';
+            ga.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.SCS_GA_ID;
+            document.head.appendChild(ga);
+          }
+        </script>
+        <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
+    </head>
+    <body>
+        <noscript>You need to enable JavaScript to run this app.</noscript>
+        <div id="root"></div>
+        </body>
+</html>

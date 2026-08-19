@@ -1,0 +1,98 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://santacruzstrength.com/#website",
+      "url": "https://santacruzstrength.com/",
+      "name": "Santa Cruz Strength",
+      "inLanguage": "en-US",
+      "publisher": {
+        "@id": "https://santacruzstrength.com/#gym"
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://santacruzstrength.com/#webpage",
+      "url": "https://santacruzstrength.com/",
+      "name": "Santa Cruz Strength | Strength Gym in Santa Cruz, CA",
+      "description": "Santa Cruz Strength is a local strength gym with 24/7 member access, strength equipment, personal training and free facility tours.",
+      "inLanguage": "en-US",
+      "isPartOf": {
+        "@id": "https://santacruzstrength.com/#website"
+      },
+      "mainEntity": {
+        "@id": "https://santacruzstrength.com/#gym"
+      }
+    },
+    {
+      "@type": "ExerciseGym",
+      "@id": "https://santacruzstrength.com/#gym",
+      "name": "Santa Cruz Strength",
+      "url": "https://santacruzstrength.com/",
+      "image": "https://santacruzstrength.com/assets/scs/facility.jpg",
+      "telephone": "+14083376709",
+      "description": "A strength training gym serving Santa Cruz, California with 24/7 member access, personal training and free facility tours.",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "151 Harvey West Blvd Ste D",
+        "addressLocality": "Santa Cruz",
+        "addressRegion": "CA",
+        "postalCode": "95060",
+        "addressCountry": "US"
+      },
+      "mainEntityOfPage": {
+        "@id": "https://santacruzstrength.com/#webpage"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://santacruzstrength.com/#faq",
+      "isPartOf": {
+        "@id": "https://santacruzstrength.com/#webpage"
+      },
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Do I need experience to start?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The gym works for people at every level. Staff can help you get oriented."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens on a facility tour?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You walk through the space, see the equipment, ask questions, and talk through which membership fits."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What equipment is available?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Power racks, barbells, bumper and iron plates, specialty bars, dumbbells, kettlebells, and conditioning equipment."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is coaching available?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Staff can help during staffed hours. Structured personal training is a separate service."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where is the gym?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "151 Harvey West Blvd Ste D, Santa Cruz, CA 95060. Harvey West Business Park."
+          }
+        }
+      ]
+    }
+  ]
+}

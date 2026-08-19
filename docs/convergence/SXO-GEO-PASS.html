@@ -1,0 +1,443 @@
+<title>SXO + GEO Implementation Pass | Santa Cruz Strength</title>
+<style>
+  :root {
+    --ink: #1b1b19; --muted: #57534e; --light: #8a8378; --line: #e3ded5;
+    --bg: #faf8f4; --card: #ffffff; --clay: #a55438; --good: #2f6b4f; --bad: #a3372a;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#ece7de; --muted:#b3aca1; --light:#8a8378; --line:#33302b;
+            --bg:#141311; --card:#1c1a17; --clay:#c9744f; --good:#6fbf95; --bad:#e08074; }
+  }
+  :root[data-theme="dark"] {
+    --ink:#ece7de; --muted:#b3aca1; --light:#8a8378; --line:#33302b;
+    --bg:#141311; --card:#1c1a17; --clay:#c9744f; --good:#6fbf95; --bad:#e08074;
+  }
+  :root[data-theme="light"] {
+    --ink:#1b1b19; --muted:#57534e; --light:#8a8378; --line:#e3ded5;
+    --bg:#faf8f4; --card:#ffffff; --clay:#a55438; --good:#2f6b4f; --bad:#a3372a;
+  }
+  body { background: var(--bg); color: var(--ink); margin: 0;
+    font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 3rem 1.25rem 6rem; }
+  h1 { font-size: clamp(1.7rem, 4vw, 2.5rem); line-height: 1.15; margin: 0 0 .5rem; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.2rem, 2.6vw, 1.55rem); margin: 3.5rem 0 .35rem; letter-spacing: -0.01em;
+       padding-top: 1.5rem; border-top: 1px solid var(--line); }
+  h3 { font-size: 1.02rem; margin: 2rem 0 .5rem; }
+  p, li { color: var(--muted); }
+  p.lede { font-size: 1.08rem; color: var(--ink); }
+  .kicker { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+            color: var(--light); font-weight: 600; margin: 0 0 .6rem; }
+  .sub { color: var(--light); font-size: .88rem; margin: .1rem 0 0; }
+  code, .mono { font-family: var(--mono); font-size: .84em; }
+  code { background: color-mix(in srgb, var(--line) 55%, transparent);
+         padding: .1em .35em; border-radius: 3px; }
+  .scroll { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--line);
+            border-radius: 8px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: .84rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line);
+           vertical-align: top; white-space: nowrap; }
+  th { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase;
+       color: var(--light); font-weight: 600; }
+  td.wrap-cell { white-space: normal; min-width: 18rem; }
+  tr:last-child td { border-bottom: 0; }
+  .pass { color: var(--good); font-weight: 600; }
+  .fail { color: var(--bad); font-weight: 600; }
+  .warn { color: var(--clay); font-weight: 600; }
+  .cards { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); margin: 1.2rem 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.1rem; }
+  .card .n { font-size: 1.6rem; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+  .card .l { font-size: .78rem; color: var(--light); margin-top: .15rem; }
+  .callout { border-left: 3px solid var(--clay); background: var(--card);
+             padding: .9rem 1.1rem; border-radius: 0 8px 8px 0; margin: 1.2rem 0; }
+  .callout p:first-child { margin-top: 0; } .callout p:last-child { margin-bottom: 0; }
+  .callout strong { color: var(--ink); }
+  ul { padding-left: 1.15rem; } li { margin: .3rem 0; }
+  svg { max-width: 100%; height: auto; display: block; }
+  .figure { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+            padding: 1.2rem; margin: 1.4rem 0; overflow-x: auto; }
+  figcaption { font-size: .8rem; color: var(--light); margin-top: .7rem; }
+</style>
+
+<div class="wrap">
+
+<p class="kicker">Pre-launch pass, 9 August 2026</p>
+<h1>SXO + GEO implementation pass</h1>
+<p class="sub">Santa Cruz Strength &middot; existing-domain rebuild &middot; santacruzstrength.com</p>
+
+<p class="lede">The design is untouched. What changed is that the pages now contain their own
+content in the first response, every route says which page it is, and the claims that carry a
+number now show where the number came from.</p>
+
+<div class="cards">
+  <div class="card"><div class="n">108 &rarr; 34,756</div><div class="l">bytes of body in an article's initial HTML</div></div>
+  <div class="card"><div class="n">39 / 39</div><div class="l">routes server-rendered at build time</div></div>
+  <div class="card"><div class="n">0</div><div class="l">new runtime dependencies</div></div>
+  <div class="card"><div class="n">148 / 61 / 17</div><div class="l">backend, frontend, SEO checks passing</div></div>
+</div>
+
+<h2>1. Architecture, before and after</h2>
+
+<h3>What was already right</h3>
+<p>Most of the metadata layer existed and was well built. Do not rebuild it:
+<code>scripts/generate-route-heads.mjs</code> already wrote a per-route title, description,
+canonical, robots directive, Open Graph set and JSON-LD graph into a separate
+<code>build/&lt;route&gt;/index.html</code> for all 39 routes, and
+<code>scripts/generate-sitemap.mjs</code> already emitted 34 canonical URLs.</p>
+
+<h3>The defect that made all of it inert</h3>
+<div class="callout">
+<p><strong>Every one of those 39 shells had a 108-byte body.</strong></p>
+<p><code>&lt;noscript&gt;You need to enable JavaScript to run this app.&lt;/noscript&gt;&lt;div id="root"&gt;&lt;/div&gt;</code></p>
+<p>Perfect head, empty page. Each shell described, in structured data, a document that
+contained no text.</p>
+</div>
+
+<div class="figure">
+<svg viewBox="0 0 720 300" role="img" aria-label="Build pipeline before and after the prerender step">
+  <style>
+    .b{fill:var(--card);stroke:var(--line);stroke-width:1.5;rx:6}
+    .t{font:600 12px ui-sans-serif,system-ui;fill:var(--ink)}
+    .s{font:11px ui-sans-serif,system-ui;fill:var(--light)}
+    .lbl{font:600 10px ui-sans-serif,system-ui;letter-spacing:.1em;fill:var(--light)}
+    .ar{stroke:var(--light);stroke-width:1.5;fill:none;marker-end:url(#a)}
+    .new{stroke:var(--clay);stroke-width:2}
+  </style>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,1 L7,4 L0,7" fill="none" stroke="var(--light)" stroke-width="1.5"/></marker></defs>
+
+  <text x="0" y="14" class="lbl">BEFORE</text>
+  <rect x="0" y="26" width="120" height="44" class="b"/>
+  <text x="14" y="46" class="t">craco build</text><text x="14" y="61" class="s">bundle + assets</text>
+  <line x1="124" y1="48" x2="160" y2="48" class="ar"/>
+  <rect x="164" y="26" width="150" height="44" class="b"/>
+  <text x="178" y="46" class="t">route-heads</text><text x="178" y="61" class="s">39 heads written</text>
+  <line x1="318" y1="48" x2="354" y2="48" class="ar"/>
+  <rect x="358" y="26" width="180" height="44" class="b"/>
+  <text x="372" y="46" class="t">39 shells, empty body</text><text x="372" y="61" class="s">108 bytes each</text>
+
+  <text x="0" y="118" class="lbl">AFTER</text>
+  <rect x="0" y="130" width="120" height="44" class="b"/>
+  <text x="14" y="150" class="t">craco build</text><text x="14" y="165" class="s">bundle + assets</text>
+  <line x1="124" y1="152" x2="160" y2="152" class="ar"/>
+  <rect x="164" y="130" width="150" height="44" class="b"/>
+  <text x="178" y="150" class="t">route-heads</text><text x="178" y="165" class="s">39 heads written</text>
+  <line x1="318" y1="152" x2="354" y2="152" class="ar new"/>
+  <rect x="358" y="130" width="170" height="44" class="b" style="stroke:var(--clay)"/>
+  <text x="372" y="150" class="t">prerender.mjs</text><text x="372" y="165" class="s">new step</text>
+  <line x1="532" y1="152" x2="568" y2="152" class="ar"/>
+  <rect x="572" y="130" width="148" height="44" class="b"/>
+  <text x="586" y="150" class="t">39 real pages</text><text x="586" y="165" class="s">2.4k to 34k bytes</text>
+
+  <rect x="358" y="200" width="362" height="86" class="b"/>
+  <text x="372" y="222" class="t">Inside prerender.mjs</text>
+  <text x="372" y="241" class="s">1. webpack bundles src/App.js for node (already installed)</text>
+  <text x="372" y="257" class="s">2. fetch /api/content, /api/team, /api/blog once</text>
+  <text x="372" y="273" class="s">3. renderToString per route, write markup + preload payload</text>
+  <line x1="443" y1="178" x2="443" y2="196" class="ar new"/>
+</svg>
+<figcaption>The prerender is one added build step. Nothing about how the app is written changed.</figcaption>
+</div>
+
+<h3>How the rendering was added</h3>
+<p>Build-time server rendering with <code>react-dom/server</code>, driven by the webpack and babel
+already in this project. No Next.js migration, no <code>react-snap</code>, no headless browser
+downloaded into a deploy pipeline. <code>App.js</code> now exports <code>AppRoutes</code> without a
+router; the browser wraps it in <code>BrowserRouter</code> and the prerender wraps the same component
+in <code>StaticRouter</code>. One route table, two entry points, so a route cannot exist for a
+visitor and be missing from the prerender.</p>
+
+<p>Because every public page reads its copy from the CMS, the prerender fetches the three public
+endpoints once and writes that payload into each shell as
+<code>window.__SCS_PRELOAD__</code>. The client starts from the same data, so
+<code>hydrateRoot</code> adopts the server markup instead of discarding it. Measured in a browser:
+the post-hydration DOM is <strong>byte-identical</strong> to the prerendered markup on
+<code>/</code> and <code>/about</code>. No mismatch, no flash.</p>
+
+<p class="sub">One devDependency was added: <code>jsdom</code>, already resolved in the lockfile.
+DOMPurify binds to a window at import and the article pages sanitize CMS HTML, so the prerender
+needs a DOM. The alternative was writing unsanitized CMS HTML into static files, which would hand
+every no-JavaScript reader an unsanitized document. <code>yarn install --frozen-lockfile</code>
+still passes.</p>
+
+<h2>2. Two production defects found during inspection</h2>
+
+<div class="callout">
+<p><strong>Blocker A. The host is serving <code>index.html</code> for every route, so all 39
+shells are dead.</strong></p>
+<p>On the preview, <code>/about</code>, <code>/join</code> and <code>/blog</code> all return the
+homepage's title and <code>&lt;link rel="canonical" href="https://santacruzstrength.com/"&gt;</code>.
+The correct file exists at <code>build/about/index.html</code> and is never served. A crawler sees
+one page pointing at itself from a dozen URLs.</p>
+<p><strong>The current live site has the same defect.</strong> <code>santacruzstrength.com/blog</code>
+serves the homepage title and a homepage canonical today. This is not introduced by the rebuild;
+it is fixed by serving static files before the SPA fallback, which is what
+<code>deploy/</code> already specifies and the host is not doing.</p>
+</div>
+
+<div class="callout">
+<p><strong>Blocker B. The preview sends <code>x-robots-tag: noindex, nofollow</code> on every
+response.</strong></p>
+<p>Correct for a preview and fatal if it survives the cutover. It is a header, so nothing in this
+repository can remove it. Verify with <code>curl -I</code> against the production hostname before
+announcing launch.</p>
+</div>
+
+<h2>3. Route table</h2>
+<p class="sub">Measured from the built artefact. "Body chars" is visible text in the initial HTML
+response with scripts stripped, i.e. what a crawler that does not execute JavaScript receives.</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>URL</th><th>Status</th><th>Rendering</th><th>Body chars</th><th>H1</th><th>Schema</th><th>Indexable</th></tr></thead>
+<tbody>
+<tr><td>/</td><td>200</td><td>prerendered</td><td>7,103</td><td>1</td><td>WebSite + WebPage + ExerciseGym + FAQPage</td><td>yes</td></tr>
+<tr><td>/about</td><td>200</td><td>prerendered</td><td>2,454</td><td>1</td><td>BreadcrumbList</td><td>yes</td></tr>
+<tr><td>/join</td><td>200</td><td>prerendered</td><td>3,967</td><td>1</td><td>BreadcrumbList + OfferCatalog</td><td>yes</td></tr>
+<tr><td>/personal-training</td><td>200</td><td>prerendered</td><td>2,794</td><td>1</td><td>BreadcrumbList + Service</td><td>yes</td></tr>
+<tr><td>/blog</td><td>200</td><td>prerendered</td><td>6,849</td><td>1</td><td>BreadcrumbList</td><td>yes</td></tr>
+<tr><td>/contact</td><td>200</td><td>prerendered</td><td>1,272</td><td>1</td><td>BreadcrumbList</td><td>yes</td></tr>
+<tr><td>/events</td><td>200</td><td>prerendered</td><td>662</td><td>1</td><td>BreadcrumbList</td><td>yes</td></tr>
+<tr><td>/privacy</td><td>200</td><td>prerendered</td><td>5,237</td><td>1</td><td>BreadcrumbList</td><td>yes</td></tr>
+<tr><td>/terms</td><td>200</td><td>prerendered</td><td>6,961</td><td>1</td><td>BreadcrumbList</td><td>yes</td></tr>
+<tr><td>/blog/&lt;slug&gt; &times; 25</td><td>200</td><td>prerendered</td><td>3,815 to 15,750</td><td>1</td><td>BlogPosting + BreadcrumbList (+ FAQPage on 20)</td><td>yes</td></tr>
+<tr><td>/blog/&lt;slug&gt; &times; 2</td><td>200</td><td>prerendered</td><td>3,912 / 4,237</td><td>1</td><td>none</td><td>no, canonical elsewhere</td></tr>
+<tr><td>/local-wellness</td><td>200</td><td>prerendered</td><td>2,815</td><td>1</td><td>none</td><td>no</td></tr>
+<tr><td>/pride</td><td>200</td><td>prerendered</td><td>296</td><td>1</td><td>none</td><td>no</td></tr>
+<tr><td>/thank-you</td><td>200</td><td>prerendered</td><td>782</td><td>1</td><td>none</td><td>no</td></tr>
+<tr><td>anything else</td><td>404</td><td>static 404.html</td><td>&mdash;</td><td>1</td><td>none</td><td>no</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Titles are unique across all 39 routes. Canonicals are unique except for the two deliberate
+consolidations below. Every canonical uses <code>https://santacruzstrength.com/</code>; a repo-wide
+search for <code>emergentagent.com</code> returns one hit, in a backend test that exists to assert
+the string is absent from source.</p>
+
+<h2>4. Migration table</h2>
+<p class="sub">The live inventory was taken by rendering santacruzstrength.com in a browser and
+reading its own internal links, because its sitemap lists only 7 URLs and its blog index is
+client-rendered.</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Old URL</th><th>New URL</th><th>Action</th><th class="wrap-cell">Note</th></tr></thead>
+<tbody>
+<tr><td>/</td><td>/</td><td class="pass">preserved</td><td class="wrap-cell">Hero H1 and both CTAs kept verbatim.</td></tr>
+<tr><td>/about</td><td>/about</td><td class="pass">preserved</td><td class="wrap-cell">Copy is the owner's live CMS text.</td></tr>
+<tr><td>/join</td><td>/join</td><td class="pass">preserved</td><td class="wrap-cell">Same prices, plan names now descriptive.</td></tr>
+<tr><td>/personal-training</td><td>/personal-training</td><td class="pass">preserved</td><td class="wrap-cell">Expanded, form unchanged.</td></tr>
+<tr><td>/blog</td><td>/blog</td><td class="pass">preserved</td><td class="wrap-cell">7 articles become 25 listed, 27 reachable.</td></tr>
+<tr><td>/contact</td><td>/contact</td><td class="pass">preserved</td><td class="wrap-cell">&nbsp;</td></tr>
+<tr><td>/events</td><td>/events</td><td class="pass">preserved</td><td class="wrap-cell">Empty until events are published.</td></tr>
+<tr><td>/local-wellness</td><td>/local-wellness</td><td class="pass">preserved</td><td class="wrap-cell">noindex, follow, unchanged from live.</td></tr>
+<tr><td>/privacy</td><td>/privacy</td><td class="pass">preserved</td><td class="wrap-cell">&nbsp;</td></tr>
+<tr><td>/terms</td><td>/terms</td><td class="pass">preserved</td><td class="wrap-cell">&nbsp;</td></tr>
+<tr><td>/staff/login</td><td>/staff/login</td><td class="pass">preserved</td><td class="wrap-cell">Disallowed in robots.txt.</td></tr>
+<tr><td>/blog/best-gym-santa-cruz-serious-athletes</td><td>same</td><td class="pass">preserved</td><td class="wrap-cell">&nbsp;</td></tr>
+<tr><td>/blog/can-you-lose-weight-by-lifting-weights</td><td>same</td><td class="pass">preserved</td><td class="wrap-cell">&nbsp;</td></tr>
+<tr><td>/blog/how-long-should-a-workout-be</td><td>same</td><td class="pass">preserved</td><td class="wrap-cell">&nbsp;</td></tr>
+<tr><td>/blog/is-strength-training-good-for-beginners</td><td>same</td><td class="pass">preserved</td><td class="wrap-cell">&nbsp;</td></tr>
+<tr><td>/blog/strength-training-for-outdoor-athletes-santa-cruz</td><td>same</td><td class="pass">preserved</td><td class="wrap-cell">&nbsp;</td></tr>
+<tr><td>/blog/why-surfers-in-santa-cruz-should-lift-weights</td><td>/blog/strength-training-for-surfers-santa-cruz</td><td class="warn">canonical</td><td class="wrap-cell">Old URL stays 200 and reachable, canonical points at the fuller article. <strong>Owner decision:</strong> a 301 would transfer ranking more decisively. Currently deliberate, not accidental.</td></tr>
+<tr><td>/blog/how-many-days-a-week-should-you-lift</td><td>/blog/how-many-days-a-week-should-a-beginner-lift</td><td class="warn">canonical</td><td class="wrap-cell">Same treatment, same open decision.</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>No live URL is lost and nothing redirects to the homepage.</strong> 16 of 18 are
+preserved unchanged; 2 are consolidated by canonical rather than redirect, and that choice is worth
+one minute of the owner's attention before launch.</p>
+
+<h2>5. What changed on the pages</h2>
+
+<h3>Homepage</h3>
+<p>The hero H1, both CTAs and the whole visual system are untouched. Two sections were added, high
+enough on the page to be extracted and low enough not to interrupt the sell:</p>
+<ul>
+<li><strong>"What Santa Cruz Strength is"</strong>, a factual definition block: name, category,
+address, what the floor supports, what is sold, and one standalone sentence on 24/7 member access.
+All four strings are CMS-editable and seeded, so the owner can correct them without a deploy.</li>
+<li><strong>"Built for strength training"</strong>, the bridge between the category and the
+disciplines: powerlifting, Olympic weightlifting, strongman, general strength. Each claimed because
+the business already claims it in the About story, its hosted meet, or a member's own review. They
+are deliberately <em>not</em> links: four thin pages created to own four URLs is the mistake this
+section otherwise invites.</li>
+</ul>
+
+<h3>FAQ and disclosures, the crawlability fix</h3>
+<p>Three separate places were mounting content only on click, which means it did not exist in the
+document at all:</p>
+<ul>
+<li>The homepage FAQ. Five answers were absent while the JSON-LD in the same file encoded all five.
+The schema described a page the page did not contain.</li>
+<li><strong>Six of the nine membership plans</strong>, including every couples and weekend tier,
+behind the "See more plans" toggle. An answer engine asked what a membership here costs could see
+three prices.</li>
+<li>The membership FAQ answers.</li>
+</ul>
+<p>All three now render into the document and hide with <code>display:none</code> when collapsed:
+present for anything reading the HTML, invisible and out of the accessibility tree for anyone who
+has not opened them, with <code>aria-expanded</code> and <code>aria-controls</code> added on the
+toggles. Verified in a browser: 12 plan cards in the DOM, 3 visible, page height unchanged.</p>
+
+<h3>Membership page</h3>
+<p>Every "Save X%" now prints its baseline. All six percentages were checked against the published
+$120/mo month-to-month rate and all six are correct:</p>
+<div class="scroll">
+<table>
+<thead><tr><th>Plan</th><th>Price</th><th>Arithmetic</th><th>Shown</th></tr></thead>
+<tbody>
+<tr><td>12-Month, Huscler</td><td>$75/mo</td><td>1 &minus; 75/120 = 37.5%</td><td>38% <span class="pass">ok</span></td></tr>
+<tr><td>Annual paid in full</td><td>$825</td><td>825/13 = $63.46, = 47.1%</td><td>47% <span class="pass">ok</span></td></tr>
+<tr><td>6-Month, Huscler</td><td>$82/mo</td><td>1 &minus; 82/120 = 31.7%</td><td>32% <span class="pass">ok</span></td></tr>
+<tr><td>12-Month Couples</td><td>$60/person</td><td>1 &minus; 60/120 = 50.0%</td><td>50% <span class="pass">ok</span></td></tr>
+<tr><td>12-Month Weekend</td><td>$45/mo</td><td>1 &minus; 45/120 = 62.5%</td><td>63% <span class="pass">ok</span></td></tr>
+<tr><td>6-Month Weekend</td><td>$55/mo</td><td>1 &minus; 55/120 = 54.2%</td><td>54% <span class="pass">ok</span></td></tr>
+<tr><td>6-Month Couples</td><td>$68/person</td><td>= 43.3%</td><td>no badge <span class="warn">gap, left alone</span></td></tr>
+</tbody>
+</table>
+</div>
+<p>The two Weekend tiers compare a three-day plan against full access, so their cards now say
+"vs. $120/mo <strong>full-access</strong> month-to-month" rather than letting a visitor discover
+that on the tour. Plan names lead with what they are and keep the brand name as the subtitle:
+"12-Month Membership / Huscler". Heading order was h1 &rarr; h3 &rarr; h2 and is now h1 &rarr; h2
+&rarr; h3.</p>
+
+<h3>Personal training page</h3>
+<p>It had a hero, a four-item list and a form: enough to say the service exists, not enough to say
+what buying it involves. Added: <em>How personal training works</em> (inquiry &rarr; a coach makes
+contact &rarr; you meet at the gym), <em>What happens during your first consultation</em>, and
+<em>Meet the coaches</em>. Only steps the business actually performs. <strong>No rates, package
+sizes, session lengths or cancellation terms were written</strong>, because none is published
+anywhere and none has been confirmed.</p>
+
+<h3>Article dates, an accuracy fix</h3>
+<p>Every article displayed a publication date read from <code>created_at</code>, which is the
+moment the seeder inserted the row. All 27 articles reported the same date, and that date moved
+forward every time the backend restarted, so today the whole corpus claimed to be published today.
+The build-time JSON-LD already omitted <code>datePublished</code> for exactly this reason; the
+visible page now agrees with it. When a real per-article date exists, put it on the post record.</p>
+
+<h2>6. Structured data manifest</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>Entity</th><th>@type</th><th>@id</th><th>Relationship</th><th class="wrap-cell">Source of visible truth</th></tr></thead>
+<tbody>
+<tr><td>Site</td><td>WebSite</td><td><code>/#website</code></td><td>publisher &rarr; #gym</td><td class="wrap-cell">Site-wide</td></tr>
+<tr><td>Business</td><td>ExerciseGym</td><td><code>/#gym</code></td><td>mainEntity of homepage</td><td class="wrap-cell">Address strip, footer, contact page</td></tr>
+<tr><td>Homepage</td><td>WebPage</td><td><code>/#webpage</code></td><td>isPartOf &rarr; #website</td><td class="wrap-cell">Homepage</td></tr>
+<tr><td>Homepage FAQ</td><td>FAQPage</td><td><code>/#faq</code></td><td>isPartOf &rarr; #webpage</td><td class="wrap-cell">The five rendered Q&amp;A pairs, pinned by a validator check</td></tr>
+<tr><td>Memberships</td><td>OfferCatalog</td><td><code>/join#memberships</code></td><td>provider &rarr; #gym</td><td class="wrap-cell"><strong>New.</strong> 9 Offers; every price verified present in the visible copy</td></tr>
+<tr><td>Coaching</td><td>Service</td><td><code>/personal-training#service</code></td><td>provider &rarr; #gym</td><td class="wrap-cell"><strong>New.</strong> No <code>offers</code> node: rates are unpublished</td></tr>
+<tr><td>Each page</td><td>BreadcrumbList</td><td><code>&lt;canonical&gt;#breadcrumb</code></td><td>&mdash;</td><td class="wrap-cell">Navigation position</td></tr>
+<tr><td>Each article</td><td>BlogPosting</td><td><code>&lt;canonical&gt;#article</code></td><td>publisher &rarr; Organization</td><td class="wrap-cell">Article headline and description</td></tr>
+<tr><td>20 articles</td><td>FAQPage</td><td><code>&lt;canonical&gt;#faq</code></td><td>isPartOf &rarr; #article</td><td class="wrap-cell">89 pairs, each mirrored from rendered copy</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>OfferCatalog</code> rather than <code>Product</code>: a membership is access to a service,
+not a thing that ships, and forcing Product onto it to reach a rich result would describe this
+business as something it is not. No <code>aggregateRating</code> anywhere, because the five stars
+on the testimonials are presentation carried over from the live site and there is no per-review
+rating behind them. No <code>openingHoursSpecification</code>, because the hours are contradictory
+(see below). No latitude or longitude, because nobody has measured them.</p>
+
+<h2>7. QA results</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>Check</th><th>Result</th><th class="wrap-cell">Evidence</th></tr></thead>
+<tbody>
+<tr><td>SSR / pre-render</td><td class="pass">PASS</td><td class="wrap-cell">39/39 routes rendered; build log prints the count</td></tr>
+<tr><td>Initial HTML has content</td><td class="pass">PASS</td><td class="wrap-cell">Lowest indexable route 662 chars, highest 15,750</td></tr>
+<tr><td>Hydration</td><td class="pass">PASS</td><td class="wrap-cell">Post-hydration DOM byte-identical to prerender on / and /about</td></tr>
+<tr><td>Unique titles</td><td class="pass">PASS</td><td class="wrap-cell">39/39 distinct</td></tr>
+<tr><td>Unique descriptions</td><td class="pass">PASS</td><td class="wrap-cell">Per-route, from the registry</td></tr>
+<tr><td>Canonicals</td><td class="pass">PASS</td><td class="wrap-cell">Production domain only; 2 intentional cross-canonicals</td></tr>
+<tr><td>One H1 per page</td><td class="pass">PASS</td><td class="wrap-cell">39/39 exactly one</td></tr>
+<tr><td>Heading hierarchy</td><td class="pass">PASS</td><td class="wrap-cell">/join h1&rarr;h3 and orphan h4 both fixed</td></tr>
+<tr><td>Internal links crawlable</td><td class="pass">PASS</td><td class="wrap-cell">Nav and footer are <code>&lt;Link&gt;</code>, which renders an anchor</td></tr>
+<tr><td>Robots / sitemap</td><td class="pass">PASS</td><td class="wrap-cell">34 canonical URLs; robots.txt names the production sitemap</td></tr>
+<tr><td>Structured data</td><td class="pass">PASS</td><td class="wrap-cell">All parse; 9/9 offer prices present in visible copy</td></tr>
+<tr><td>Preview-domain leakage</td><td class="pass">PASS</td><td class="wrap-cell">One hit repo-wide, inside the test that forbids it</td></tr>
+<tr><td>Forms</td><td class="pass">PASS</td><td class="wrap-cell">Untouched; "No commitment, no card required" retained</td></tr>
+<tr><td>Visual regression</td><td class="pass">PASS</td><td class="wrap-cell">12 plan cards in DOM, 3 visible; page height unchanged</td></tr>
+<tr><td>Test suites</td><td class="pass">PASS</td><td class="wrap-cell">148 backend, 61 frontend, 17 SEO checks</td></tr>
+<tr><td>Core Web Vitals</td><td class="warn">NOT MEASURED</td><td class="wrap-cell">No Lighthouse run against a deployed URL yet. Reported as unmeasured rather than estimated.</td></tr>
+<tr><td>Mobile</td><td class="warn">PARTIAL</td><td class="wrap-cell">Desktop verified in a real browser. Mobile carousel and nav not re-tested this pass.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Payload</h3>
+<p>267.31 kB JS gzipped, 19.66 kB CSS, unchanged to within 78 bytes despite the added sections.
+A commented-out PostHog session-replay block and a commented-out Meta Pixel block were deleted from
+<code>public/index.html</code>: 2.3 kB of dead script text that was being copied into all 39 shells,
+about 90 kB of served bytes for code that could never run. Fonts stay self-hosted and preloaded.
+The prerendered pages ship a preload payload, which is the one real cost: the homepage carries its
+three post summaries and the CMS copy, and an article carries its own body. That trades bytes for a
+first paint that does not wait on a round trip.</p>
+
+<h2>8. Evidence gaps &mdash; the owner has to answer these</h2>
+<p>Every one of these is a place the site declines to state something rather than estimating it.
+None was filled in.</p>
+<ul>
+<li><strong>Day pass hours.</strong> The live site publishes three different answers. This repo says
+9:00 AM to 6:00 PM, the live site says 9am&ndash;9pm twice, and staffed hours end at 2pm on Sunday.
+Somebody buys a $20 pass and drives to a locked door until this is settled. This is the reason
+<code>openingHoursSpecification</code> is absent from the schema.</li>
+<li><strong>24/7 access.</strong> Published on the homepage as a standalone sentence. It is the
+business's own claim, in the membership terms of every full plan, on the live site, and in a
+member's review. Confirm it is still true before launch; it is the sentence most likely to be
+quoted back at you.</li>
+<li><strong>Personal training rates and packages.</strong> Published nowhere. No <code>offers</code>
+node in the Service schema, no price on the page.</li>
+<li><strong>Equipment counts.</strong> Rack, platform and bench counts, specialty bars by name, and
+the chalk and dropping policies. 26 <code>[FACT NEEDED]</code> markers across the article corpus are
+waiting on exactly this.</li>
+<li><strong>Coach credentials.</strong> No bios were generated. Two trainers, Morghan King and Syon,
+have no photograph and render a placeholder. That needs a camera, not code.</li>
+<li><strong>Weekend Warrior access.</strong> Whether those tiers include 24/7 access within their
+three days.</li>
+<li><strong>Review provenance.</strong> The six testimonials are verbatim and unattributed, matching
+the live site. No dates or sources were invented. The data model can carry them when they exist.</li>
+<li><strong>Minimum age</strong> and whether a parent must attend.</li>
+<li><strong>Events.</strong> <code>/events</code> renders 662 characters because no events are
+published. Honest, and thin. Either publish one or accept the page is a stub.</li>
+<li><strong>The two canonical consolidations</strong> in the migration table: canonical or 301.</li>
+</ul>
+
+<h2>9. Not done, and why</h2>
+<ul>
+<li><strong>No <code>/gym</code> or <code>/equipment</code> page.</strong> The brief asked for the
+hub to be possible, not invented. Every fact it would contain is an unanswered question above.
+Creating it now means creating a thin page, which the brief also forbids.</li>
+<li><strong>No new analytics property.</strong> GA4 stays behind its three gates. Two events that
+had nothing behind them were added, <code>membership_view</code> and <code>get_directions</code>;
+the other six the brief named already exist under names GA4 has been configured against, and the
+mapping is recorded in <code>src/utils/analytics.js</code> rather than the events renamed.</li>
+<li><strong>No Core Web Vitals numbers.</strong> Nothing was measured, so nothing is reported.</li>
+</ul>
+
+<h2>10. Remaining blockers before production</h2>
+<ol>
+<li><strong>Static-first serving.</strong> Until the host resolves <code>/about</code> to
+<code>build/about/index.html</code>, all 39 shells are unreachable and every page reports the
+homepage canonical. <code>deploy/</code> has working configs for Netlify, Cloudflare Pages and
+Vercel. Prove it: <code>curl -I &lt;domain&gt;/nothing-here</code> must return 404 and
+<code>curl -I &lt;domain&gt;/staff/dashboard</code> must return 200.</li>
+<li><strong>The <code>x-robots-tag: noindex, nofollow</code> header</strong> must be gone from the
+production hostname. Check it with <code>curl -I</code>, not by looking at the page.</li>
+<li><strong>The build needs a reachable backend.</strong> <code>PRERENDER_API_URL</code> must point
+at a seeded API at build time. Without it the prerender skips loudly and the shells stay empty;
+with an unseeded database it refuses to run rather than publishing empty pages that look finished.</li>
+<li><strong>The day pass window</strong> should be settled before the site goes live publishing an
+answer that contradicts the other two answers already published.</li>
+</ol>
+
+<p class="sub" style="margin-top:3rem">Accuracy over completeness. Where a fact was unavailable the
+page says less, and this document says which fact and who has it.</p>
+
+</div>

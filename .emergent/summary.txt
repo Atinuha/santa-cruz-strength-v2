@@ -1,0 +1,146 @@
+<analysis>**original_problem_statement**: The user wants to build a custom, mobile-first, high-converting gym website and a lightweight lead CRM for Santa Cruz Strength, replacing a legacy system. Needs strong local SEO, multi-step lead capture, and streamlined staff workflows (PWA, Google Voice auto-dialing, automated follow-up sequences). The project also requires scalable architecture to later fork for a second location (Nightmare Muscle Sacramento).
+
+**User's preferred language**: English
+
+**what currently exists?**: A fully functional, production-ready full-stack application (FastAPI backend, React frontend, MongoDB).
+- **Public Site**: Features carousels (Benefits, Testimonials, PT), an embedded Instagram feed (Behold), SEO/Legal pages, and an auto-advancing lead capture form.
+- **CRM System**: Role-based access with 2FA OTP + 7-day Remember Device functionality. Features include Kanban/List lead views, walk-in quick add, CSV bulk import with deduplication, and Google Voice click-to-call/text integration.
+- **Mobile PWA**: A  portal for gym phones allowing staff to execute quick actions (call, text, add voice notes, status updates).
+- **Marketing & Automation**: Resend (Emails) and MailerSend (SMS) are fully integrated with drip campaigns. A visual block-based Email & SMS Campaign Builder is implemented for manual blasts.
+- **Content**: Events manager (recurring events, tickets) and an AI-powered Blog manager with instant Google Trends integration.
+
+**Last working item**:
+- **Last item agent was working**: Fixing a 500 Internal Server Error on the CRM's  API endpoint. The error occurred because the backend code uses  for search filtering, but the  module was not imported at the global scope in . The agent was mid-way through executing a  to add  at the top of the file.
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: backend manual testing by curl to verify the  endpoint returns 200, followed by visual inspection of the CRM dashboard.
+- **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+  - Issue 1: CRM Leads List Failing to Load (P0)
+     - Attempted fixes: The agent recognized a  inside 's  route. Attempted to execute  to add  to the top-level imports. 
+     - Next debug checklist: 
+         1. Ensure  is present at the top of .
+         2. Check if a MongoDB index on  or  is required for performance with 1,400+ leads.
+         3. Restart backend via backend: stopped
+backend: started.
+         4. Curl test the endpoint or open the preview CRM dashboard to ensure leads populate instantly.
+     - Why fix this issue and what will be achieved with the fix? Staff cannot view or manage any leads in the CRM until this is resolved.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? both
+     - Blocked on other issue: None
+
+**In progress Task List**:
+  - Task 1: Fix  bug in  (P0)
+     - Where to resume: Top of .
+     - What will be achieved with this? Restore CRM dashboard functionality.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix? backend
+     - Blocked on something: None
+
+**Upcoming and Future Tasks**:
+    Upcoming Tasks:
+    - Add Meta Pixel tracking (P1) (Files: , ). Blocked waiting for user to get business profile access and provide the Pixel ID.
+    
+    Future Tasks:
+    - Fork project for Nightmare Muscle Sacramento (P2). (Requires duplicating workspace and adjusting , styling, logos, and environment variables based on the prompt generated at the end of the history).
+
+**Completed work in this session**:
+- Homepage grid-to-carousel refactor (Benefits, Testimonials, PT) (DONE)
+- Behold Instagram widget integration (DONE)
+- GoDaddy domain connection guidance & SEO setup (Sitemap, robots.txt, OG images) (DONE)
+- CRM 2FA via email OTP + Remember Device for 7 days (DONE)
+- Auth bug fixes (invite links and password resets displaying as expired) (DONE)
+- PWA Mobile staff app () with Google Voice auto-dialing (DONE)
+- Google Reviews automated request drip flow (DONE)
+- Events Manager + Public Events Page (recurring instances, sold-out logic) (DONE)
+- Reusable  replacing raw URL strings in Blogs/Events (DONE)
+- AI Blog Idea generator speed optimization (cached queries) (DONE)
+- Mailchimp-style Email & SMS Campaign Builder with segmentation (DONE)
+- Bulk CSV lead importing upgrades & User Blacklist feature (DONE)
+- CRM lead source prioritization logic (Web leads sorted first) (DONE)
+
+**Earlier issues found/mentioned but not fixed**:
+  - None.
+
+**Known issue recurrence from previous fork**:
+  - Issue recurrence in previous fork: N/A
+  - Recurrence count: 0
+  - Status: N/A
+
+**Code Architecture**:
+
+
+**Key Technical Concepts**:
+- **Frontend**: React (CRA + CRACO), Tailwind CSS, Shadcn UI, React Router v6. Dual-themed (global light vs scoped  dark for CRM).
+- **Backend**: FastAPI (Python), Motor (async MongoDB), APScheduler (background drip campaigns).
+- **Auth System**: JWT sessions, TTL-indexed MongoDB collections for 2FA OTP codes () and 7-day remembered devices ().
+- **File Uploads**: Base64/Multipart endpoint saving to MongoDB with media caching .
+
+**key DB schema**:
+  - : 
+  - : 
+  - : 
+  - : 
+
+**changes in tech stack**:
+  - Migrated CRM auth  calls entirely to  to prevent  errors.
+
+**All files of reference**:
+  - : Currently broken on line 975+ due to missing global  import.
+  - : Contains all gym copy/assets. Modify this first when rebranding for the Nightmare Muscle fork.
+
+**Areas that need refactoring**:
+  - : Has grown massive (~1800 lines). API routes should ideally be split into modular FastAPI routers (, , ) in future forks.
+
+**key api endpoints**:
+  - : Fetches CRM leads (currently throwing 500 error).
+  -  & : Handles 2FA auth and returns device_token.
+  - : Handles image uploads for blogs/events.
+  - : Triggers mass email/SMS processing based on segmentation.
+
+**Critical Info for New Agent**:
+- **Environment Distinction**: The user has deployed the application to production (). However, your environment is **PREVIEW** (). The production database is completely separate from the preview database. Any data the user complains about missing is likely because they didn't manually recreate it in production.
+- **P0 Blocker**: Fix the  bug in  immediately to restore the leads dashboard.
+- **Resend Quota**: Staff emails () bypass the daily campaign send limit via a 10-email reserve buffer hardcoded in the campaign scheduler logic.
+
+**documents and test reports created in this job**:
+  - 
+  - 
+
+**Last 10 User Messages and any pending HUMAN messages**:
+1. User confirmed campaign emails were successfully sending.
+2. User noted they couldn't see the campaign or imported leads in the live dashboard.
+3. Agent explained the difference between the Preview DB and Production DB.
+4. User requested fixing skipped CSV imports, campaign not starting instantly, and adding segmentation options. (Done)
+5. User requested lead sorting by source, prioritizing website leads. (Done)
+6. User requested a Mailchimp-style Email Builder with merge fields, image uploading, and a 10-email staff reserve to ensure 2FA always sends. (Done)
+7. User asked to condense recurring events on the public page, add sold-out labels, and build an SMS Campaign Builder. (Done)
+8. User asked for a manual 2FA code since they exceeded the Resend daily limit. (Agent provided manual DB code).
+9. User reported: the leads are failing to load again? lets fix that.
+10. User confirmed they are seeing the issue on the preview environment. (Pending Fix -  bug).
+
+**Project Health Check:**
+- Broken: Backend API () throwing 500 error due to .
+- Mocked: None
+
+**3rd Party Integrations**:
+  - OpenAI GPT-4o-mini (Blog Ideas) — uses Emergent LLM Key.
+  - Resend (Transactional + Marketing Emails) — requires User API Key.
+  - MailerSend (SMS + Webhooks) — requires User API Key.
+  - Behold.so (Instagram Feed) — requires User ID mapping.
+
+**Testing status**:
+  - Testing agent used after significant changes: YES (Earlier in session)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: Backend  is crashing on a missing  module.
+
+**Credentials to test flow**:
+  - CRM Login: 
+  - Password: 
+  - Note: Will trigger a 2FA OTP. Check the  logs or direct DB query in  if you don't have access to the inbox.
+
+**What agent forgot to execute**:
+The agent accurately diagnosed the 500 error on  and wrote the  tool call to insert  at the top of , but the session timed out/ended before the tool invocation completed and the backend restarted.</analysis>

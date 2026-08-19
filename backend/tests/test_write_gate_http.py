@@ -1,0 +1,134 @@
+"""The write gate, exercised at the HTTP seam rather than at the flag.
+
+test_runtime_safety asserts the ALLOW_* flags default to False. That is
+necessary and not sufficient: a flag nobody consults protects nothing. These
+tests assert the guarantee the project actually depends on, which is that a
+process holding real provider credentials still cannot mutate anything or
+start a scheduler.
+
+This is the acceptance evidence for convergence ticket T-1 (spec A-1 and A-2).
+If someone removes the middleware or the startup guard, these fail.
+"""
+
+import os
+import sys
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# Credentials deliberately look real. Supplying a key must never be sufficient
+# to send, which is safety invariant SI-3.
+SAFE_ENV = {
+    'MONGO_URL': 'mongodb://localhost:27017',
+    'DB_NAME': 'scs_write_gate_test',
+    'FRONTEND_URL': 'http://localhost:3000',
+    'CORS_ORIGINS': 'http://localhost:3000',
+    'TWILIO_ACCOUNT_SID': 'ACtestonlytestonlytestonlytest',
+    'TWILIO_AUTH_TOKEN': 'testonlytestonlytestonlytest',
+    'TWILIO_PHONE_NUMBER': '+15550001111',
+    'RESEND_API_KEY': 're_testonly_testonly',
+    'JWT_SECRET': 'x' * 40,
+    'UNSUBSCRIBE_SECRET': 'y' * 40,
+}
+
+
+def _load_app():
+    """Import the app with credentials present and every gate closed.
+
+    Every ALLOW_* flag is set to 'false' BEFORE import so that load_dotenv,
+    which server.py calls on import with override=False, cannot restore
+    values from .env. The keys must be set explicitly because they may not
+    yet exist in os.environ when pytest starts.
+
+    APP_ENV is pinned to 'development' so the production-approval check in
+    runtime_safety cannot fire when the outer shell runs with
+    APP_ENV=production.
+    """
+    for key, value in SAFE_ENV.items():
+        os.environ[key] = value
+    # Pin APP_ENV to avoid production safety-check leak from the outer shell.
+    os.environ['APP_ENV'] = 'development'
+    os.environ['PRODUCTION_CHANGES_APPROVED'] = 'false'
+    os.environ['OUTBOUND_TEST_MODE'] = 'false'
+    # Explicitly close every gate. Must enumerate rather than iterate, because
+    # the keys may not exist in os.environ yet (pytest inherits the shell, not
+    # the backend .env).
+    for gate in (
+        'ALLOW_DATABASE_WRITES', 'ALLOW_SCHEDULERS', 'ALLOW_EMAIL_SENDS',
+        'ALLOW_SMS_SENDS', 'ALLOW_SEEDING', 'ALLOW_ANALYTICS',
+        'ALLOW_SESSION_REPLAY', 'ALLOW_TWILIO_WEBHOOKS',
+        'ALLOW_RESEND_WEBHOOKS', 'ALLOW_LEAD_OUTBOX_DISPATCH',
+        'ALLOW_LEAD_RESEND', 'ALLOW_LEAD_TWILIO',
+        'ALLOW_THIRD_PARTY_RESEARCH', 'ALLOW_REMOTE_NONPROD_DATABASE',
+        'ALLOW_DEPLOY_HOOK', 'ALLOW_GYMMASTER_PROSPECT_WRITES',
+        'ALLOW_LEAD_CRM_RECORDING',
+    ):
+        os.environ[gate] = 'false'
+    for module in [m for m in list(sys.modules) if m in ('server', 'runtime_safety')]:
+        del sys.modules[module]
+    import server  # noqa: E402
+    return server
+
+
+class WriteGateHttpTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        try:
+            from fastapi.testclient import TestClient
+        except ImportError:  # pragma: no cover
+            raise unittest.SkipTest('fastapi test client is unavailable')
+        cls.server = _load_app()
+        cls.client_factory = TestClient
+
+    def test_mutating_requests_are_refused_with_credentials_present(self):
+        # No datastore is running. If any of these reached a handler, the test
+        # would hang or error rather than return 503, which is itself the point.
+        with self.client_factory(self.server.app) as client:
+            for method, path in (
+                ('POST', '/api/leads'),
+                ('POST', '/api/corporate-leads'),
+                ('POST', '/api/webhooks/twilio-sms'),
+                ('POST', '/api/auth/login'),
+            ):
+                with self.subTest(path=path):
+                    response = client.request(method, path, json={'email': 'a@example.com'})
+                    self.assertEqual(response.status_code, 503)
+                    self.assertEqual(response.json().get('code'), 'database_writes_disabled')
+
+    def test_startup_starts_no_scheduler_and_needs_no_datastore(self):
+        with self.client_factory(self.server.app):
+            scheduler = getattr(self.server.app.state, 'scheduler', None)
+            self.assertIsNone(
+                scheduler,
+                'A scheduler was started while writes are disabled. Two of these '
+                'jobs send real messages.',
+            )
+
+
+class RoutePathSyntaxTests(unittest.TestCase):
+    """Express path syntax silently produces a dead route in FastAPI.
+
+    '/blog/:slug' declared a literal ':slug' segment, so the slug argument
+    became a required query parameter instead of a path parameter. The route
+    answered 422 to every real slug and could only be reached as
+    '/blog/:slug?slug=x'. It shipped because it sits next to a React Router
+    path that uses ':slug' correctly, and because a dead route breaks nothing
+    loudly. Assert against the real route table so the next copy paste fails
+    here rather than in the OpenAPI document.
+    """
+
+    def test_no_route_declares_an_express_style_path_parameter(self):
+        # Read the published paths, not app.routes. This FastAPI version keeps
+        # an included router as a single _IncludedRouter entry with an empty
+        # path, so iterating app.routes sees no API route at all and any
+        # assertion over it passes vacuously.
+        server = _load_app()
+        published = server.app.openapi()['paths']
+        offenders = sorted(path for path in published if ':' in path)
+        self.assertEqual(offenders, [])
+        self.assertIn('/api/blog/post/{slug}', published)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -1,0 +1,153 @@
+<title>SCS Convergence: Final Local Review</title>
+<style>
+:root{--green:#0D5D3E;--green-dk:#094831;--green-mut:#E8F5EE;--coral:#FA5A5C;--bg:#F7F5F0;--card:#FFF;--text:#2A2A2A;--muted:#5C6370;--line:rgba(28,28,28,.12);--crit:#C42B2B;--major:#C77700;--mono:ui-monospace,Menlo,monospace;--sans:system-ui,-apple-system,"Segoe UI",Helvetica,sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#12160F;--card:#191E17;--text:#E8E6E0;--muted:#9AA394;--line:rgba(232,230,224,.14);--green-mut:#16281F;--green:#4FBF8B;--green-dk:#3FA876}}
+:root[data-theme="dark"]{--bg:#12160F;--card:#191E17;--text:#E8E6E0;--muted:#9AA394;--line:rgba(232,230,224,.14);--green-mut:#16281F;--green:#4FBF8B}
+:root[data-theme="light"]{--bg:#F7F5F0;--card:#FFF;--text:#2A2A2A;--muted:#5C6370;--line:rgba(28,28,28,.12);--green-mut:#E8F5EE;--green:#0D5D3E}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px 80px}
+header.hero{background:var(--green);color:#fff;padding:40px 0 32px;margin-bottom:24px}
+header.hero .wrap{padding-bottom:0}
+h1{font-size:clamp(26px,5vw,38px);margin:0 0 10px;font-weight:800;letter-spacing:-.02em}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.85;margin:0 0 8px}
+.sub{font-size:17px;opacity:.95;margin:0 0 16px;max-width:66ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px}.meta span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);padding:5px 11px;border-radius:999px;font-size:12.5px}
+section{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:22px 24px;margin-bottom:20px}
+@media(max-width:640px){section{padding:18px 16px}}
+section>h2{margin:0 0 12px;font-size:21px}
+h3{font-size:16px;margin:20px 0 8px}
+p{margin:0 0 11px}ul,ol{margin:0 0 11px;padding-left:22px}li{margin-bottom:4px}
+code{font-family:var(--mono);font-size:.87em;background:var(--green-mut);padding:1.5px 5px;border-radius:4px}
+pre{background:var(--green-mut);padding:12px 14px;border-radius:8px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;margin:10px 0}
+.scroll{overflow-x:auto;margin:12px 0 14px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--green-mut);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--green-dk);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+.pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.p-ok{background:var(--green);color:#fff}.p-crit{background:var(--crit);color:#fff}.p-major{background:var(--major);color:#fff}.p-na{background:var(--muted);color:#fff}
+.warn{border-left:3px solid var(--crit);background:rgba(196,43,43,.07);padding:12px 15px;border-radius:0 8px 8px 0;margin:14px 0}
+.ok{border-left:3px solid var(--green);background:var(--green-mut);padding:12px 15px;border-radius:0 8px 8px 0;margin:14px 0}
+footer{text-align:center;color:var(--muted);font-size:13.5px;padding-top:24px;border-top:1px solid var(--line);margin-top:30px}
+</style>
+
+<header class="hero"><div class="wrap">
+<p class="eyebrow">Final local review, ticket T-9</p>
+<h1>Convergence complete, release blocked on two human decisions</h1>
+<p class="sub">Every engineering slice is integrated and verified. What remains is not code: a credential to rotate, a customer data file to decide about, and permissions to collect.</p>
+<div class="meta"><span>2026-08-07</span><span>branch convergence/t1-backend</span><span>nothing pushed</span><span>VERDICT: READY WITH BLOCKERS</span></div>
+</div></header>
+
+<div class="wrap">
+
+<section>
+<h2>Verdict</h2>
+<div class="ok"><b>The system is coherent and truthful.</b> Seven engineering slices integrated across nine commits. Backend went from one file and zero tests to thirteen modules and ninety one tests. The public site carries real photography, real prices, real articles and no fabricated claim. No runtime path can reach a customer.</div>
+<div class="warn"><b>It is not releasable yet, and none of the reasons are technical.</b> A disclosed owner credential is still live. A file containing 1,386 real customer records sits in pushed git history. Photographs of identifiable people await written permission.</div>
+</section>
+
+<section>
+<h2>Verification, exact commands and results</h2>
+<pre>backend   python -m unittest tests.&lt;module&gt;    91 tests, 13 modules, 0 failing
+backend   python3 -m compileall                 OK
+frontend  CI=true npx craco test --watchAll     20 tests, 8 suites, 0 failing
+frontend  node scripts/validate-seo.mjs         17 checks, PASSED
+frontend  npx craco build                       green, 264.5 kB gzip js
+serve     26 sitemap URLs                       26 x HTTP 200</pre>
+
+<div class="scroll"><table>
+<thead><tr><th>Verification</th><th>Result</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Backend suite</td><td><span class="pill p-ok">91 PASS</span></td><td>Was zero before convergence</td></tr>
+<tr><td>Frontend suite</td><td><span class="pill p-ok">20 PASS</span></td><td></td></tr>
+<tr><td>Search contract</td><td><span class="pill p-ok">17 PASS</span></td><td>Includes the no-dash rule</td></tr>
+<tr><td>Production build</td><td><span class="pill p-ok">GREEN</span></td><td>Warnings are source-map only, from a dependency shipping no TypeScript sources</td></tr>
+<tr><td>Route serving</td><td><span class="pill p-ok">13/13</span></td><td>Every public route plus the not-found path</td></tr>
+<tr><td>Desktop browser</td><td><span class="pill p-ok">PASS</span></td><td>Home, join and contact audited in a real browser</td></tr>
+<tr><td>Mobile browser</td><td><span class="pill p-na">NOT VERIFIED</span></td><td>The viewport override did not take effect. Breakpoints exist at 1040, 820 and 560 plus reduced-motion and print, but nothing was rendered at mobile width. Stated rather than assumed</td></tr>
+<tr><td>Live end to end with a database</td><td><span class="pill p-na">NOT PERFORMED</span></td><td>No database service on this machine and none installed unasked. The chain is covered at the test seam instead, including outbox claim, lease, quarantine and replay</td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>Public experience audit</h2>
+<div class="scroll"><table>
+<thead><tr><th>Required outcome</th><th>State</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>No fabricated ratings, rankings, counts or testimonials</td><td><span class="pill p-ok">PASS</span></td><td>Zero matches for the known claims on any audited page</td></tr>
+<tr><td>Public copy dash clean</td><td><span class="pill p-ok">PASS</span></td><td>Validator check plus per-page browser scan, zero found</td></tr>
+<tr><td>No generated facility or person imagery</td><td><span class="pill p-ok">PASS</span></td><td>Every image traced to a camera original, verified by EXIF</td></tr>
+<tr><td>Images served from this repository</td><td><span class="pill p-ok">PASS</span></td><td>Zero remote hosts. Enforced by a test</td></tr>
+<tr><td>Missing photography explicit, not fabricated</td><td><span class="pill p-ok">PASS</span></td><td>Four slots null with reasons in code; nothing substituted</td></tr>
+<tr><td>Membership tiers match the live business</td><td><span class="pill p-ok">PASS</span></td><td>Nine tiers, nine distinct plan identifiers, fee and cancellation terms shown</td></tr>
+<tr><td>Hours from a single source</td><td><span class="pill p-ok">PASS</span></td><td>Contact page matches config exactly</td></tr>
+<tr><td>Useful articles intact and reachable</td><td><span class="pill p-ok">PASS</span></td><td>Seventeen registered, all in the sitemap</td></tr>
+<tr><td>Analytics and consent truthful</td><td><span class="pill p-ok">PASS</span></td><td>Banner defaults to off; consent copy states SMS is separate and optional</td></tr>
+<tr><td>Form accessibility</td><td><span class="pill p-ok">PASS</span></td><td>Every field labelled; step progress announced</td></tr>
+<tr><td>Every sitemap URL returns real content</td><td><span class="pill p-na">PARTIAL</span></td><td>All 26 return 200, but single page app fallback means that proves routing, not content. Article bodies live in the database seed and were not rendered</td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>Backend, provider and CRM state</h2>
+<div class="ok"><b>Safety verified behaviourally, not by inspection.</b> With Twilio and Resend credentials present and no enable flags set, the application logs sixteen runtime controls all false, completes startup with no database running, starts zero scheduler jobs, and returns <code>503 database_writes_disabled</code> for every mutating request including the webhooks.</div>
+<div class="scroll"><table>
+<thead><tr><th>Guarantee</th><th>State</th></tr></thead>
+<tbody>
+<tr><td>Acknowledgement email reaches consumer leads</td><td><span class="pill p-ok">FIXED</span> the contract field is sent and asserted by test</td></tr>
+<tr><td>Consent re-read live at dispatch, fail closed</td><td><span class="pill p-ok">HOLDS</span></td></tr>
+<tr><td>Quarantined SMS cannot be blindly replayed</td><td><span class="pill p-ok">HOLDS</span> refusal plus explicit operator confirmation</td></tr>
+<tr><td>One authoritative SMS provider</td><td><span class="pill p-ok">DECLARED</span> the fallback that caused duplicate delivery is removed</td></tr>
+<tr><td>Webhooks verify signatures or fail closed</td><td><span class="pill p-ok">HOLDS</span></td></tr>
+<tr><td>CRM cannot perform a write</td><td><span class="pill p-ok">STRUCTURAL</span> the module imports no HTTP client, asserted by test</td></tr>
+<tr><td>Outbox retention policy</td><td><span class="pill p-na">DEFERRED</span> unbounded growth, inert at this volume</td></tr>
+<tr><td>Lease expiry uses one authoritative clock</td><td><span class="pill p-na">DEFERRED</span> single worker only</td></tr>
+</tbody></table></div>
+<p><b>CRM readiness:</b> a recording boundary and an idempotency requirement, nothing more. Eight properties of the vendor API remain unverified and are enumerated in code rather than guessed. The dual running ownership rule is stated: the incumbent provider owns the membership transaction, billing and member record; the CRM owns prospect and lifecycle state only.</p>
+</section>
+
+<section>
+<h2>Media provenance</h2>
+<p>Eleven photographs are wired, all camera originals verified by EXIF. Nothing generated appears anywhere.</p>
+<div class="scroll"><table>
+<thead><tr><th>Asset</th><th>People</th><th>State</th></tr></thead>
+<tbody>
+<tr><td>Wide facility floor (hero)</td><td>None</td><td><span class="pill p-ok">LIVE</span></td></tr>
+<tr><td>Rack and bench area</td><td>None</td><td><span class="pill p-ok">LIVE</span></td></tr>
+<tr><td>Circle logo</td><td>None</td><td><span class="pill p-ok">LIVE</span></td></tr>
+<tr><td>Five team portraits, four community frames</td><td>Identifiable</td><td><span class="pill p-major">LIVE, permission owed</span></td></tr>
+<tr><td>Entrance, bench press, medalists, meet crowd</td><td>Identifiable</td><td><span class="pill p-na">HELD</span> named in code, ready to wire</td></tr>
+<tr><td>Four blog covers</td><td>Identifiable</td><td><span class="pill p-na">HELD</span> also small, 168x300 to 533x400</td></tr>
+</tbody></table></div>
+<p><b>Missing shot list:</b> higher resolution and better framed facility photographs. The hero is 1080x1440 and ceiling weighted; aspect ratios already match the slot so cropping cannot recover it, and cropping would drop below the resolution the slot needs. There is no close up of a loaded bar, of plates being loaded, or of chalked hands, and those slots stay null rather than showing a different subject.</p>
+</section>
+
+<section>
+<h2>Open risks</h2>
+<div class="scroll"><table>
+<thead><tr><th>Risk</th><th>Severity</th><th>Owner</th></tr></thead>
+<tbody>
+<tr><td><b>1,386 real customer records committed to git.</b> 1,323 emails, 1,282 phones, 1,374 rows with free text notes. Private remote, already pushed, permanent in history</td><td><span class="pill p-crit">CRITICAL</span></td><td>Human</td></tr>
+<tr><td><b>Disclosed owner credential still live.</b> Rotation now sticks, since the startup force reset is gone</td><td><span class="pill p-crit">CRITICAL</span></td><td>Human</td></tr>
+<tr><td>Likeness permission for nine identifiable people currently published</td><td><span class="pill p-major">MAJOR</span></td><td>Owner</td></tr>
+<tr><td>Unauthenticated review token minting; discloses a name when chained. Needs a lead id, which is not in the exported file</td><td><span class="pill p-major">MAJOR</span></td><td>Unassigned</td></tr>
+<tr><td>Mobile rendering never visually verified</td><td><span class="pill p-major">MAJOR</span></td><td>Next session</td></tr>
+<tr><td>Article bodies never rendered; they live in a database seed</td><td><span class="pill p-major">MAJOR</span></td><td>Needs a database</td></tr>
+<tr><td>Blog idea generator runs on the build platform's model proxy</td><td><span class="pill p-na">MINOR</span></td><td>Human</td></tr>
+<tr><td>Outbox retention, worker clock skew</td><td><span class="pill p-na">MINOR</span></td><td>Deferred</td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>Not touched</h2>
+<ul>
+<li>Both donor repositories. Zero modified files in either.</li>
+<li>Production, any provider, any analytics destination, any customer record.</li>
+<li>The remote. Push target is <code>no_push</code>; nothing pushed, no pull request, no deployment, no activation.</li>
+</ul>
+</section>
+
+<footer>
+Final local review after T-9 &middot; 2026-08-07 &middot; Human review is next. Deployment is not.
+</footer>
+</div>

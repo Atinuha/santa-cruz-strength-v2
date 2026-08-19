@@ -1,0 +1,5 @@
+/* Santa Cruz Strength - App container */
+#root {
+  min-height: 100vh;
+  background-color: var(--clr-bg);
+}
