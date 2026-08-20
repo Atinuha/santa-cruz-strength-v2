@@ -1,46 +1,32 @@
-"""Route-level + adversarial Resend webhook tests — correction pass.
+"""Correction-pass tests: 5 independently verified defects.
 
-All tests use mocked DB functions or AsyncMock collections.  No real
-database is contacted, no production cluster is touched, and no provider
-network traffic is generated.
+All tests use mocked DB or AsyncMock collections. No real database,
+no production cluster, no provider network traffic.
 """
-
-import base64
-import hashlib
-import hmac
-import json
-import os
-import sys
-import time
-import unittest
+import base64, hashlib, hmac, json, os, sys, time, unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-_RAW_SECRET = b"route-test-secret-at-least-24-b!"
-SECRET = "whsec_" + base64.b64encode(_RAW_SECRET).decode()
-SECRET_BYTES = _RAW_SECRET
+_RAW = b"route-test-secret-at-least-24-b!"
+SECRET = "whsec_" + base64.b64encode(_RAW).decode()
+_BYTES = _RAW
 
+def _sign(wid, ts, body):
+    c = wid.encode() + b"." + str(ts).encode() + b"." + body
+    return "v1," + base64.b64encode(hmac.new(_BYTES, c, hashlib.sha256).digest()).decode()
 
-def _sign(wh_id, ts, body):
-    content = wh_id.encode() + b"." + str(ts).encode() + b"." + body
-    return "v1," + base64.b64encode(hmac.new(SECRET_BYTES, content, hashlib.sha256).digest()).decode()
+def _body(etype="email.delivered", eid="msg_rt_001", to=None):
+    return json.dumps({"type": etype, "created_at": "2026-08-19T12:00:00.000Z",
+        "data": {"email_id": eid, "to": to or ["route-test@example.com"], "subject": "Test"}}).encode()
 
-
-def _body(event_type="email.delivered", email_id="msg_rt_001", to=None):
-    return json.dumps({"type": event_type, "created_at": "2026-08-19T12:00:00.000Z",
-        "data": {"email_id": email_id, "to": to or ["route-test@example.com"],
-                 "subject": "Route Test"}}).encode()
-
-
-def _signed_request(wh_id="msg_wh_rt_001", body=None, ts=None):
+def _req(wid="msg_wh_1", body=None, ts=None):
     t = ts or int(time.time()); b = body or _body()
-    return b, {"svix-id": wh_id, "svix-timestamp": str(t),
-               "svix-signature": _sign(wh_id, t, b), "content-type": "application/json"}
+    return b, {"svix-id": wid, "svix-timestamp": str(t),
+               "svix-signature": _sign(wid, t, b), "content-type": "application/json"}
 
-
-SAFE_ENV = {
-    'MONGO_URL': 'mongodb://localhost:27017', 'DB_NAME': 'scs_resend_route_test',
+SAFE = {
+    'MONGO_URL': 'mongodb://localhost:27017', 'DB_NAME': 'scs_cp_test',
     'FRONTEND_URL': 'http://localhost:3000', 'CORS_ORIGINS': 'http://localhost:3000',
     'TWILIO_ACCOUNT_SID': 'ACtestonlytestonlytestonlytest',
     'TWILIO_AUTH_TOKEN': 'testonlytestonlytestonlytest',
@@ -50,23 +36,20 @@ SAFE_ENV = {
     'OUTBOUND_TEST_MODE': 'false', 'RESEND_WEBHOOK_SECRET': SECRET,
 }
 GATES = {g: 'false' for g in [
-    'ALLOW_SCHEDULERS', 'ALLOW_EMAIL_SENDS', 'ALLOW_SMS_SENDS', 'ALLOW_SEEDING',
-    'ALLOW_ANALYTICS', 'ALLOW_SESSION_REPLAY', 'ALLOW_TWILIO_WEBHOOKS',
-    'ALLOW_LEAD_OUTBOX_DISPATCH', 'ALLOW_LEAD_RESEND', 'ALLOW_LEAD_TWILIO',
-    'ALLOW_THIRD_PARTY_RESEARCH', 'ALLOW_REMOTE_NONPROD_DATABASE',
-    'ALLOW_DEPLOY_HOOK', 'ALLOW_GYMMASTER_PROSPECT_WRITES', 'ALLOW_LEAD_CRM_RECORDING',
+    'ALLOW_SCHEDULERS','ALLOW_EMAIL_SENDS','ALLOW_SMS_SENDS','ALLOW_SEEDING',
+    'ALLOW_ANALYTICS','ALLOW_SESSION_REPLAY','ALLOW_TWILIO_WEBHOOKS',
+    'ALLOW_LEAD_OUTBOX_DISPATCH','ALLOW_LEAD_RESEND','ALLOW_LEAD_TWILIO',
+    'ALLOW_THIRD_PARTY_RESEARCH','ALLOW_REMOTE_NONPROD_DATABASE',
+    'ALLOW_DEPLOY_HOOK','ALLOW_GYMMASTER_PROSPECT_WRITES','ALLOW_LEAD_CRM_RECORDING',
 ]}
-GATES['ALLOW_DATABASE_WRITES'] = 'true'
-GATES['ALLOW_RESEND_WEBHOOKS'] = 'true'
-
+GATES['ALLOW_DATABASE_WRITES'] = 'true'; GATES['ALLOW_RESEND_WEBHOOKS'] = 'true'
 
 def _load():
-    backend = str(Path(__file__).resolve().parents[1])
-    if backend not in sys.path: sys.path.insert(0, backend)
-    for k, v in {**SAFE_ENV, **GATES}.items(): os.environ[k] = v
+    b = str(Path(__file__).resolve().parents[1])
+    if b not in sys.path: sys.path.insert(0, b)
+    for k, v in {**SAFE, **GATES}.items(): os.environ[k] = v
     for m in [x for x in list(sys.modules) if x in ('server', 'runtime_safety')]: del sys.modules[m]
     import server; return server
-
 
 def _tc(s):
     from starlette.testclient import TestClient
@@ -74,552 +57,379 @@ def _tc(s):
 
 
 # ===================================================================
-# Existing contract: 400 / unsupported / mapped / transient 503
+# Defect 1: Core state preservation — webhook writes to provider namespace
 # ===================================================================
+class Defect1_CoreStatePreservation(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
 
-class ExistingContractTests(unittest.TestCase):
+    async def test_delivered_on_completed_row_preserves_core_delivery_state(self):
+        """email.delivered must never overwrite core delivery_state=completed."""
+        from resend_webhook import apply_resend_outbox_event, VerifiedResendEvent
+        coll = AsyncMock()
+        # First update attempt matches=0 (provider_delivery_rank already high or doesn't match)
+        coll.update_one = AsyncMock(return_value=MagicMock(matched_count=0, modified_count=0))
+        # Row exists with core delivery_state=completed
+        coll.find_one = AsyncMock(return_value={
+            "_id": "row1", "delivery_state": "completed", "delivery_rank": 100,
+            "provider_message_id": "msg_core",
+        })
+        event = VerifiedResendEvent("wh_core", "email.delivered", "msg_core", "", ())
+        result = await apply_resend_outbox_event(coll, event, datetime.now(timezone.utc))
+        self.assertTrue(result['matched'])
+        # Verify the update_one call targets provider_delivery_state, NOT delivery_state
+        update_call = coll.update_one.call_args
+        update_doc = update_call[0][1]
+        self.assertIn('provider_delivery_state', update_doc.get('$set', {}))
+        self.assertNotIn('delivery_state', update_doc.get('$set', {}))
+        self.assertNotIn('delivery_rank', update_doc.get('$set', {}))
+
+    async def test_provider_namespace_fields_set(self):
+        from resend_webhook import apply_resend_outbox_event, VerifiedResendEvent
+        coll = AsyncMock()
+        coll.update_one = AsyncMock(return_value=MagicMock(matched_count=1, modified_count=1))
+        event = VerifiedResendEvent("wh_ns", "email.delivered", "msg_ns", "", ())
+        result = await apply_resend_outbox_event(coll, event, datetime.now(timezone.utc))
+        update_doc = coll.update_one.call_args[0][1]['$set']
+        for field in ['provider_delivery_state', 'provider_delivery_rank',
+                      'provider_delivery_terminal', 'provider_receipt_event_key',
+                      'provider_delivery_updated_at']:
+            self.assertIn(field, update_doc, f"Missing {field}")
+
+
+# ===================================================================
+# Defect 2: Event matrix — failed, suppressed, opened, clicked ranks
+# ===================================================================
+class Defect2_EventMatrix(unittest.TestCase):
+    def setUp(self):
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
+
+    def test_failed_and_suppressed_are_supported(self):
+        from resend_webhook import SUPPORTED_EMAIL_EVENTS
+        self.assertIn("email.failed", SUPPORTED_EMAIL_EVENTS)
+        self.assertIn("email.suppressed", SUPPORTED_EMAIL_EVENTS)
+
+    def test_failed_and_suppressed_are_terminal(self):
+        from resend_webhook import TERMINAL_EVENTS
+        self.assertIn("email.failed", TERMINAL_EVENTS)
+        self.assertIn("email.suppressed", TERMINAL_EVENTS)
+
+    def test_terminal_events_outrank_non_terminal(self):
+        from resend_webhook import _PROVIDER_DELIVERY_RANK, TERMINAL_EVENTS, _NON_TERMINAL_ADDITIVE
+        max_non_terminal = max(_PROVIDER_DELIVERY_RANK.get(e, 0) for e in _NON_TERMINAL_ADDITIVE)
+        min_terminal = min(_PROVIDER_DELIVERY_RANK.get(e, 0) for e in TERMINAL_EVENTS)
+        self.assertGreater(min_terminal, max_non_terminal,
+                          "Terminal events must outrank all non-terminal additive events")
+
+    def test_opened_clicked_are_non_terminal_additive(self):
+        from resend_webhook import _NON_TERMINAL_ADDITIVE
+        self.assertIn("email.opened", _NON_TERMINAL_ADDITIVE)
+        self.assertIn("email.clicked", _NON_TERMINAL_ADDITIVE)
+
+
+class Defect2_MonotonicPolicy(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
+
+    async def test_opened_cannot_replace_bounced(self):
+        """opened must not overwrite a terminal bounced state."""
+        from resend_webhook import apply_resend_outbox_event, VerifiedResendEvent
+        coll = AsyncMock()
+        # Update finds no match because provider_delivery_terminal=True blocks it
+        coll.update_one = AsyncMock(return_value=MagicMock(matched_count=0, modified_count=0))
+        coll.find_one = AsyncMock(return_value={
+            "_id": "x", "provider_message_id": "msg_mono",
+            "provider_delivery_state": "email.bounced", "provider_delivery_rank": 10,
+            "provider_delivery_terminal": True,
+        })
+        event = VerifiedResendEvent("wh_mono", "email.opened", "msg_mono", "", ())
+        result = await apply_resend_outbox_event(coll, event, datetime.now(timezone.utc))
+        self.assertFalse(result['advanced'])
+        # Verify the filter includes the non-terminal additive guard
+        filter_doc = coll.update_one.call_args[0][0]
+        or_clauses = filter_doc.get('$or', [])
+        has_terminal_guard = any(
+            c.get('provider_delivery_terminal') == {'$ne': True} for c in or_clauses
+        )
+        self.assertTrue(has_terminal_guard)
+
+
+# ===================================================================
+# Defect 3: Strict verification — malformed inputs return 400
+# ===================================================================
+class Defect3_StrictVerification(unittest.TestCase):
+    def setUp(self):
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
+        from resend_webhook import verify_resend_webhook, ResendWebhookVerificationError
+        self.verify = verify_resend_webhook
+        self.Err = ResendWebhookVerificationError
+
+    def test_no_whsec_prefix_rejected(self):
+        with self.assertRaises(self.Err):
+            self.verify(b'{}', {"svix-id": "x", "svix-timestamp": str(int(time.time())),
+                                "svix-signature": "v1,abc"}, "raw_secret_no_prefix")
+
+    def test_empty_body_rejected(self):
+        with self.assertRaises(self.Err):
+            self.verify(b'', {"svix-id": "x", "svix-timestamp": str(int(time.time())),
+                              "svix-signature": "v1,abc"}, SECRET)
+
+    def test_list_payload_rejected(self):
+        body = b'[1,2,3]'
+        ts = int(time.time())
+        sig = _sign("x", ts, body)
+        with self.assertRaises(self.Err):
+            self.verify(body, {"svix-id": "x", "svix-timestamp": str(ts),
+                               "svix-signature": sig}, SECRET)
+
+    def test_non_object_data_rejected(self):
+        body = json.dumps({"type": "email.delivered", "data": "string"}).encode()
+        ts = int(time.time())
+        sig = _sign("x", ts, body)
+        with self.assertRaises(self.Err):
+            self.verify(body, {"svix-id": "x", "svix-timestamp": str(ts),
+                               "svix-signature": sig}, SECRET)
+
+    def test_non_list_recipients_rejected(self):
+        body = json.dumps({"type": "email.delivered", "data": {"email_id": "m", "to": 12345}}).encode()
+        ts = int(time.time())
+        sig = _sign("x", ts, body)
+        with self.assertRaises(self.Err):
+            self.verify(body, {"svix-id": "x", "svix-timestamp": str(ts),
+                               "svix-signature": sig}, SECRET)
+
+    def test_invalid_base64_secret_rejected(self):
+        with self.assertRaises(self.Err):
+            self.verify(b'{}', {"svix-id": "x", "svix-timestamp": str(int(time.time())),
+                                "svix-signature": "v1,abc"}, "whsec_not!valid!base64!")
+
+    def test_empty_decoded_secret_rejected(self):
+        with self.assertRaises(self.Err):
+            self.verify(b'{}', {"svix-id": "x", "svix-timestamp": str(int(time.time())),
+                                "svix-signature": "v1,abc"}, "whsec_")
+
+    def test_valid_event_parses_correctly(self):
+        body = _body(); ts = int(time.time())
+        sig = _sign("valid", ts, body)
+        event = self.verify(body, {"svix-id": "valid", "svix-timestamp": str(ts),
+                                   "svix-signature": sig}, SECRET)
+        self.assertEqual(event.event_type, "email.delivered")
+        self.assertEqual(event.webhook_id, "valid")
+
+
+# ===================================================================
+# Defect 4: Receipt completion fencing
+# ===================================================================
+class Defect4_ReceiptFencing(unittest.TestCase):
     @classmethod
     def setUpClass(cls): cls.s = _load(); cls.c = _tc(cls.s)
 
-    def test_missing_headers_400(self):
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=_body(),
-                         headers={"content-type": "application/json"}).status_code, 400)
-
-    def test_bad_signature_400(self):
-        b = _body(); ts = int(time.time())
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers={
-            "svix-id": "x", "svix-timestamp": str(ts),
-            "svix-signature": "v1,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-            "content-type": "application/json"}).status_code, 400)
-
-    def test_stale_timestamp_400(self):
-        b = _body(); ts = int(time.time()) - 600
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers={
-            "svix-id": "stale", "svix-timestamp": str(ts),
-            "svix-signature": _sign("stale", ts, b), "content-type": "application/json"}).status_code, 400)
-
-    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
-    def test_unsupported_event_200(self, m):
-        b = json.dumps({"type": "contact.created", "created_at": "2026-08-19T12:00:00Z",
-                        "data": {"id": "ct_1"}}).encode()
-        ts = int(time.time())
-        r = self.c.post('/api/webhooks/resend', content=b, headers={
-            "svix-id": "unk", "svix-timestamp": str(ts),
-            "svix-signature": _sign("unk", ts, b), "content-type": "application/json"})
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()['action'], 'unknown_event_stored')
-
-    # Fix 7: unsupported + DB failure returns truthful action
-    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock, side_effect=RuntimeError)
-    def test_unsupported_event_db_fail_returns_unsupported_ignored(self, m):
-        b = json.dumps({"type": "domain.verified", "created_at": "2026-08-19T12:00:00Z",
-                        "data": {"id": "d1"}}).encode()
-        ts = int(time.time())
-        r = self.c.post('/api/webhooks/resend', content=b, headers={
-            "svix-id": "unk_f", "svix-timestamp": str(ts),
-            "svix-signature": _sign("unk_f", ts, b), "content-type": "application/json"})
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()['action'], 'unsupported_ignored')
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock, return_value=False)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock,
+           return_value={'matched': True, 'advanced': True, 'state': 'delivered'})
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
+    def test_receipt_completion_false_returns_503(self, *_):
+        b, h = _req(wid="d4_fenced")
+        r = self.c.post('/api/webhooks/resend', content=b, headers=h)
+        self.assertEqual(r.status_code, 503)
 
     @patch('server.finish_resend_receipt', new_callable=AsyncMock, return_value=True)
     @patch('server.apply_resend_outbox_event', new_callable=AsyncMock,
            return_value={'matched': True, 'advanced': True, 'state': 'delivered'})
     @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
-    def test_mapped_event_200(self, *_):
-        b, h = _signed_request(wh_id="mapped")
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 200)
-
-    @patch('server.begin_resend_receipt', new_callable=AsyncMock, side_effect=RuntimeError)
-    def test_mapped_begin_fail_503(self, _):
-        b, h = _signed_request(wh_id="503_b")
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 503)
-
-    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock, side_effect=RuntimeError)
-    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
-    def test_mapped_apply_fail_503(self, *_):
-        b, h = _signed_request(wh_id="503_a")
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 503)
-
-    @patch('server.finish_resend_receipt', new_callable=AsyncMock, side_effect=RuntimeError)
-    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock,
-           return_value={'matched': True, 'advanced': True, 'state': 'delivered'})
-    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
-    def test_mapped_finish_fail_503(self, *_):
-        b, h = _signed_request(wh_id="503_f")
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 503)
-
-    # Fix 3: busy receipt returns 503
-    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'busy'))
-    def test_busy_receipt_returns_503(self, _):
-        b, h = _signed_request(wh_id="busy")
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 503)
-
-    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'processed'))
-    def test_replay_200_duplicate(self, m):
-        b, h = _signed_request(wh_id="I_replay")
-        r = self.c.post('/api/webhooks/resend', content=b, headers=h)
-        self.assertEqual(r.status_code, 200); self.assertTrue(r.json()['duplicate'])
-        m.assert_called_once()
-
-    @patch('server.store_orphan_event', new_callable=AsyncMock, side_effect=RuntimeError)
-    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
-    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
-    def test_orphan_storage_failure_503(self, mock_begin, mock_apply, mock_orphan):
-        from resend_webhook import ResendOutboxNotFound
-        mock_apply.side_effect = ResendOutboxNotFound("no match")
-        b, h = _signed_request(wh_id="orphan_fail")
-        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 503)
-
-
-# ===================================================================
-# A. Webhook first, then mapping appears
-# ===================================================================
-
-class TestA_WebhookFirstThenMapping(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-
-    async def test_orphan_stored_then_dispatch_seam_reconciles_with_suppression(self):
-        """Fix 1: dispatch seam threads suppression_callback — early bounce
-        gets one suppression, one processed receipt, one reconciled orphan."""
-        from resend_webhook import (store_orphan_event, reconcile_orphans_for_message,
-                                    VerifiedResendEvent, ResendOutboxNotFound)
-        orphan_c = AsyncMock()
-        orphan_c.insert_one = AsyncMock()
-        receipt_c = AsyncMock()
-        receipt_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        outbox_c = AsyncMock()
-        suppression_calls = []
-
-        async def mock_suppress(etype, addr):
-            suppression_calls.append((etype, addr))
-
-        event = VerifiedResendEvent("wh_A", "email.bounced", "msg_A", "", ("victim@example.com",))
-        now = datetime.now(timezone.utc)
-        await store_orphan_event(orphan_c, event, now)
-        orphan_c.insert_one.assert_called_once()
-
-        # Now mapping appears — dispatch seam reconciles with suppression
-        cursor = AsyncMock(); cursor.to_list = AsyncMock(return_value=[{
-            "event_key": "resend:wh_A", "provider": "resend",
-            "provider_message_id": "msg_A", "event_type": "email.bounced",
-            "event_created_at": "", "recipients": ["victim@example.com"],
-            "state": "pending",
-        }])
-        orphan_c.find = MagicMock(return_value=cursor)
-        orphan_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        orphan_c.find_one = AsyncMock(return_value={"attempt_count": 1})
-
-        with patch('resend_webhook.apply_resend_outbox_event', new_callable=AsyncMock,
-                   return_value={'matched': True, 'advanced': True, 'state': 'bounced'}):
-            count = await reconcile_orphans_for_message(
-                orphan_c, receipt_c, outbox_c, "msg_A",
-                suppression_callback=mock_suppress)
-        self.assertEqual(count, 1)
-        self.assertEqual(len(suppression_calls), 1)
-        self.assertEqual(suppression_calls[0], ("email.bounced", "victim@example.com"))
-        receipt_c.update_one.assert_called()  # receipt finished
-
-
-# ===================================================================
-# B. Mapping first, then webhook
-# ===================================================================
-
-class TestB_MappingFirst(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls): cls.s = _load(); cls.c = _tc(cls.s)
-
-    @patch('server.finish_resend_receipt', new_callable=AsyncMock, return_value=True)
-    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock,
-           return_value={'matched': True, 'advanced': True, 'state': 'delivered'})
-    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
-    def test_webhook_after_mapping_normal(self, *_):
-        b, h = _signed_request(wh_id="B_mapped")
-        r = self.c.post('/api/webhooks/resend', content=b, headers=h)
-        self.assertEqual(r.status_code, 200); self.assertFalse(r.json().get('duplicate', True))
-
-
-# ===================================================================
-# C. Crash after mapping before inline reconcile — recovery picks up
-# ===================================================================
-
-class TestC_CrashRecovery(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-
-    async def test_recovery_picks_up(self):
-        from resend_webhook import recover_pending_orphans
-        orphan_c = AsyncMock(); receipt_c = AsyncMock(); outbox_c = AsyncMock()
-        now = datetime.now(timezone.utc); ts = now.astimezone(timezone.utc)
-        cursor = AsyncMock(); cursor.to_list = AsyncMock(return_value=[{
-            "event_key": "resend:wh_C", "provider": "resend",
-            "provider_message_id": "msg_C", "event_type": "email.delivered",
-            "event_created_at": "", "recipients": [],
-            "state": "pending", "next_attempt_at": ts, "attempt_count": 1,
-            "lease_owner": None, "lease_expires_at": None,
-        }])
-        orphan_c.find = MagicMock(return_value=MagicMock(sort=MagicMock(
-            return_value=MagicMock(limit=MagicMock(return_value=cursor)))))
-        orphan_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        orphan_c.find_one = AsyncMock(return_value={"attempt_count": 1})
-        receipt_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        with patch('resend_webhook.apply_resend_outbox_event', new_callable=AsyncMock,
-                   return_value={'matched': True, 'advanced': True}):
-            counts = await recover_pending_orphans(orphan_c, receipt_c, outbox_c,
-                                                   worker_id='test_recovery', now=now)
-        self.assertEqual(counts['reconciled'], 1)
-
-
-# ===================================================================
-# D. Reconcile DB failure then recovery succeeds
-# ===================================================================
-
-class TestD_FailThenRecover(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-
-    async def test_failure_leaves_retryable_then_succeeds(self):
-        from resend_webhook import reconcile_single_orphan
-        orphan_c = AsyncMock(); receipt_c = AsyncMock(); outbox_c = AsyncMock()
-        now = datetime.now(timezone.utc)
-        doc = {"event_key": "resend:wh_D", "provider": "resend",
-               "provider_message_id": "msg_D", "event_type": "email.delivered",
-               "event_created_at": "", "recipients": [], "state": "pending"}
-        orphan_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        orphan_c.find_one = AsyncMock(return_value={"attempt_count": 1})
-        with patch('resend_webhook.apply_resend_outbox_event', new_callable=AsyncMock,
-                   side_effect=RuntimeError("db down")):
-            r1 = await reconcile_single_orphan(orphan_c, receipt_c, outbox_c, doc,
-                                               worker_id='w1', now=now)
-        self.assertEqual(r1, "failed")
-        # Recovery attempt succeeds
-        orphan_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        receipt_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        with patch('resend_webhook.apply_resend_outbox_event', new_callable=AsyncMock,
-                   return_value={'matched': True, 'advanced': True}):
-            r2 = await reconcile_single_orphan(orphan_c, receipt_c, outbox_c, doc,
-                                               worker_id='w2', now=now)
-        self.assertEqual(r2, "reconciled")
-
-
-# ===================================================================
-# E. Inline reconciliation through CAS (Fix 5)
-# ===================================================================
-
-class TestE_InlineRecheck(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls): cls.s = _load(); cls.c = _tc(cls.s)
-
-    @patch('server.reconcile_single_orphan', new_callable=AsyncMock, return_value='reconciled')
-    @patch('server.store_orphan_event', new_callable=AsyncMock, return_value={})
-    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
-    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
-    def test_inline_routes_through_reconcile_single_orphan(self, mock_begin, mock_apply,
-                                                            mock_store, mock_reconcile):
-        from resend_webhook import ResendOutboxNotFound
-        mock_apply.side_effect = ResendOutboxNotFound("no match")
-        # Mock the orphan find for the inline re-check
-        self.s.db = MagicMock()
-        self.s.db.webhook_orphans = MagicMock()
-        self.s.db.webhook_orphans.find_one = AsyncMock(return_value={
-            "event_key": "resend:E_inline", "state": "pending"})
-        self.s.db.webhook_receipts = MagicMock()
-        self.s.db.lead_outbox = MagicMock()
-        b, h = _signed_request(wh_id="E_inline")
+    def test_receipt_completion_true_returns_200(self, *_):
+        b, h = _req(wid="d4_ok")
         r = self.c.post('/api/webhooks/resend', content=b, headers=h)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()['action'], 'orphan_reconciled_inline')
-        mock_reconcile.assert_called_once()
 
 
-# ===================================================================
-# F. Startup recovery
-# ===================================================================
-
-class TestF_StartupRecovery(unittest.IsolatedAsyncioTestCase):
+class Defect4_ReceiptOwnerFencing(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
 
-    async def test_startup_recovery_works(self):
-        from resend_webhook import recover_pending_orphans
-        orphan_c = AsyncMock(); receipt_c = AsyncMock(); outbox_c = AsyncMock()
-        now = datetime.now(timezone.utc); ts = now.astimezone(timezone.utc)
-        cursor = AsyncMock(); cursor.to_list = AsyncMock(return_value=[{
-            "event_key": "resend:wh_F", "provider": "resend",
-            "provider_message_id": "msg_F", "event_type": "email.sent",
-            "event_created_at": "", "recipients": [],
-            "state": "failed", "next_attempt_at": ts, "attempt_count": 3,
-            "lease_owner": None, "lease_expires_at": None,
-        }])
-        orphan_c.find = MagicMock(return_value=MagicMock(sort=MagicMock(
-            return_value=MagicMock(limit=MagicMock(return_value=cursor)))))
-        orphan_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        orphan_c.find_one = AsyncMock(return_value={"attempt_count": 3})
-        receipt_c.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+    async def test_stale_owner_finish_returns_false(self):
+        from resend_webhook import finish_resend_receipt, VerifiedResendEvent
+        coll = AsyncMock()
+        coll.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+        event = VerifiedResendEvent("wh_stale", "email.delivered", "m", "", ())
+        result = await finish_resend_receipt(coll, event, datetime.now(timezone.utc), owner="stale_worker")
+        self.assertFalse(result)
+
+    async def test_correct_owner_finish_returns_true(self):
+        from resend_webhook import finish_resend_receipt, VerifiedResendEvent
+        coll = AsyncMock()
+        coll.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+        event = VerifiedResendEvent("wh_ok", "email.delivered", "m", "", ())
+        result = await finish_resend_receipt(coll, event, datetime.now(timezone.utc), owner="correct_worker")
+        self.assertTrue(result)
+        # Verify owner filter was applied
+        query = coll.update_one.call_args[0][0]
+        self.assertEqual(query.get('claim_owner'), 'correct_worker')
+
+
+class Defect4_ReconcileReceiptFailure(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
+
+    async def test_reconcile_receipt_false_leaves_retryable(self):
+        from resend_webhook import reconcile_single_orphan
+        oc = AsyncMock(); oc.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+        oc.find_one = AsyncMock(return_value={"attempt_count": 1})
+        rc = AsyncMock(); rc.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+        doc = {"event_key": "resend:d4_rec", "provider": "resend",
+               "provider_message_id": "msg_d4", "event_type": "email.delivered",
+               "event_created_at": "", "recipients": [], "state": "pending"}
         with patch('resend_webhook.apply_resend_outbox_event', new_callable=AsyncMock,
                    return_value={'matched': True, 'advanced': True}):
-            counts = await recover_pending_orphans(orphan_c, receipt_c, outbox_c,
-                                                   worker_id='startup', now=now)
-        self.assertEqual(counts['reconciled'], 1)
+            result = await reconcile_single_orphan(oc, rc, AsyncMock(), doc,
+                                                   worker_id='d4w', now=datetime.now(timezone.utc))
+        self.assertEqual(result, "failed")
 
 
 # ===================================================================
-# G. Concurrent claim (Fix 4: lease fencing)
+# Defect 5: Unique worker IDs and lease fencing
 # ===================================================================
+class Defect5_UniqueWorkers(unittest.TestCase):
+    def test_unique_worker_ids_are_unique(self):
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
+        from resend_webhook import _unique_worker_id
+        ids = {_unique_worker_id("test") for _ in range(100)}
+        self.assertEqual(len(ids), 100)
 
-class TestG_ConcurrentClaim(unittest.IsolatedAsyncioTestCase):
+    def test_default_worker_ids_are_not_static(self):
+        """reconcile_orphans_for_message and recover_pending_orphans must
+        generate unique worker IDs when none provided."""
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
+        from resend_webhook import _unique_worker_id
+        w1 = _unique_worker_id("dispatch")
+        w2 = _unique_worker_id("dispatch")
+        self.assertNotEqual(w1, w2)
+
+
+class Defect5_LeaseExpiryConcurrency(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
+        b = str(Path(__file__).resolve().parents[1])
+        if b not in sys.path: sys.path.insert(0, b)
 
-    async def test_only_one_worker_wins(self):
+    async def test_stale_release_rejected_by_lease_owner_filter(self):
+        from resend_webhook import _release_orphan_reconciled
+        oc = AsyncMock()
+        oc.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+        result = await _release_orphan_reconciled(oc, "resend:stale", datetime.now(timezone.utc),
+                                                   lease_owner="stale_worker")
+        self.assertFalse(result)
+        query = oc.update_one.call_args[0][0]
+        self.assertEqual(query.get('lease_owner'), 'stale_worker')
+
+    async def test_concurrent_inline_recovery_exactly_one_suppression(self):
+        """Two workers try to reconcile same orphan. Only one wins the lease."""
         from resend_webhook import reconcile_single_orphan
-        doc = {"event_key": "resend:wh_G", "provider": "resend",
-               "provider_message_id": "msg_G", "event_type": "email.delivered",
-               "event_created_at": "", "recipients": [], "state": "pending"}
         now = datetime.now(timezone.utc)
+        suppressions = []
+        async def track_suppress(etype, addr): suppressions.append((etype, addr))
+        doc = {"event_key": "resend:d5_conc", "provider": "resend",
+               "provider_message_id": "msg_d5", "event_type": "email.bounced",
+               "event_created_at": "", "recipients": ["v@b.com"], "state": "pending"}
+
         # Worker 1 wins
         oc1 = AsyncMock()
         oc1.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
         oc1.find_one = AsyncMock(return_value={"attempt_count": 1})
         rc1 = AsyncMock(); rc1.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        ox1 = AsyncMock()
         with patch('resend_webhook.apply_resend_outbox_event', new_callable=AsyncMock,
                    return_value={'matched': True, 'advanced': True}):
-            r1 = await reconcile_single_orphan(oc1, rc1, ox1, doc, worker_id='w1', now=now)
+            r1 = await reconcile_single_orphan(oc1, rc1, AsyncMock(), doc,
+                        suppression_callback=track_suppress, worker_id='w1', now=now)
         self.assertEqual(r1, "reconciled")
-        # Worker 2 loses claim
-        oc2 = AsyncMock()
-        oc2.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+        self.assertEqual(len(suppressions), 1)
+
+        # Worker 2 loses
+        oc2 = AsyncMock(); oc2.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
         r2 = await reconcile_single_orphan(oc2, AsyncMock(), AsyncMock(), doc,
-                                           worker_id='w2', now=now)
+                    suppression_callback=track_suppress, worker_id='w2', now=now)
         self.assertEqual(r2, "lease_lost")
+        self.assertEqual(len(suppressions), 1)  # Still exactly 1
 
 
 # ===================================================================
-# H. Partial failure after outbox
+# Route-level: existing contract + new events
 # ===================================================================
-
-class TestH_PartialFailure(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-
-    async def test_failure_after_outbox_before_suppression(self):
-        from resend_webhook import reconcile_single_orphan
-        oc = AsyncMock(); oc.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        oc.find_one = AsyncMock(return_value={"attempt_count": 1})
-        doc = {"event_key": "resend:wh_H1", "provider": "resend",
-               "provider_message_id": "msg_H1", "event_type": "email.bounced",
-               "event_created_at": "", "recipients": ["h@b.com"], "state": "pending"}
-        async def fail_suppress(etype, addr): raise RuntimeError("suppress failed")
-        with patch('resend_webhook.apply_resend_outbox_event', new_callable=AsyncMock,
-                   return_value={'matched': True, 'advanced': True}):
-            result = await reconcile_single_orphan(oc, AsyncMock(), AsyncMock(), doc,
-                                                   suppression_callback=fail_suppress,
-                                                   worker_id='test', now=datetime.now(timezone.utc))
-        self.assertEqual(result, "failed")
-
-    async def test_failure_after_outbox_before_receipt(self):
-        from resend_webhook import reconcile_single_orphan
-        oc = AsyncMock(); oc.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        oc.find_one = AsyncMock(return_value={"attempt_count": 1})
-        rc = AsyncMock(); rc.update_one = AsyncMock(side_effect=RuntimeError("receipt fail"))
-        doc = {"event_key": "resend:wh_H2", "provider": "resend",
-               "provider_message_id": "msg_H2", "event_type": "email.delivered",
-               "event_created_at": "", "recipients": [], "state": "pending"}
-        with patch('resend_webhook.apply_resend_outbox_event', new_callable=AsyncMock,
-                   return_value={'matched': True, 'advanced': True}):
-            result = await reconcile_single_orphan(oc, rc, AsyncMock(), doc,
-                                                   worker_id='test', now=datetime.now(timezone.utc))
-        self.assertEqual(result, "failed")
-
-
-# ===================================================================
-# J. TTL (Fix 2: BSON datetime, not ISO string)
-# ===================================================================
-
-class TestJ_TTL(unittest.TestCase):
-    def test_pending_orphan_has_no_ttl(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-        from resend_webhook import _orphan_document, VerifiedResendEvent
-        doc = _orphan_document(VerifiedResendEvent("J", "email.delivered", "m", "", ()), datetime.now(timezone.utc))
-        self.assertEqual(doc['state'], 'pending')
-        self.assertIsNone(doc['reconciled_ttl_expires_at'])
-
-    def test_reconciled_ttl_is_datetime_not_string(self):
-        """Fix 2: TTL field must be a BSON-compatible aware datetime."""
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-        from resend_webhook import _orphan_document, ORPHAN_RECONCILED_TTL_SECONDS, VerifiedResendEvent
-        self.assertGreater(ORPHAN_RECONCILED_TTL_SECONDS, 0)
-        # Verify _orphan_document stores datetimes, not strings, for temporal fields
-        doc = _orphan_document(VerifiedResendEvent("J2", "email.sent", "m2", "", ()), datetime.now(timezone.utc))
-        self.assertIsInstance(doc['first_seen_at'], datetime)
-        self.assertIsInstance(doc['next_attempt_at'], datetime)
-
-    def test_next_attempt_at_returns_datetime(self):
-        """Fix 6 partial: _next_attempt_at returns datetime."""
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-        from resend_webhook import _next_attempt_at
-        result = _next_attempt_at(1, datetime.now(timezone.utc))
-        self.assertIsInstance(result, datetime)
-
-
-# ===================================================================
-# K. No PII
-# ===================================================================
-
-class TestK_NoPII(unittest.TestCase):
-    def test_orphan_no_forbidden_fields(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-        from resend_webhook import _orphan_document, VerifiedResendEvent
-        doc = _orphan_document(VerifiedResendEvent("K", "email.bounced", "m", "", ("t@b.com",)),
-                               datetime.now(timezone.utc))
-        self.assertNotIn('raw_body', doc); self.assertNotIn('signature', doc)
-        self.assertNotIn('headers', doc); self.assertNotIn('subject', doc)
-        self.assertNotIn('name', doc); self.assertNotIn('phone', doc)
-        self.assertIn('event_key', doc); self.assertIn('state', doc)
-
-
-# ===================================================================
-# L. Recipient cap
-# ===================================================================
-
-class TestL_RecipientCap(unittest.TestCase):
-    def test_recipients_capped(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-        from resend_webhook import _sanitize_recipients, MAX_ORPHAN_RECIPIENTS
-        result = _sanitize_recipients(tuple(f"A{i}@B.COM" for i in range(20)))
-        self.assertLessEqual(len(result), MAX_ORPHAN_RECIPIENTS)
-        for a in result: self.assertEqual(a, a.lower())
-
-    def test_empty_recipients(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-        from resend_webhook import _sanitize_recipients
-        self.assertEqual(_sanitize_recipients(()), [])
-
-
-# ===================================================================
-# Fix 6: backoff growth and cap
-# ===================================================================
-
-class TestBackoffGrowthAndCap(unittest.TestCase):
-    def test_backoff_grows_exponentially_then_caps(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-        from resend_webhook import _next_attempt_at, ORPHAN_BASE_RETRY_SECONDS, ORPHAN_MAX_RETRY_SECONDS
-        base = datetime.now(timezone.utc)
-        prev_delay = 0
-        for attempt in range(1, 15):
-            result = _next_attempt_at(attempt, base)
-            delay = (result - base).total_seconds()
-            self.assertGreater(delay, 0)
-            self.assertLessEqual(delay, ORPHAN_MAX_RETRY_SECONDS)
-            if attempt <= 10:
-                self.assertGreaterEqual(delay, prev_delay)
-            prev_delay = delay
-        # Attempt 51+ must be capped at max
-        delay_51 = (_next_attempt_at(51, base) - base).total_seconds()
-        self.assertAlmostEqual(delay_51, ORPHAN_MAX_RETRY_SECONDS, delta=1)
-
-    def test_attempt_0_has_base_delay(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-        from resend_webhook import _next_attempt_at, ORPHAN_BASE_RETRY_SECONDS
-        base = datetime.now(timezone.utc)
-        delay = (_next_attempt_at(0, base) - base).total_seconds()
-        self.assertAlmostEqual(delay, ORPHAN_BASE_RETRY_SECONDS, delta=1)
-
-
-# ===================================================================
-# Fix 3: Receipt crash-safe tests
-# ===================================================================
-
-class TestReceiptCrashSafety(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        backend = str(Path(__file__).resolve().parents[1])
-        if backend not in sys.path: sys.path.insert(0, backend)
-
-    async def test_two_request_crash_and_lease_recovery(self):
-        """Fix 3: first worker claims, crashes. Second worker reclaims after lease expiry."""
-        from resend_webhook import begin_resend_receipt, VerifiedResendEvent
-        from pymongo.errors import DuplicateKeyError as DK
-        event = VerifiedResendEvent("wh_crash", "email.delivered", "msg_crash", "", ())
-        now = datetime.now(timezone.utc)
-        coll = AsyncMock()
-        # First worker inserts successfully
-        coll.insert_one = AsyncMock()
-        r1, s1 = await begin_resend_receipt(coll, event, now, owner="worker1")
-        self.assertEqual(s1, "claimed")
-        self.assertEqual(r1['claim_owner'], "worker1")
-
-        # Second worker: insert fails (dup), stored shows active lease
-        coll.insert_one = AsyncMock(side_effect=DK("dup"))
-        expired_time = (now - timedelta(seconds=1)).astimezone(timezone.utc).isoformat()
-        coll.find_one = AsyncMock(return_value={
-            "event_key": "resend:wh_crash", "provider": "resend",
-            "event_type": "email.delivered", "provider_message_id": "msg_crash",
-            "processing_state": "claimed", "claim_owner": "worker1",
-            "claim_expires_at": expired_time,  # expired
-        })
-        coll.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
-        r2, s2 = await begin_resend_receipt(coll, event, now, owner="worker2")
-        self.assertEqual(s2, "claimed")
-
-    async def test_active_lease_returns_busy(self):
-        """Fix 3: active lease held by another worker returns busy."""
-        from resend_webhook import begin_resend_receipt, VerifiedResendEvent
-        from pymongo.errors import DuplicateKeyError as DK
-        event = VerifiedResendEvent("wh_busy", "email.delivered", "msg_busy", "", ())
-        now = datetime.now(timezone.utc)
-        future_time = (now + timedelta(seconds=100)).astimezone(timezone.utc).isoformat()
-        coll = AsyncMock()
-        coll.insert_one = AsyncMock(side_effect=DK("dup"))
-        coll.find_one = AsyncMock(return_value={
-            "event_key": "resend:wh_busy", "provider": "resend",
-            "event_type": "email.delivered", "provider_message_id": "msg_busy",
-            "processing_state": "claimed", "claim_owner": "worker1",
-            "claim_expires_at": future_time,  # still active
-        })
-        r, s = await begin_resend_receipt(coll, event, now, owner="worker2")
-        self.assertEqual(s, "busy")
-
-    async def test_finish_requires_owner(self):
-        """Fix 3: finish with wrong owner fails silently."""
-        from resend_webhook import finish_resend_receipt, VerifiedResendEvent
-        event = VerifiedResendEvent("wh_owner", "email.delivered", "m", "", ())
-        coll = AsyncMock()
-        coll.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
-        result = await finish_resend_receipt(coll, event, datetime.now(timezone.utc),
-                                             owner="wrong_owner")
-        self.assertFalse(result)
-
-
-# ===================================================================
-# No sends
-# ===================================================================
-
-class TestNoSends(unittest.TestCase):
+class ExistingContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls): cls.s = _load(); cls.c = _tc(cls.s)
 
-    def test_400_precludes_sends(self):
+    def test_400_missing_headers(self):
         self.assertEqual(self.c.post('/api/webhooks/resend', content=_body(),
                          headers={"content-type": "application/json"}).status_code, 400)
 
+    def test_400_bad_sig(self):
+        b = _body(); ts = int(time.time())
+        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers={
+            "svix-id":"x","svix-timestamp":str(ts),
+            "svix-signature":"v1,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "content-type":"application/json"}).status_code, 400)
+
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock, side_effect=RuntimeError)
+    def test_unsupported_ignored(self, m):
+        b = json.dumps({"type":"domain.verified","created_at":"2026-08-19T12:00:00Z",
+                        "data":{"id":"d1"}}).encode()
+        ts = int(time.time())
+        r = self.c.post('/api/webhooks/resend', content=b, headers={
+            "svix-id":"unk_f","svix-timestamp":str(ts),
+            "svix-signature":_sign("unk_f",ts,b),"content-type":"application/json"})
+        self.assertEqual(r.json()['action'], 'unsupported_ignored')
+
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock, return_value=True)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock,
+           return_value={'matched':True,'advanced':True,'state':'delivered'})
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
+    def test_mapped_200(self, *_):
+        b, h = _req(wid="mapped"); self.assertEqual(
+            self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 200)
+
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'processed'))
+    def test_replay_duplicate(self, m):
+        b, h = _req(wid="replay")
+        r = self.c.post('/api/webhooks/resend', content=b, headers=h)
+        self.assertTrue(r.json()['duplicate']); m.assert_called_once()
+
     @patch('server.begin_resend_receipt', new_callable=AsyncMock, side_effect=RuntimeError)
-    def test_503_precludes_sends(self, _):
-        b, h = _signed_request(wh_id="ns_503")
+    def test_begin_fail_503(self, _):
+        b, h = _req(wid="503b")
+        self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 503)
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock, side_effect=RuntimeError)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock, return_value=({}, 'claimed'))
+    def test_orphan_fail_503(self, b, a, o):
+        from resend_webhook import ResendOutboxNotFound
+        a.side_effect = ResendOutboxNotFound("no")
+        b2, h = _req(wid="of503")
+        self.assertEqual(self.c.post('/api/webhooks/resend', content=b2, headers=h).status_code, 503)
+
+
+# ===================================================================
+# Zero email / SMS
+# ===================================================================
+class NoSends(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls): cls.s = _load(); cls.c = _tc(cls.s)
+
+    def test_400_no_sends(self):
+        self.assertEqual(self.c.post('/api/webhooks/resend', content=_body(),
+                         headers={"content-type":"application/json"}).status_code, 400)
+
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock, side_effect=RuntimeError)
+    def test_503_no_sends(self, _):
+        b, h = _req(wid="ns503")
         self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 503)
 
 

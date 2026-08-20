@@ -32,13 +32,23 @@ SUPPORTED_EMAIL_EVENTS = {
     "email.delivery_delayed",
     "email.bounced",
     "email.complained",
+    "email.failed",
+    "email.suppressed",
     "email.opened",
     "email.clicked",
 }
 
 SUPPRESSION_EVENTS = {"email.bounced", "email.complained"}
 
+TERMINAL_EVENTS = {"email.bounced", "email.complained", "email.failed", "email.suppressed"}
+
 TIMESTAMP_TOLERANCE_SECONDS = 300
+
+MAX_HEADER_LENGTH = 512
+MAX_EVENT_TYPE_LENGTH = 64
+MAX_PROVIDER_ID_LENGTH = 200
+MAX_RECIPIENT_COUNT = 50
+MAX_RECIPIENT_LENGTH = 254
 
 
 class ResendWebhookVerificationError(ValueError):
@@ -81,10 +91,16 @@ def verify_resend_webhook(
     *,
     now: datetime | None = None,
 ) -> VerifiedResendEvent:
-    """Verify a Resend webhook and return a minimal verified event."""
-    webhook_id = (headers.get("svix-id") or "").strip()
-    timestamp_str = (headers.get("svix-timestamp") or "").strip()
-    signature_header = (headers.get("svix-signature") or "").strip()
+    """Strict fail-closed webhook verification.
+
+    Requires whsec_ prefix, strict base64 with validate=True, non-empty key,
+    capped headers, non-empty byte payload, JSON object payload, object data,
+    capped event type and provider IDs, and validated bounded recipients.
+    """
+    # --- Header validation ---
+    webhook_id = (headers.get("svix-id") or "").strip()[:MAX_HEADER_LENGTH]
+    timestamp_str = (headers.get("svix-timestamp") or "").strip()[:MAX_HEADER_LENGTH]
+    signature_header = (headers.get("svix-signature") or "").strip()[:MAX_HEADER_LENGTH]
 
     if not webhook_id or not timestamp_str or not signature_header:
         raise ResendWebhookVerificationError("Missing required svix headers")
@@ -97,26 +113,31 @@ def verify_resend_webhook(
     current = now or datetime.now(timezone.utc)
     now_ts = int(current.timestamp())
     if abs(now_ts - timestamp) > TIMESTAMP_TOLERANCE_SECONDS:
-        raise ResendWebhookVerificationError(
-            f"Timestamp {timestamp} is outside the {TIMESTAMP_TOLERANCE_SECONDS}s tolerance window"
-        )
+        raise ResendWebhookVerificationError("Timestamp outside tolerance window")
 
-    # Decode the secret: strip "whsec_" prefix and base64-decode
-    secret_raw = signing_secret
-    if secret_raw.startswith("whsec_"):
-        secret_raw = secret_raw[6:]
+    # --- Secret validation: require whsec_ prefix ---
+    if not signing_secret.startswith("whsec_"):
+        raise ResendWebhookVerificationError("Signing secret must use whsec_ prefix")
+    secret_b64 = signing_secret[6:]
+    if not secret_b64:
+        raise ResendWebhookVerificationError("Empty signing secret payload")
     try:
-        secret_bytes = base64.b64decode(secret_raw)
+        secret_bytes = base64.b64decode(secret_b64, validate=True)
     except Exception:
         raise ResendWebhookVerificationError("Invalid signing secret encoding")
+    if not secret_bytes:
+        raise ResendWebhookVerificationError("Decoded signing secret is empty")
 
-    # Compute expected signature
+    # --- Body validation ---
+    if not raw_body:
+        raise ResendWebhookVerificationError("Empty request body")
+
+    # --- Signature computation and verification ---
     content = webhook_id.encode() + b"." + str(timestamp).encode() + b"." + raw_body
     expected_sig = base64.b64encode(
         hmac.new(secret_bytes, content, hashlib.sha256).digest()
     ).decode()
 
-    # Verify at least one signature matches
     provided_sigs = [
         s.strip().removeprefix("v1,")
         for s in signature_header.split(" ")
@@ -125,43 +146,69 @@ def verify_resend_webhook(
     if not any(hmac.compare_digest(expected_sig, sig) for sig in provided_sigs):
         raise ResendWebhookVerificationError("Signature verification failed")
 
-    # Parse the body
+    # --- Payload validation ---
     try:
         payload = json.loads(raw_body)
     except (json.JSONDecodeError, UnicodeDecodeError):
         raise ResendWebhookVerificationError("Malformed JSON body")
 
-    event_type = str(payload.get("type") or "").strip()
-    data = payload.get("data") or {}
-    email_id = str(data.get("email_id") or "").strip()
+    if not isinstance(payload, dict):
+        raise ResendWebhookVerificationError("JSON payload must be an object")
+
+    data = payload.get("data")
+    if data is not None and not isinstance(data, dict):
+        raise ResendWebhookVerificationError("Payload data must be an object or absent")
+    data = data or {}
+
+    event_type = str(payload.get("type") or "").strip()[:MAX_EVENT_TYPE_LENGTH]
+    email_id = str(data.get("email_id") or "").strip()[:MAX_PROVIDER_ID_LENGTH]
+
+    # --- Recipient validation ---
     recipients_raw = data.get("to") or []
     if isinstance(recipients_raw, str):
         recipients_raw = [recipients_raw]
-    recipients = tuple(str(r).strip().lower() for r in recipients_raw if r)
-    event_created_at = str(payload.get("created_at") or "").strip()
+    if not isinstance(recipients_raw, list):
+        raise ResendWebhookVerificationError("Recipients must be a list or string")
+    recipients_raw = recipients_raw[:MAX_RECIPIENT_COUNT]
+    recipients: list[str] = []
+    for r in recipients_raw:
+        if not isinstance(r, str):
+            continue
+        cleaned = r.strip().lower()[:MAX_RECIPIENT_LENGTH]
+        if cleaned:
+            recipients.append(cleaned)
+
+    event_created_at = str(payload.get("created_at") or "").strip()[:64]
 
     return VerifiedResendEvent(
         webhook_id=webhook_id,
         event_type=event_type,
         provider_message_id=email_id,
         event_created_at=event_created_at,
-        recipients=recipients,
+        recipients=tuple(recipients),
     )
 
 
 # ---------------------------------------------------------------------------
-# Outbox state — monotonic delivery-rank update
+# Outbox state — provider delivery namespace (separate from core state machine)
 # ---------------------------------------------------------------------------
 
-_DELIVERY_RANK: dict[str, int] = {
+# Monotonic rank for provider delivery events.  Terminal events outrank
+# non-terminal events.  opened/clicked are additive non-terminal and
+# must never replace or outrank any terminal event.
+_PROVIDER_DELIVERY_RANK: dict[str, int] = {
     "email.sent": 1,
-    "email.delivered": 2,
     "email.delivery_delayed": 1,
-    "email.opened": 3,
-    "email.clicked": 4,
-    "email.bounced": 10,
-    "email.complained": 11,
+    "email.delivered": 2,
+    "email.opened": 3,        # additive non-terminal
+    "email.clicked": 4,       # additive non-terminal
+    "email.bounced": 10,      # terminal
+    "email.complained": 11,   # terminal
+    "email.failed": 12,       # terminal
+    "email.suppressed": 13,   # terminal
 }
+
+_NON_TERMINAL_ADDITIVE = {"email.opened", "email.clicked"}
 
 
 async def apply_resend_outbox_event(
@@ -169,39 +216,50 @@ async def apply_resend_outbox_event(
     event: VerifiedResendEvent,
     received_at: datetime,
 ) -> dict[str, Any]:
-    """Apply a verified event to the outbox row for this provider_message_id.
+    """Apply a verified event to the PROVIDER delivery namespace on the outbox row.
 
-    Uses monotonic rank: only the highest-ranked state survives. Lower-ranked
-    replays are acknowledged idempotently without overwriting.
+    Uses provider_delivery_state / provider_delivery_rank — never touches the
+    core delivery_state or delivery_rank fields owned by lead_outbox.py.
+
+    Monotonic: only higher-ranked events advance.  Non-terminal additive events
+    (opened, clicked) cannot replace terminal events (bounced, complained,
+    failed, suppressed).
 
     Raises ResendOutboxNotFound if no outbox row has this provider_message_id.
     """
     if not event.provider_message_id:
         raise ResendOutboxNotFound("No provider_message_id in event")
 
-    rank = _DELIVERY_RANK.get(event.event_type, 0)
+    rank = _PROVIDER_DELIVERY_RANK.get(event.event_type, 0)
+    is_terminal = event.event_type in TERMINAL_EVENTS
     timestamp = received_at.astimezone(timezone.utc).isoformat()
+
+    # Non-terminal additive events must not replace terminal state
+    rank_filter: list[dict] = [
+        {"provider_delivery_rank": {"$exists": False}},
+        {"provider_delivery_rank": {"$lt": rank}},
+    ]
+    if event.event_type in _NON_TERMINAL_ADDITIVE:
+        rank_filter.append({"provider_delivery_terminal": {"$ne": True}})
 
     result = await outbox_collection.update_one(
         {
             "provider_message_id": event.provider_message_id,
-            "$or": [
-                {"delivery_rank": {"$exists": False}},
-                {"delivery_rank": {"$lt": rank}},
-            ],
+            "$or": rank_filter,
         },
         {
             "$set": {
-                "delivery_state": event.event_type,
-                "delivery_rank": rank,
-                "delivery_state_updated_at": timestamp,
+                "provider_delivery_state": event.event_type,
+                "provider_delivery_rank": rank,
+                "provider_delivery_terminal": is_terminal,
+                "provider_receipt_event_key": event.event_key,
+                "provider_delivery_updated_at": timestamp,
             }
         },
     )
     matched = getattr(result, "matched_count", 0)
 
     if matched == 0:
-        # Check if the row exists with a higher rank (idempotent acknowledgement)
         exists = await outbox_collection.find_one(
             {"provider_message_id": event.provider_message_id},
             {"_id": 1},
@@ -210,7 +268,6 @@ async def apply_resend_outbox_event(
             raise ResendOutboxNotFound(
                 f"No outbox row for provider_message_id (prefix: {event.provider_message_id[:8]})"
             )
-        # Row exists but rank is already higher or equal — idempotent ack
         return {"matched": True, "advanced": False, "state": event.event_type}
 
     return {
@@ -380,8 +437,12 @@ async def store_unmatched_diagnostic(
 # Orphan event persistence — durable reconciliation for early webhooks
 # ---------------------------------------------------------------------------
 
+def _unique_worker_id(prefix: str = "wh") -> str:
+    """Generate a unique per-task claim owner."""
+    return f"{prefix}-{uuid.uuid4().hex[:12]}"
+
+
 MAX_ORPHAN_RECIPIENTS = 5
-MAX_RECIPIENT_LENGTH = 254
 ORPHAN_RECONCILED_TTL_SECONDS = 7 * 24 * 3600  # 7 days
 ORPHAN_BASE_RETRY_SECONDS = 60
 ORPHAN_MAX_RETRY_SECONDS = 3600
@@ -562,32 +623,34 @@ async def reconcile_single_orphan(
     orphan_doc: Mapping[str, Any],
     *,
     suppression_callback=None,
-    worker_id: str = "webhook_inline",
+    worker_id: str | None = None,
     now: datetime | None = None,
 ) -> str:
     """Attempt to reconcile one orphan.
 
     Returns one of: "reconciled", "skipped", "not_found", "failed", "lease_lost".
     Lease-fenced: all releases filter by lease_owner.
+    Receipt completion is owner-fenced; returning false is treated as failure.
     """
     received_at = now or datetime.now(timezone.utc)
+    claim_owner = worker_id or _unique_worker_id("recon")
     event_key = str(orphan_doc.get("event_key", ""))
     event = _event_from_orphan(orphan_doc)
     if not event.supported or not event.provider_message_id:
         return "skipped"
 
-    if not await _claim_orphan(orphan_collection, event_key, worker_id, received_at):
+    if not await _claim_orphan(orphan_collection, event_key, claim_owner, received_at):
         return "lease_lost"
 
     try:
         await apply_resend_outbox_event(outbox_collection, event, received_at)
     except ResendOutboxNotFound:
         await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                     "outbox_not_found", lease_owner=worker_id)
+                                     "outbox_not_found", lease_owner=claim_owner)
         return "not_found"
     except Exception:
         await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                     "outbox_update_error", lease_owner=worker_id)
+                                     "outbox_update_error", lease_owner=claim_owner)
         return "failed"
 
     if suppression_callback and event.event_type in SUPPRESSION_EVENTS:
@@ -596,18 +659,24 @@ async def reconcile_single_orphan(
                 await suppression_callback(event.event_type, recipient)
         except Exception:
             await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                         "suppression_error", lease_owner=worker_id)
+                                         "suppression_error", lease_owner=claim_owner)
             return "failed"
 
     try:
-        await finish_resend_receipt(receipt_collection, event, received_at)
+        completed = await finish_resend_receipt(receipt_collection, event, received_at)
+        if not completed:
+            await _release_orphan_failed(orphan_collection, event_key, received_at,
+                                         "receipt_finish_fenced", lease_owner=claim_owner)
+            return "failed"
     except Exception:
         await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                     "receipt_finish_error", lease_owner=worker_id)
+                                     "receipt_finish_error", lease_owner=claim_owner)
         return "failed"
 
-    await _release_orphan_reconciled(orphan_collection, event_key, received_at,
-                                     lease_owner=worker_id)
+    released = await _release_orphan_reconciled(orphan_collection, event_key, received_at,
+                                                lease_owner=claim_owner)
+    if not released:
+        return "failed"
     return "reconciled"
 
 
@@ -618,11 +687,12 @@ async def reconcile_orphans_for_message(
     provider_message_id: str,
     *,
     suppression_callback=None,
-    worker_id: str = "dispatch_inline",
+    worker_id: str | None = None,
     now: datetime | None = None,
 ) -> int:
     """Reconcile pending/failed orphans after provider_message_id mapping is persisted."""
     received_at = now or datetime.now(timezone.utc)
+    claim_owner = worker_id or _unique_worker_id("dispatch")
     cursor = orphan_collection.find(
         {"provider_message_id": provider_message_id,
          "state": {"$in": ["pending", "failed"]}},
@@ -634,7 +704,7 @@ async def reconcile_orphans_for_message(
         result = await reconcile_single_orphan(
             orphan_collection, receipt_collection, outbox_collection,
             orphan_doc, suppression_callback=suppression_callback,
-            worker_id=worker_id, now=received_at,
+            worker_id=claim_owner, now=received_at,
         )
         if result == "reconciled":
             reconciled += 1
@@ -647,7 +717,7 @@ async def recover_pending_orphans(
     outbox_collection,
     *,
     suppression_callback=None,
-    worker_id: str = "recovery_worker",
+    worker_id: str | None = None,
     now: datetime | None = None,
     batch_size: int = 50,
 ) -> dict[str, int]:
@@ -657,6 +727,7 @@ async def recover_pending_orphans(
     Never sends email or SMS.  Only reconciles stored webhook state.
     """
     received_at = now or datetime.now(timezone.utc)
+    claim_owner = worker_id or _unique_worker_id("recovery")
     ts = received_at.astimezone(timezone.utc)
     cursor = orphan_collection.find(
         {
@@ -675,7 +746,7 @@ async def recover_pending_orphans(
         result = await reconcile_single_orphan(
             orphan_collection, receipt_collection, outbox_collection,
             orphan_doc, suppression_callback=suppression_callback,
-            worker_id=worker_id, now=received_at,
+            worker_id=claim_owner, now=received_at,
         )
         counts[result] = counts.get(result, 0) + 1
     return counts

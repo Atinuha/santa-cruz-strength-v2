@@ -4357,8 +4357,8 @@ async def resend_webhook(request: Request):
             return {'ok': True, 'event_type': event.event_type, 'action': 'unsupported_ignored'}
 
     # ── Supported event ── receipt + business-state path
-    import uuid as _uuid
-    claim_owner = f"wh-{_uuid.uuid4().hex[:12]}"
+    from resend_webhook import _unique_worker_id
+    claim_owner = _unique_worker_id("wh")
     try:
         receipt, status = await begin_resend_receipt(
             db.webhook_receipts, event, received_at, owner=claim_owner)
@@ -4377,11 +4377,8 @@ async def resend_webhook(request: Request):
         try:
             await apply_resend_outbox_event(db.lead_outbox, event, received_at)
         except ResendOutboxNotFound:
-            # Provider message ID not yet in outbox. Store durable orphan,
-            # then attempt inline reconciliation through the CAS path.
             logger.warning('resend_webhook_outbox_not_found', extra={'event_key': event.event_key})
             await store_orphan_event(db.webhook_orphans, event, received_at)
-            # Inline re-check through the stored orphan + CAS contract
             orphan_doc = await db.webhook_orphans.find_one(
                 {"event_key": event.event_key}, {"_id": 0})
             if orphan_doc:
@@ -4400,8 +4397,10 @@ async def resend_webhook(request: Request):
             for recipient in event.recipients:
                 await _apply_verified_resend_suppression(event.event_type, recipient)
 
-        await finish_resend_receipt(
+        completed = await finish_resend_receipt(
             db.webhook_receipts, event, received_at, owner=claim_owner)
+        if not completed:
+            raise HTTPException(status_code=503, detail='Receipt completion fenced')
         return {'ok': True, 'duplicate': False}
     except HTTPException:
         raise
