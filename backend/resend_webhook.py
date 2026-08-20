@@ -183,15 +183,17 @@ def verify_resend_webhook(
         raise ResendWebhookVerificationError("Supported delivery event requires email_id")
 
     # --- Recipient validation ---
-    recipients_raw = data.get("to")
-    if recipients_raw is None:
-        recipients_list: list = []
-    elif isinstance(recipients_raw, str):
-        recipients_list = [recipients_raw]
-    elif isinstance(recipients_raw, list):
-        recipients_list = recipients_raw
+    # Distinguish absent key from explicit null.
+    if "to" in data:
+        recipients_raw = data["to"]
+        if isinstance(recipients_raw, str):
+            recipients_list: list = [recipients_raw]
+        elif isinstance(recipients_raw, list):
+            recipients_list = recipients_raw
+        else:
+            raise ResendWebhookVerificationError("Recipients must be a list or string")
     else:
-        raise ResendWebhookVerificationError("Recipients must be a list or string")
+        recipients_list = []
     if len(recipients_list) > MAX_RECIPIENT_COUNT:
         raise ResendWebhookVerificationError("Recipient list exceeds maximum count")
     recipients: list[str] = []
@@ -207,13 +209,18 @@ def verify_resend_webhook(
     if event_type in SUPPRESSION_EVENTS and not recipients:
         raise ResendWebhookVerificationError("Suppression event requires at least one recipient")
 
-    created_at_raw = payload.get("created_at")
-    if created_at_raw is not None:
+    # Distinguish absent key from explicit null.
+    if "created_at" in payload:
+        created_at_raw = payload["created_at"]
         if not isinstance(created_at_raw, str):
             raise ResendWebhookVerificationError("created_at must be a string")
         if len(created_at_raw) > 64:
             raise ResendWebhookVerificationError("Oversized created_at value")
-    event_created_at = created_at_raw.strip() if isinstance(created_at_raw, str) else ""
+        event_created_at = created_at_raw.strip()
+        if not event_created_at:
+            raise ResendWebhookVerificationError("Empty created_at value")
+    else:
+        event_created_at = ""
 
     return VerifiedResendEvent(
         webhook_id=webhook_id,

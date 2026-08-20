@@ -57,20 +57,25 @@ Custom, mobile-first, high-converting gym website and lightweight lead CRM for "
 **Correction pass 3 — strict signed-payload validation:**
   1. payload.type must be actual string; rejects list, number, bool, object, null
   2. data.email_id must be actual non-empty string within MAX_PROVIDER_ID_LENGTH for supported events; rejects number, bool, list, object, empty, oversized
-  3. data.to rejects present falsey wrong types ({}, 0, false); only accepts string or list
+  3. data.to rejects present falsey wrong types ({}, 0, false, null); only accepts string or list; absent key allowed for non-suppression events
   4. Recipient list over MAX_RECIPIENT_COUNT rejected (not sliced)
   5. Non-string, empty, and overlength recipients rejected (not skipped or truncated)
   6. email.bounced and email.complained require at least one valid recipient
-  7. created_at rejects wrong types and oversized values; absent is allowed
+  7. created_at rejects wrong types, null, empty, whitespace-only, and oversized values; absent key allowed
   8. All malformed cases return 400 before any receipt, orphan, outbox, suppression, email, or SMS write
   9. No raw payloads, signed headers, recipients, subjects, bodies, or secrets in validation errors
 
-## Test Status (verified at correction pass 3 commit)
-- Backend: 352 passed, 6 skipped, 0 failures, 152 subtests
-- Webhook tests: 83 passed (strict verifier + all prior blockers + contract + safety)
+**Correction pass 4 — null-vs-absent distinction for to and created_at:**
+  1. data.to: absent key → allowed empty recipients; explicit null → rejected
+  2. created_at: absent key → allowed empty string; explicit null, empty string, whitespace-only → rejected
+  3. All rejected cases return HTTP 400 with zero receipt, orphan, outbox, suppression, email, or SMS writes
+
+## Test Status (verified at correction pass 4 commit)
+- Backend: 361 passed, 6 skipped, 0 failures, 152 subtests
+- Webhook tests: 92 passed (null-distinction + strict verifier + all prior blockers + contract + safety)
 - Orphan lifecycle: 8 passed
 - Frontend: 20 suites, 104 passed, 0 failures
-- Total: 456 passed, 6 expected skips
+- Total: 465 passed, 6 expected skips
 
 ### Skipped test reasons (all expected):
 1. `test_loopback_mongo` — SCS_LOCAL_MONGO_URL not set (requires real loopback MongoDB)
