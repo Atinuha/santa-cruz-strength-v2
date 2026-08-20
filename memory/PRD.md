@@ -35,6 +35,24 @@ Custom, mobile-first, high-converting gym website and lightweight lead CRM for "
 - .gitignore blocks all .env files, allows .env.example
 - Smoke tests skip gracefully when TEST_STAFF_PASSWORD not in env
 
+### Resend Webhook Hardening (Committed: 28da57b)
+- Durable orphan reconciliation with lease claims, BSON datetime TTL, atomic backoffs
+- Dedicated asyncio recovery lifecycle (independent of ALLOW_SCHEDULERS)
+- Crash-safe receipts with atomic owner+lease claims
+- Suppression threading for bounced/complained events
+- **Final correction pass (5 defects)**:
+  1. Provider delivery namespace — webhook writes only `provider_delivery_*` fields
+  2. Terminal ranks restored — `email.failed` (12), `email.suppressed` (13)
+  3. Strict fail-closed verification — whsec_ prefix, validate=True base64, non-object rejection
+  4. Receipt completion fencing — false → 503 in route and reconciler
+  5. Unique per-process worker IDs via uuid4
+
+## Test Status
+- Backend: 302 passed, 6 expected skips, 0 failures
+- Scoped webhook tests: 33 passed covering all 5 defects
+- Frontend: 104 passed, 0 failed (last verified run)
+- Total: ~406 passed
+
 ## Prioritized Backlog
 
 ### P0 — Ready
@@ -51,8 +69,3 @@ Custom, mobile-first, high-converting gym website and lightweight lead CRM for "
 
 ### P3 — Future
 - Fork project for "Nightmare Muscle Sacramento"
-
-## Test Status
-- Backend: 264 passed, 0 failed, 3 expected skips
-- Frontend: 104 passed, 0 failed
-- Total: 368 passed
