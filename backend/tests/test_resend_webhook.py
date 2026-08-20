@@ -10,7 +10,7 @@ import hmac
 import json
 import time
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import sys
@@ -157,13 +157,13 @@ class ReceiptPersistenceTests(unittest.IsolatedAsyncioTestCase):
             event_created_at="2026-08-19T10:00:00Z", recipients=("test@example.com",),
         )
 
-    async def test_new_receipt_returns_new(self):
+    async def test_new_receipt_returns_claimed(self):
         coll = AsyncMock()
         coll.insert_one = AsyncMock()
         event = self._event()
         now = datetime.now(timezone.utc)
         receipt, status = await begin_resend_receipt(coll, event, now)
-        self.assertEqual(status, "new")
+        self.assertEqual(status, "claimed")
         coll.insert_one.assert_called_once()
 
     async def test_duplicate_receipt_returns_processed(self):
@@ -185,12 +185,15 @@ class ReceiptPersistenceTests(unittest.IsolatedAsyncioTestCase):
         from pymongo.errors import DuplicateKeyError as RealDupKey
         coll = AsyncMock()
         coll.insert_one = AsyncMock(side_effect=RealDupKey("dup"))
+        expired = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat()
         coll.find_one = AsyncMock(return_value={
             "event_key": "resend:msg_wh_001",
             "provider": "resend",
             "event_type": "email.delivered",
             "provider_message_id": "msg_abc123",
-            "processing_state": "pending",
+            "processing_state": "claimed",
+            "claim_owner": "old_worker",
+            "claim_expires_at": expired,
         })
         coll.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
         event = self._event()
@@ -265,9 +268,10 @@ class OneMutationPerSvixIdTests(unittest.TestCase):
             webhook_id="msg_wh_y", event_type="email.sent",
             provider_message_id="msg_2", event_created_at="", recipients=(),
         )
-        doc = _receipt_document(event, datetime.now(timezone.utc))
+        doc = _receipt_document(event, datetime.now(timezone.utc), "test_owner")
         self.assertEqual(doc["event_key"], "resend:msg_wh_y")
-        self.assertEqual(doc["processing_state"], "pending")
+        self.assertEqual(doc["processing_state"], "claimed")
+        self.assertEqual(doc["claim_owner"], "test_owner")
 
 
 if __name__ == "__main__":

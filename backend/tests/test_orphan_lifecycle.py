@@ -154,23 +154,18 @@ class Test5_IndefiniteRetry(unittest.TestCase):
         from resend_webhook import _next_attempt_at, ORPHAN_MAX_RETRY_SECONDS
         now = datetime.now(timezone.utc)
         for attempt in [51, 100, 500]:
-            next_at = _next_attempt_at(attempt, now)
-            # Parse and verify it's at most 1 hour from now
-            from datetime import datetime as dt
-            parsed = dt.fromisoformat(next_at)
-            delta = parsed - now.astimezone(timezone.utc)
-            self.assertLessEqual(delta.total_seconds(), ORPHAN_MAX_RETRY_SECONDS + 1,
-                                 f"Attempt {attempt} backoff must be capped at {ORPHAN_MAX_RETRY_SECONDS}s")
-            self.assertGreater(delta.total_seconds(), 0)
+            result = _next_attempt_at(attempt, now)
+            self.assertIsInstance(result, datetime)
+            delta = (result - now).total_seconds()
+            self.assertLessEqual(delta, ORPHAN_MAX_RETRY_SECONDS + 1)
+            self.assertGreater(delta, 0)
 
     def test_no_max_attempts_constant_exported(self):
-        """The terminal ceiling was removed; the constant must not exist."""
         backend = str(Path(__file__).resolve().parents[1])
         if backend not in sys.path:
             sys.path.insert(0, backend)
         import resend_webhook
-        self.assertFalse(hasattr(resend_webhook, 'ORPHAN_MAX_ATTEMPTS'),
-                         "ORPHAN_MAX_ATTEMPTS must be removed — retries are indefinite")
+        self.assertFalse(hasattr(resend_webhook, 'ORPHAN_MAX_ATTEMPTS'))
 
 
 # ===================================================================

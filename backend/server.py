@@ -4351,16 +4351,17 @@ async def resend_webhook(request: Request):
     if not event.supported:
         try:
             await store_unknown_event_receipt(db.webhook_receipts, event, received_at)
+            return {'ok': True, 'event_type': event.event_type, 'action': 'unknown_event_stored'}
         except Exception:
             logger.error('resend_webhook_unknown_event_storage_failed')
-        return {'ok': True, 'event_type': event.event_type, 'action': 'unknown_event_stored'}
+            return {'ok': True, 'event_type': event.event_type, 'action': 'unsupported_ignored'}
 
     # ── Supported event ── receipt + business-state path
-    # begin_resend_receipt, apply_resend_outbox_event, and
-    # finish_resend_receipt failures are transient DB errors on the
-    # critical mapped-event path.  Return 503 so Resend retries.
+    import uuid as _uuid
+    claim_owner = f"wh-{_uuid.uuid4().hex[:12]}"
     try:
-        receipt, status = await begin_resend_receipt(db.webhook_receipts, event, received_at)
+        receipt, status = await begin_resend_receipt(
+            db.webhook_receipts, event, received_at, owner=claim_owner)
 
         if status == "processed":
             return {'ok': True, 'duplicate': True}
@@ -4369,38 +4370,41 @@ async def resend_webhook(request: Request):
             logger.warning('resend_webhook_receipt_conflict', extra={'event_key': event.event_key})
             return {'ok': True, 'action': 'receipt_conflict_acknowledged'}
 
-        # status is "new" or "claimed" — this worker owns processing
+        if status == "busy":
+            raise HTTPException(status_code=503, detail='Receipt claimed by another worker')
+
+        # status is "claimed" — this worker owns processing
         try:
             await apply_resend_outbox_event(db.lead_outbox, event, received_at)
         except ResendOutboxNotFound:
-            # Provider message ID not yet in outbox.  Store a durable orphan
-            # so the event can be reconciled when the mapping arrives.  The
-            # receipt stays pending; the orphan is the deferred-processing
-            # record.  Return 200 only after orphan is persisted; if orphan
-            # storage fails, 503 lets Resend retry.
+            # Provider message ID not yet in outbox. Store durable orphan,
+            # then attempt inline reconciliation through the CAS path.
             logger.warning('resend_webhook_outbox_not_found', extra={'event_key': event.event_key})
             await store_orphan_event(db.webhook_orphans, event, received_at)
-            # Inline re-check: mapping may have appeared during orphan write
-            try:
-                await apply_resend_outbox_event(db.lead_outbox, event, received_at)
-            except ResendOutboxNotFound:
-                return {'ok': True, 'action': 'orphan_stored'}
-            except Exception:
-                return {'ok': True, 'action': 'orphan_stored'}
-            # Mapping appeared — reconcile inline
-            if event.event_type in SUPPRESSION_EVENTS:
-                for recipient in event.recipients:
-                    await _apply_verified_resend_suppression(event.event_type, recipient)
-            await finish_resend_receipt(db.webhook_receipts, event, received_at)
-            await _release_orphan_reconciled(db.webhook_orphans, event.event_key, received_at)
-            return {'ok': True, 'action': 'orphan_reconciled_inline'}
+            # Inline re-check through the stored orphan + CAS contract
+            orphan_doc = await db.webhook_orphans.find_one(
+                {"event_key": event.event_key}, {"_id": 0})
+            if orphan_doc:
+                result = await reconcile_single_orphan(
+                    db.webhook_orphans, db.webhook_receipts, db.lead_outbox,
+                    orphan_doc,
+                    suppression_callback=_apply_verified_resend_suppression,
+                    worker_id=f"inline-{claim_owner}",
+                    now=received_at,
+                )
+                if result == "reconciled":
+                    return {'ok': True, 'action': 'orphan_reconciled_inline'}
+            return {'ok': True, 'action': 'orphan_stored'}
 
         if event.event_type in SUPPRESSION_EVENTS:
             for recipient in event.recipients:
                 await _apply_verified_resend_suppression(event.event_type, recipient)
 
-        await finish_resend_receipt(db.webhook_receipts, event, received_at)
+        await finish_resend_receipt(
+            db.webhook_receipts, event, received_at, owner=claim_owner)
         return {'ok': True, 'duplicate': False}
+    except HTTPException:
+        raise
     except Exception:
         logger.error('resend_webhook_processing_failed')
         raise HTTPException(status_code=503, detail='Transient storage failure')
@@ -5271,6 +5275,7 @@ async def run_lead_outbox_dispatcher():
         worker_id=runtime['worker_id'],
         orphan_collection=db.webhook_orphans,
         receipt_collection=db.webhook_receipts,
+        suppression_callback=_apply_verified_resend_suppression,
     )
 
 

@@ -461,6 +461,7 @@ async def dispatch_one(
     now: Optional[datetime] = None,
     orphan_collection=None,
     receipt_collection=None,
+    suppression_callback=None,
 ) -> Optional[dict[str, Any]]:
     if not config.enabled:
         return None
@@ -546,6 +547,7 @@ async def dispatch_one(
                     receipt_collection,
                     outbox_collection,
                     receipt.provider_message_id,
+                    suppression_callback=suppression_callback,
                     now=current if now is not None else datetime.now(timezone.utc),
                 )
             except Exception:
@@ -598,6 +600,7 @@ async def dispatch_batch(
     now: Optional[datetime] = None,
     orphan_collection=None,
     receipt_collection=None,
+    suppression_callback=None,
 ) -> list[dict[str, Any]]:
     results = []
     for _ in range(config.batch_size):
@@ -610,6 +613,7 @@ async def dispatch_batch(
             now=now,
             orphan_collection=orphan_collection,
             receipt_collection=receipt_collection,
+            suppression_callback=suppression_callback,
         )
         if result is None:
             break
