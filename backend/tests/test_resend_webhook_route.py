@@ -702,5 +702,326 @@ class ExistingContract(unittest.TestCase):
         self.assertEqual(self.c.post('/api/webhooks/resend', content=b, headers=h).status_code, 200)
 
 
+# ===================================================================
+# Strict verifier: type, email_id, to, recipients, created_at
+# ===================================================================
+
+def _signed_payload(payload_dict, wid="sv_test"):
+    """Build a correctly signed body+headers for an arbitrary payload dict."""
+    body = json.dumps(payload_dict).encode()
+    ts = int(time.time())
+    sig = _sign(wid, ts, body)
+    return body, {"svix-id": wid, "svix-timestamp": str(ts),
+                  "svix-signature": sig, "content-type": "application/json"}
+
+
+class SV_TypeRejection(unittest.TestCase):
+    """payload.type must be an actual string. Reject list, number, bool, object, null."""
+
+    def setUp(self):
+        self.rw = _rw()
+
+    def _reject(self, type_val, wid):
+        body, h = _signed_payload({"type": type_val, "data": {"email_id": "m1", "to": ["a@b.com"]},
+                                    "created_at": "2026-01-01T00:00:00Z"}, wid)
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_type_as_list(self):
+        self._reject(["email.delivered"], "sv_type_list")
+
+    def test_type_as_number(self):
+        self._reject(42, "sv_type_num")
+
+    def test_type_as_bool(self):
+        self._reject(True, "sv_type_bool")
+
+    def test_type_as_object(self):
+        self._reject({"kind": "email.delivered"}, "sv_type_obj")
+
+    def test_type_as_null(self):
+        self._reject(None, "sv_type_null")
+
+
+class SV_EmailIdRejection(unittest.TestCase):
+    """data.email_id must be actual non-empty string for supported events."""
+
+    def setUp(self):
+        self.rw = _rw()
+
+    def _reject(self, eid_val, wid):
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": eid_val, "to": ["a@b.com"]},
+                                    "created_at": "2026-01-01T00:00:00Z"}, wid)
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_email_id_as_number(self):
+        self._reject(12345, "sv_eid_num")
+
+    def test_email_id_as_list(self):
+        self._reject(["msg_1"], "sv_eid_list")
+
+    def test_email_id_as_object(self):
+        self._reject({"id": "msg_1"}, "sv_eid_obj")
+
+    def test_email_id_empty(self):
+        self._reject("", "sv_eid_empty")
+
+    def test_email_id_oversized(self):
+        self._reject("x" * 201, "sv_eid_big")
+
+    def test_email_id_as_bool(self):
+        self._reject(True, "sv_eid_bool")
+
+
+class SV_ToRejection(unittest.TestCase):
+    """data.to must be string or list. Present falsey wrong types must reject."""
+
+    def setUp(self):
+        self.rw = _rw()
+
+    def _reject(self, to_val, wid):
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": "m1", "to": to_val},
+                                    "created_at": "2026-01-01T00:00:00Z"}, wid)
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_to_as_dict(self):
+        self._reject({}, "sv_to_dict")
+
+    def test_to_as_zero(self):
+        self._reject(0, "sv_to_zero")
+
+    def test_to_as_false(self):
+        self._reject(False, "sv_to_false")
+
+
+class SV_RecipientListRejection(unittest.TestCase):
+    """Reject over-count, non-string entries, empty entries, overlength entries."""
+
+    def setUp(self):
+        self.rw = _rw()
+
+    def test_over_count_rejected(self):
+        to_list = [f"r{i}@example.com" for i in range(51)]
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": "m1", "to": to_list},
+                                    "created_at": "2026-01-01T00:00:00Z"}, "sv_overcount")
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_non_string_entry(self):
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": "m1", "to": [123]},
+                                    "created_at": "2026-01-01T00:00:00Z"}, "sv_nonstr")
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_empty_recipient(self):
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": "m1", "to": [""]},
+                                    "created_at": "2026-01-01T00:00:00Z"}, "sv_empty_r")
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_overlength_recipient(self):
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": "m1", "to": ["x" * 255 + "@b.com"]},
+                                    "created_at": "2026-01-01T00:00:00Z"}, "sv_long_r")
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+
+class SV_SuppressionRecipient(unittest.TestCase):
+    """bounced and complained with no recipient must reject."""
+
+    def setUp(self):
+        self.rw = _rw()
+
+    def test_bounced_no_recipient(self):
+        body, h = _signed_payload({"type": "email.bounced",
+                                    "data": {"email_id": "m1"},
+                                    "created_at": "2026-01-01T00:00:00Z"}, "sv_bounce_noto")
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_complained_no_recipient(self):
+        body, h = _signed_payload({"type": "email.complained",
+                                    "data": {"email_id": "m1"},
+                                    "created_at": "2026-01-01T00:00:00Z"}, "sv_comp_noto")
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+
+class SV_CreatedAtRejection(unittest.TestCase):
+    """created_at must be absent or actual bounded string."""
+
+    def setUp(self):
+        self.rw = _rw()
+
+    def test_created_at_as_number(self):
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": "m1", "to": ["a@b.com"]},
+                                    "created_at": 1700000000}, "sv_ca_num")
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_created_at_oversized(self):
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": "m1", "to": ["a@b.com"]},
+                                    "created_at": "T" * 100}, "sv_ca_big")
+        with self.assertRaises(self.rw.ResendWebhookVerificationError):
+            self.rw.verify_resend_webhook(body, h, SECRET)
+
+    def test_created_at_absent_is_ok(self):
+        body, h = _signed_payload({"type": "email.delivered",
+                                    "data": {"email_id": "m1", "to": ["a@b.com"]}},
+                                   "sv_ca_absent")
+        event = self.rw.verify_resend_webhook(body, h, SECRET)
+        self.assertEqual(event.event_created_at, "")
+
+
+class SV_RouteLevel400ZeroWrites(unittest.TestCase):
+    """Route returns 400 for each strict case. Zero receipt/orphan/outbox/suppression/email/sms."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.s = _load(); cls.c = _tc(cls.s)
+
+    def _post(self, payload_dict, wid):
+        body, h = _signed_payload(payload_dict, wid)
+        return self.c.post('/api/webhooks/resend', content=body, headers=h)
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_type_list_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        r = self._post({"type": ["email.delivered"], "data": {"email_id": "m", "to": ["a@b.com"]},
+                         "created_at": "2026-01-01T00:00:00Z"}, "sv_r_tl")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_email_id_number_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        r = self._post({"type": "email.delivered", "data": {"email_id": 999, "to": ["a@b.com"]},
+                         "created_at": "2026-01-01T00:00:00Z"}, "sv_r_en")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_to_dict_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        r = self._post({"type": "email.delivered", "data": {"email_id": "m", "to": {}},
+                         "created_at": "2026-01-01T00:00:00Z"}, "sv_r_td")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_bounced_no_recipient_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        r = self._post({"type": "email.bounced", "data": {"email_id": "m"},
+                         "created_at": "2026-01-01T00:00:00Z"}, "sv_r_bnr")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_created_at_number_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        r = self._post({"type": "email.delivered", "data": {"email_id": "m", "to": ["a@b.com"]},
+                         "created_at": 1700000000}, "sv_r_can")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_overcount_recipients_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        to_list = [f"r{i}@example.com" for i in range(51)]
+        r = self._post({"type": "email.delivered", "data": {"email_id": "m", "to": to_list},
+                         "created_at": "2026-01-01T00:00:00Z"}, "sv_r_oc")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_non_string_recipient_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        r = self._post({"type": "email.delivered", "data": {"email_id": "m", "to": [42]},
+                         "created_at": "2026-01-01T00:00:00Z"}, "sv_r_nsr")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_empty_recipient_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        r = self._post({"type": "email.delivered", "data": {"email_id": "m", "to": [""]},
+                         "created_at": "2026-01-01T00:00:00Z"}, "sv_r_er")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+    @patch('server.store_orphan_event', new_callable=AsyncMock)
+    @patch('server.store_unknown_event_receipt', new_callable=AsyncMock)
+    @patch('server.begin_resend_receipt', new_callable=AsyncMock)
+    @patch('server.apply_resend_outbox_event', new_callable=AsyncMock)
+    @patch('server.finish_resend_receipt', new_callable=AsyncMock)
+    @patch('server.send_resend_email', new_callable=AsyncMock)
+    @patch('server.send_sms', new_callable=AsyncMock)
+    def test_overlength_recipient_400_zero_writes(self, sms, email, fin, apply, begin, unk, orph):
+        r = self._post({"type": "email.delivered",
+                         "data": {"email_id": "m", "to": ["x" * 255 + "@b.com"]},
+                         "created_at": "2026-01-01T00:00:00Z"}, "sv_r_lr")
+        self.assertEqual(r.status_code, 400)
+        for m in (sms, email, fin, apply, begin, unk, orph):
+            m.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()

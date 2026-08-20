@@ -164,34 +164,56 @@ def verify_resend_webhook(
     if not isinstance(data, dict):
         raise ResendWebhookVerificationError("Payload data must be an object")
 
-    event_type = str(payload.get("type") or "").strip()
+    event_type_raw = payload.get("type")
+    if not isinstance(event_type_raw, str):
+        raise ResendWebhookVerificationError("Event type must be a string")
+    event_type = event_type_raw.strip()
     if not event_type:
         raise ResendWebhookVerificationError("Missing event type")
     if len(event_type) > MAX_EVENT_TYPE_LENGTH:
         raise ResendWebhookVerificationError("Oversized event type")
 
-    email_id = str(data.get("email_id") or "").strip()
+    email_id_raw = data.get("email_id")
+    if email_id_raw is not None and not isinstance(email_id_raw, str):
+        raise ResendWebhookVerificationError("email_id must be a string")
+    email_id = email_id_raw.strip() if isinstance(email_id_raw, str) else ""
     if len(email_id) > MAX_PROVIDER_ID_LENGTH:
         raise ResendWebhookVerificationError("Oversized provider message ID")
     if event_type in SUPPORTED_EMAIL_EVENTS and not email_id:
         raise ResendWebhookVerificationError("Supported delivery event requires email_id")
 
     # --- Recipient validation ---
-    recipients_raw = data.get("to") or []
-    if isinstance(recipients_raw, str):
-        recipients_raw = [recipients_raw]
-    if not isinstance(recipients_raw, list):
+    recipients_raw = data.get("to")
+    if recipients_raw is None:
+        recipients_list: list = []
+    elif isinstance(recipients_raw, str):
+        recipients_list = [recipients_raw]
+    elif isinstance(recipients_raw, list):
+        recipients_list = recipients_raw
+    else:
         raise ResendWebhookVerificationError("Recipients must be a list or string")
-    recipients_raw = recipients_raw[:MAX_RECIPIENT_COUNT]
+    if len(recipients_list) > MAX_RECIPIENT_COUNT:
+        raise ResendWebhookVerificationError("Recipient list exceeds maximum count")
     recipients: list[str] = []
-    for r in recipients_raw:
+    for r in recipients_list:
         if not isinstance(r, str):
-            continue
-        cleaned = r.strip().lower()[:MAX_RECIPIENT_LENGTH]
-        if cleaned:
-            recipients.append(cleaned)
+            raise ResendWebhookVerificationError("Each recipient must be a string")
+        cleaned = r.strip().lower()
+        if not cleaned:
+            raise ResendWebhookVerificationError("Empty recipient value")
+        if len(cleaned) > MAX_RECIPIENT_LENGTH:
+            raise ResendWebhookVerificationError("Overlength recipient value")
+        recipients.append(cleaned)
+    if event_type in SUPPRESSION_EVENTS and not recipients:
+        raise ResendWebhookVerificationError("Suppression event requires at least one recipient")
 
-    event_created_at = str(payload.get("created_at") or "").strip()[:64]
+    created_at_raw = payload.get("created_at")
+    if created_at_raw is not None:
+        if not isinstance(created_at_raw, str):
+            raise ResendWebhookVerificationError("created_at must be a string")
+        if len(created_at_raw) > 64:
+            raise ResendWebhookVerificationError("Oversized created_at value")
+    event_created_at = created_at_raw.strip() if isinstance(created_at_raw, str) else ""
 
     return VerifiedResendEvent(
         webhook_id=webhook_id,
