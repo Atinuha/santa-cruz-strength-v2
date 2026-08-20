@@ -155,6 +155,7 @@ try:
         ResendWebhookReceiptConflict,
         ResendWebhookVerificationError,
         SUPPRESSION_EVENTS,
+        _unique_worker_id,
         apply_resend_outbox_event,
         begin_resend_receipt,
         finish_resend_receipt,
@@ -173,6 +174,7 @@ except ImportError:
         ResendWebhookReceiptConflict,
         ResendWebhookVerificationError,
         SUPPRESSION_EVENTS,
+        _unique_worker_id,
         apply_resend_outbox_event,
         begin_resend_receipt,
         finish_resend_receipt,
@@ -4357,7 +4359,6 @@ async def resend_webhook(request: Request):
             return {'ok': True, 'event_type': event.event_type, 'action': 'unsupported_ignored'}
 
     # ── Supported event ── receipt + business-state path
-    from resend_webhook import _unique_worker_id
     claim_owner = _unique_worker_id("wh")
     try:
         receipt, status = await begin_resend_receipt(
@@ -4386,7 +4387,7 @@ async def resend_webhook(request: Request):
                     db.webhook_orphans, db.webhook_receipts, db.lead_outbox,
                     orphan_doc,
                     suppression_callback=_apply_verified_resend_suppression,
-                    worker_id=f"inline-{claim_owner}",
+                    worker_id=claim_owner,
                     now=received_at,
                 )
                 if result == "reconciled":
@@ -5285,7 +5286,7 @@ async def run_orphan_recovery_worker():
         db.webhook_receipts,
         db.lead_outbox,
         suppression_callback=_apply_verified_resend_suppression,
-        worker_id='orphan_recovery',
+        worker_id=_unique_worker_id("recovery"),
     )
     total = sum(counts.values())
     if total > 0:

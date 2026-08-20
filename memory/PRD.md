@@ -35,23 +35,36 @@ Custom, mobile-first, high-converting gym website and lightweight lead CRM for "
 - .gitignore blocks all .env files, allows .env.example
 - Smoke tests skip gracefully when TEST_STAFF_PASSWORD not in env
 
-### Resend Webhook Hardening (Committed: 28da57b)
+### Resend Webhook Hardening (Committed: 28da57b + correction-pass-2)
 - Durable orphan reconciliation with lease claims, BSON datetime TTL, atomic backoffs
 - Dedicated asyncio recovery lifecycle (independent of ALLOW_SCHEDULERS)
 - Crash-safe receipts with atomic owner+lease claims
 - Suppression threading for bounced/complained events
-- **Final correction pass (5 defects)**:
+
+**Correction pass 1 (28da57b) — 5 defects:**
   1. Provider delivery namespace — webhook writes only `provider_delivery_*` fields
   2. Terminal ranks restored — `email.failed` (12), `email.suppressed` (13)
   3. Strict fail-closed verification — whsec_ prefix, validate=True base64, non-object rejection
   4. Receipt completion fencing — false → 503 in route and reconciler
   5. Unique per-process worker IDs via uuid4
 
-## Test Status
-- Backend: 302 passed, 6 expected skips, 0 failures
-- Scoped webhook tests: 33 passed covering all 5 defects
-- Frontend: 104 passed, 0 failed (last verified run)
-- Total: ~406 passed
+**Correction pass 2 — 4 blockers:**
+  1. Receipt ownership in orphan reconciliation — reconcile_single_orphan acquires receipt with the exact same claim_owner as the orphan lease; busy is retryable not processed; processed is idempotent; finish owner-fenced; HTTP inline path passes claim_owner unchanged
+  2. Unique recovery ownership and failed release fencing — removed static 'orphan_recovery' worker ID; all entry points generate unique per-process per-sweep IDs; _release_orphan_failed returns bool; callers report lease_lost on owner mismatch
+  3. Correct monotonic provider delivery state — provider_delivery_terminal != true as top-level AND outside rank $or; strictly increasing ranks (sent 1, delivery_delayed 2, delivered 3, opened 4, clicked 5); terminal cannot regress; core delivery_state never mutated
+  4. Strict verifier rejection — oversized headers rejected not truncated; non-empty bounded event type required; data must be object; supported events require non-empty email_id; malformed values → 400 before any write
+
+## Test Status (verified at correction pass 2 commit)
+- Backend: 320 passed, 6 skipped, 0 failures, 152 subtests
+- Webhook tests: 51 passed (all blockers + contract + safety)
+- Orphan lifecycle: 8 passed
+- Frontend: 20 suites, 104 passed, 0 failures
+- Total: 424 passed, 6 expected skips
+
+### Skipped test reasons (all expected):
+1. `test_loopback_mongo` — SCS_LOCAL_MONGO_URL not set (requires real loopback MongoDB)
+2. `test_no_vendor_residue` — .emergent/ directory expected on hosting platform
+3–6. `test_v2_smoke` (×4) — TEST_STAFF_PASSWORD not set (auth tests require secret store)
 
 ## Prioritized Backlog
 
@@ -59,12 +72,12 @@ Custom, mobile-first, high-converting gym website and lightweight lead CRM for "
 - Push `codex/scs-production-clean` to GitHub via "Save to Github"
 
 ### P1 — Blocked
-- Production Canary Test for Resend Webhooks
-- Map GymMaster Checkout URLs
+- Production Canary Test for Resend Webhooks (requires deployment)
+- Map GymMaster Checkout URLs (requires GymMaster admin setup)
 - Seed 20 additional blog articles to production
 
 ### P2 — Blocked
-- Enable Twilio Webhooks & Sends (owner 2FA)
+- Enable Twilio Webhooks & Sends (owner 2FA required)
 - Add Meta Pixel Tracking (Pixel ID needed)
 
 ### P3 — Future

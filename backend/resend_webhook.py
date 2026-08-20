@@ -97,13 +97,18 @@ def verify_resend_webhook(
     capped headers, non-empty byte payload, JSON object payload, object data,
     capped event type and provider IDs, and validated bounded recipients.
     """
-    # --- Header validation ---
-    webhook_id = (headers.get("svix-id") or "").strip()[:MAX_HEADER_LENGTH]
-    timestamp_str = (headers.get("svix-timestamp") or "").strip()[:MAX_HEADER_LENGTH]
-    signature_header = (headers.get("svix-signature") or "").strip()[:MAX_HEADER_LENGTH]
+    # --- Header validation (reject oversized; never truncate) ---
+    webhook_id = (headers.get("svix-id") or "").strip()
+    timestamp_str = (headers.get("svix-timestamp") or "").strip()
+    signature_header = (headers.get("svix-signature") or "").strip()
 
     if not webhook_id or not timestamp_str or not signature_header:
         raise ResendWebhookVerificationError("Missing required svix headers")
+
+    if (len(webhook_id) > MAX_HEADER_LENGTH
+            or len(timestamp_str) > MAX_HEADER_LENGTH
+            or len(signature_header) > MAX_HEADER_LENGTH):
+        raise ResendWebhookVerificationError("Oversized svix header value")
 
     try:
         timestamp = int(timestamp_str)
@@ -156,12 +161,20 @@ def verify_resend_webhook(
         raise ResendWebhookVerificationError("JSON payload must be an object")
 
     data = payload.get("data")
-    if data is not None and not isinstance(data, dict):
-        raise ResendWebhookVerificationError("Payload data must be an object or absent")
-    data = data or {}
+    if not isinstance(data, dict):
+        raise ResendWebhookVerificationError("Payload data must be an object")
 
-    event_type = str(payload.get("type") or "").strip()[:MAX_EVENT_TYPE_LENGTH]
-    email_id = str(data.get("email_id") or "").strip()[:MAX_PROVIDER_ID_LENGTH]
+    event_type = str(payload.get("type") or "").strip()
+    if not event_type:
+        raise ResendWebhookVerificationError("Missing event type")
+    if len(event_type) > MAX_EVENT_TYPE_LENGTH:
+        raise ResendWebhookVerificationError("Oversized event type")
+
+    email_id = str(data.get("email_id") or "").strip()
+    if len(email_id) > MAX_PROVIDER_ID_LENGTH:
+        raise ResendWebhookVerificationError("Oversized provider message ID")
+    if event_type in SUPPORTED_EMAIL_EVENTS and not email_id:
+        raise ResendWebhookVerificationError("Supported delivery event requires email_id")
 
     # --- Recipient validation ---
     recipients_raw = data.get("to") or []
@@ -193,22 +206,20 @@ def verify_resend_webhook(
 # Outbox state — provider delivery namespace (separate from core state machine)
 # ---------------------------------------------------------------------------
 
-# Monotonic rank for provider delivery events.  Terminal events outrank
-# non-terminal events.  opened/clicked are additive non-terminal and
-# must never replace or outrank any terminal event.
+# Monotonic rank for provider delivery events.  Strictly increasing within
+# the non-terminal lifecycle so every successive stage advances.  Terminal
+# events outrank all non-terminal events and cannot regress once applied.
 _PROVIDER_DELIVERY_RANK: dict[str, int] = {
     "email.sent": 1,
-    "email.delivery_delayed": 1,
-    "email.delivered": 2,
-    "email.opened": 3,        # additive non-terminal
-    "email.clicked": 4,       # additive non-terminal
+    "email.delivery_delayed": 2,
+    "email.delivered": 3,
+    "email.opened": 4,
+    "email.clicked": 5,
     "email.bounced": 10,      # terminal
     "email.complained": 11,   # terminal
     "email.failed": 12,       # terminal
     "email.suppressed": 13,   # terminal
 }
-
-_NON_TERMINAL_ADDITIVE = {"email.opened", "email.clicked"}
 
 
 async def apply_resend_outbox_event(
@@ -234,18 +245,16 @@ async def apply_resend_outbox_event(
     is_terminal = event.event_type in TERMINAL_EVENTS
     timestamp = received_at.astimezone(timezone.utc).isoformat()
 
-    # Non-terminal additive events must not replace terminal state
-    rank_filter: list[dict] = [
-        {"provider_delivery_rank": {"$exists": False}},
-        {"provider_delivery_rank": {"$lt": rank}},
-    ]
-    if event.event_type in _NON_TERMINAL_ADDITIVE:
-        rank_filter.append({"provider_delivery_terminal": {"$ne": True}})
-
+    # Top-level terminal guard: once terminal, no event can advance.
+    # Rank $or: advance only if rank is absent or strictly lower.
     result = await outbox_collection.update_one(
         {
             "provider_message_id": event.provider_message_id,
-            "$or": rank_filter,
+            "provider_delivery_terminal": {"$ne": True},
+            "$or": [
+                {"provider_delivery_rank": {"$exists": False}},
+                {"provider_delivery_rank": {"$lt": rank}},
+            ],
         },
         {
             "$set": {
@@ -577,14 +586,18 @@ async def _release_orphan_reconciled(orphan_collection, event_key: str,
 
 async def _release_orphan_failed(orphan_collection, event_key: str,
                                  now: datetime, error_code: str,
-                                 *, lease_owner: str | None = None) -> None:
-    """Lease-fenced release to failed state with atomic attempt_count increment."""
+                                 *, lease_owner: str | None = None) -> bool:
+    """Owner-fenced release to failed state with atomic attempt_count increment.
+
+    Returns True if this owner's release matched.  False means the lease was
+    lost to another worker; the caller must report lease_lost, not success.
+    """
     ts = now.astimezone(timezone.utc)
     query: dict[str, Any] = {"event_key": event_key}
     if lease_owner:
         query["lease_owner"] = lease_owner
     # Atomic increment + backoff from the new count
-    await orphan_collection.update_one(
+    result = await orphan_collection.update_one(
         query,
         [
             {"$set": {
@@ -614,6 +627,7 @@ async def _release_orphan_failed(orphan_collection, event_key: str,
             }},
         ],
     )
+    return getattr(result, "modified_count", 0) > 0
 
 
 async def reconcile_single_orphan(
@@ -629,8 +643,16 @@ async def reconcile_single_orphan(
     """Attempt to reconcile one orphan.
 
     Returns one of: "reconciled", "skipped", "not_found", "failed", "lease_lost".
-    Lease-fenced: all releases filter by lease_owner.
-    Receipt completion is owner-fenced; returning false is treated as failure.
+
+    Ownership contract:
+      1. Claim the orphan lease with claim_owner.
+      2. Acquire or reclaim the receipt with the exact same claim_owner.
+      3. Apply outbox + suppression effects.
+      4. Finish receipt with owner=claim_owner.
+      5. Release orphan with lease_owner=claim_owner.
+
+    Every failure-path release is owner-fenced.  If the fenced release does
+    not match (another worker took the lease), return "lease_lost".
     """
     received_at = now or datetime.now(timezone.utc)
     claim_owner = worker_id or _unique_worker_id("recon")
@@ -642,41 +664,81 @@ async def reconcile_single_orphan(
     if not await _claim_orphan(orphan_collection, event_key, claim_owner, received_at):
         return "lease_lost"
 
+    # --- Step 2: acquire or reclaim the receipt with the same owner ---
+    try:
+        _receipt, receipt_status = await begin_resend_receipt(
+            receipt_collection, event, received_at, owner=claim_owner)
+    except Exception:
+        released = await _release_orphan_failed(
+            orphan_collection, event_key, received_at,
+            "receipt_begin_error", lease_owner=claim_owner)
+        return "failed" if released else "lease_lost"
+
+    if receipt_status == "processed":
+        # Already finalized — release orphan as reconciled
+        released = await _release_orphan_reconciled(
+            orphan_collection, event_key, received_at, lease_owner=claim_owner)
+        return "reconciled" if released else "lease_lost"
+
+    if receipt_status == "busy":
+        released = await _release_orphan_failed(
+            orphan_collection, event_key, received_at,
+            "receipt_busy", lease_owner=claim_owner)
+        return "failed" if released else "lease_lost"
+
+    if receipt_status == "conflict":
+        released = await _release_orphan_failed(
+            orphan_collection, event_key, received_at,
+            "receipt_conflict", lease_owner=claim_owner)
+        return "failed" if released else "lease_lost"
+
+    # receipt_status == "claimed" — this worker owns both orphan and receipt
+
+    # --- Step 3: apply outbox event ---
     try:
         await apply_resend_outbox_event(outbox_collection, event, received_at)
     except ResendOutboxNotFound:
-        await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                     "outbox_not_found", lease_owner=claim_owner)
-        return "not_found"
+        released = await _release_orphan_failed(
+            orphan_collection, event_key, received_at,
+            "outbox_not_found", lease_owner=claim_owner)
+        return "not_found" if released else "lease_lost"
     except Exception:
-        await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                     "outbox_update_error", lease_owner=claim_owner)
-        return "failed"
+        released = await _release_orphan_failed(
+            orphan_collection, event_key, received_at,
+            "outbox_update_error", lease_owner=claim_owner)
+        return "failed" if released else "lease_lost"
 
+    # --- Step 3b: suppression callback ---
     if suppression_callback and event.event_type in SUPPRESSION_EVENTS:
         try:
             for recipient in event.recipients[:MAX_ORPHAN_RECIPIENTS]:
                 await suppression_callback(event.event_type, recipient)
         except Exception:
-            await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                         "suppression_error", lease_owner=claim_owner)
-            return "failed"
+            released = await _release_orphan_failed(
+                orphan_collection, event_key, received_at,
+                "suppression_error", lease_owner=claim_owner)
+            return "failed" if released else "lease_lost"
 
+    # --- Step 4: finish receipt with owner fence ---
     try:
-        completed = await finish_resend_receipt(receipt_collection, event, received_at)
+        completed = await finish_resend_receipt(
+            receipt_collection, event, received_at, owner=claim_owner)
         if not completed:
-            await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                         "receipt_finish_fenced", lease_owner=claim_owner)
-            return "failed"
+            released = await _release_orphan_failed(
+                orphan_collection, event_key, received_at,
+                "receipt_finish_fenced", lease_owner=claim_owner)
+            return "failed" if released else "lease_lost"
     except Exception:
-        await _release_orphan_failed(orphan_collection, event_key, received_at,
-                                     "receipt_finish_error", lease_owner=claim_owner)
-        return "failed"
+        released = await _release_orphan_failed(
+            orphan_collection, event_key, received_at,
+            "receipt_finish_error", lease_owner=claim_owner)
+        return "failed" if released else "lease_lost"
 
-    released = await _release_orphan_reconciled(orphan_collection, event_key, received_at,
-                                                lease_owner=claim_owner)
+    # --- Step 5: release orphan as reconciled ---
+    released = await _release_orphan_reconciled(
+        orphan_collection, event_key, received_at, lease_owner=claim_owner)
     if not released:
-        return "failed"
+        return "lease_lost"
     return "reconciled"
 
 
