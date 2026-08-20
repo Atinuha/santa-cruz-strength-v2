@@ -30,6 +30,7 @@ try:
         mark_job_succeeded,
         redact_error_message,
     )
+    from resend_webhook import reconcile_orphans_for_message
 except ImportError:
     from .lead_outbox import (
         claim_due_job,
@@ -39,6 +40,7 @@ except ImportError:
         mark_job_succeeded,
         redact_error_message,
     )
+    from .resend_webhook import reconcile_orphans_for_message
 
 
 logger = logging.getLogger(__name__)
@@ -457,6 +459,8 @@ async def dispatch_one(
     adapters: Mapping[str, DeliveryAdapter],
     worker_id: str,
     now: Optional[datetime] = None,
+    orphan_collection=None,
+    receipt_collection=None,
 ) -> Optional[dict[str, Any]]:
     if not config.enabled:
         return None
@@ -533,6 +537,20 @@ async def dispatch_one(
         )
         if not updated:
             return {"job_id": job_id, "status": "lease_lost"}
+        # Reconciliation seam: apply any orphaned webhook events that arrived
+        # before the provider_message_id mapping was persisted.
+        if receipt.provider_message_id and orphan_collection is not None and receipt_collection is not None:
+            try:
+                await reconcile_orphans_for_message(
+                    orphan_collection,
+                    receipt_collection,
+                    outbox_collection,
+                    receipt.provider_message_id,
+                    now=current if now is not None else datetime.now(timezone.utc),
+                )
+            except Exception:
+                logger.warning("orphan_reconciliation_failed provider_message_id=%s",
+                               receipt.provider_message_id[:8] if receipt.provider_message_id else "")
         logger.info("lead_dispatch_succeeded job_id=%s channel=%s", job_id, message.channel)
         return {"job_id": job_id, "status": "succeeded", "state": updated}
     except asyncio.TimeoutError:
@@ -578,6 +596,8 @@ async def dispatch_batch(
     adapters: Mapping[str, DeliveryAdapter],
     worker_id: str,
     now: Optional[datetime] = None,
+    orphan_collection=None,
+    receipt_collection=None,
 ) -> list[dict[str, Any]]:
     results = []
     for _ in range(config.batch_size):
@@ -588,6 +608,8 @@ async def dispatch_batch(
             adapters=adapters,
             worker_id=worker_id,
             now=now,
+            orphan_collection=orphan_collection,
+            receipt_collection=receipt_collection,
         )
         if result is None:
             break

@@ -12,7 +12,7 @@ import hashlib
 import hmac
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 
 try:
@@ -298,6 +298,280 @@ async def store_unmatched_diagnostic(
         await collection.insert_one(doc)
     except DuplicateKeyError:
         pass  # Idempotent
+
+
+# ---------------------------------------------------------------------------
+# Orphan event persistence — durable reconciliation for early webhooks
+# ---------------------------------------------------------------------------
+
+MAX_ORPHAN_RECIPIENTS = 5
+MAX_RECIPIENT_LENGTH = 254
+ORPHAN_RECONCILED_TTL_SECONDS = 7 * 24 * 3600  # 7 days
+ORPHAN_BASE_RETRY_SECONDS = 60
+ORPHAN_MAX_RETRY_SECONDS = 3600
+
+
+def _sanitize_recipients(raw: tuple[str, ...]) -> list[str]:
+    """Cap and normalize recipients for orphan storage."""
+    out: list[str] = []
+    for addr in raw[:MAX_ORPHAN_RECIPIENTS]:
+        cleaned = str(addr or "").strip().lower()[:MAX_RECIPIENT_LENGTH]
+        if cleaned:
+            out.append(cleaned)
+    return out
+
+
+def _next_attempt_at(attempt_count: int, base: datetime) -> str:
+    delay = min(ORPHAN_BASE_RETRY_SECONDS * (2 ** min(attempt_count, 10)),
+                ORPHAN_MAX_RETRY_SECONDS)
+    return (base + timedelta(seconds=delay)).astimezone(timezone.utc).isoformat()
+
+
+def _orphan_document(event: VerifiedResendEvent, received_at: datetime) -> dict[str, Any]:
+    """Minimized replayable orphan record.
+
+    Contains only the fields consumed by apply_resend_outbox_event plus
+    reconciliation metadata.  No raw body, headers, signature, email
+    content, phone numbers, names, or unrelated PII.
+    """
+    timestamp = received_at.astimezone(timezone.utc).isoformat()
+    return {
+        "event_key": event.event_key,
+        "provider": "resend",
+        "provider_message_id": event.provider_message_id or None,
+        "event_type": event.event_type,
+        "event_created_at": event.event_created_at or None,
+        "recipients": _sanitize_recipients(event.recipients),
+        "first_seen_at": timestamp,
+        "last_seen_at": timestamp,
+        "attempt_count": 1,
+        "state": "pending",
+        "next_attempt_at": timestamp,
+        "lease_owner": None,
+        "lease_expires_at": None,
+        "last_error_code": None,
+        "reconciled_at": None,
+        "reconciled_ttl_expires_at": None,
+    }
+
+
+def _event_from_orphan(doc: Mapping[str, Any]) -> VerifiedResendEvent:
+    """Reconstruct a VerifiedResendEvent from an orphan document."""
+    return VerifiedResendEvent(
+        webhook_id=str(doc.get("event_key", "")).removeprefix("resend:"),
+        event_type=str(doc.get("event_type") or ""),
+        provider_message_id=str(doc.get("provider_message_id") or ""),
+        event_created_at=str(doc.get("event_created_at") or ""),
+        recipients=tuple(doc.get("recipients") or []),
+    )
+
+
+async def store_orphan_event(
+    orphan_collection,
+    event: VerifiedResendEvent,
+    received_at: datetime,
+) -> dict[str, Any]:
+    """Persist one minimized orphan record, or update attempt metadata on replay.
+
+    Uses event_key (svix-id based) as the unique idempotency key.
+    Returns the stored/updated document.  Raises on transient DB failure.
+    """
+    timestamp = received_at.astimezone(timezone.utc).isoformat()
+    doc = _orphan_document(event, received_at)
+    try:
+        await orphan_collection.insert_one(doc)
+        return doc
+    except DuplicateKeyError:
+        pass
+    # Replay — update attempt metadata only, no state change
+    await orphan_collection.update_one(
+        {"event_key": event.event_key},
+        {"$set": {"last_seen_at": timestamp}, "$inc": {"attempt_count": 1}},
+    )
+    return await orphan_collection.find_one({"event_key": event.event_key}, {"_id": 0}) or doc
+
+
+async def _claim_orphan(orphan_collection, event_key: str, worker_id: str,
+                        now: datetime, lease_seconds: int = 60) -> bool:
+    """Atomic compare-and-set claim.  Returns True if this worker won."""
+    timestamp = now.astimezone(timezone.utc).isoformat()
+    lease_end = (now + timedelta(seconds=lease_seconds)).astimezone(timezone.utc).isoformat()
+    result = await orphan_collection.update_one(
+        {
+            "event_key": event_key,
+            "state": {"$in": ["pending", "failed"]},
+            "$or": [
+                {"lease_owner": None},
+                {"lease_expires_at": {"$lt": timestamp}},
+            ],
+        },
+        {"$set": {
+            "lease_owner": worker_id,
+            "lease_expires_at": lease_end,
+        }},
+    )
+    return getattr(result, "modified_count", 0) == 1
+
+
+async def _release_orphan_reconciled(orphan_collection, event_key: str,
+                                     now: datetime) -> None:
+    timestamp = now.astimezone(timezone.utc).isoformat()
+    ttl_expires = (now + timedelta(seconds=ORPHAN_RECONCILED_TTL_SECONDS)).astimezone(timezone.utc).isoformat()
+    await orphan_collection.update_one(
+        {"event_key": event_key},
+        {"$set": {
+            "state": "reconciled",
+            "reconciled_at": timestamp,
+            "lease_owner": None,
+            "lease_expires_at": None,
+            "last_error_code": None,
+            "reconciled_ttl_expires_at": ttl_expires,
+        }},
+    )
+
+
+async def _release_orphan_failed(orphan_collection, event_key: str,
+                                 now: datetime, error_code: str) -> None:
+    timestamp = now.astimezone(timezone.utc).isoformat()
+    doc = await orphan_collection.find_one({"event_key": event_key}, {"attempt_count": 1})
+    attempt = int((doc or {}).get("attempt_count", 1))
+    next_at = _next_attempt_at(attempt, now)
+    await orphan_collection.update_one(
+        {"event_key": event_key},
+        {"$set": {
+            "state": "failed",
+            "lease_owner": None,
+            "lease_expires_at": None,
+            "last_error_code": error_code[:80],
+            "last_seen_at": timestamp,
+            "next_attempt_at": next_at,
+        }},
+    )
+
+
+async def reconcile_single_orphan(
+    orphan_collection,
+    receipt_collection,
+    outbox_collection,
+    orphan_doc: Mapping[str, Any],
+    *,
+    suppression_callback=None,
+    worker_id: str = "webhook_inline",
+    now: datetime | None = None,
+) -> str:
+    """Attempt to reconcile one orphan.
+
+    Returns one of: "reconciled", "skipped", "not_found", "failed", "lease_lost".
+    Performs outbox state update, optional suppression, and receipt completion
+    as a single logical transaction.  Does NOT send email or SMS.
+    """
+    received_at = now or datetime.now(timezone.utc)
+    event_key = str(orphan_doc.get("event_key", ""))
+    event = _event_from_orphan(orphan_doc)
+    if not event.supported or not event.provider_message_id:
+        return "skipped"
+
+    if not await _claim_orphan(orphan_collection, event_key, worker_id, received_at):
+        return "lease_lost"
+
+    try:
+        await apply_resend_outbox_event(outbox_collection, event, received_at)
+    except ResendOutboxNotFound:
+        # Mapping still absent — release lease, leave retryable
+        await _release_orphan_failed(orphan_collection, event_key, received_at, "outbox_not_found")
+        return "not_found"
+    except Exception:
+        await _release_orphan_failed(orphan_collection, event_key, received_at, "outbox_update_error")
+        return "failed"
+
+    # Suppression (bounce/complaint) — only when mapping exists
+    if suppression_callback and event.event_type in SUPPRESSION_EVENTS:
+        try:
+            for recipient in event.recipients[:MAX_ORPHAN_RECIPIENTS]:
+                await suppression_callback(event.event_type, recipient)
+        except Exception:
+            await _release_orphan_failed(orphan_collection, event_key, received_at, "suppression_error")
+            return "failed"
+
+    # Receipt completion
+    try:
+        await finish_resend_receipt(receipt_collection, event, received_at)
+    except Exception:
+        await _release_orphan_failed(orphan_collection, event_key, received_at, "receipt_finish_error")
+        return "failed"
+
+    await _release_orphan_reconciled(orphan_collection, event_key, received_at)
+    return "reconciled"
+
+
+async def reconcile_orphans_for_message(
+    orphan_collection,
+    receipt_collection,
+    outbox_collection,
+    provider_message_id: str,
+    *,
+    suppression_callback=None,
+    worker_id: str = "dispatch_inline",
+    now: datetime | None = None,
+) -> int:
+    """Reconcile pending/failed orphans after provider_message_id mapping is persisted."""
+    received_at = now or datetime.now(timezone.utc)
+    cursor = orphan_collection.find(
+        {"provider_message_id": provider_message_id,
+         "state": {"$in": ["pending", "failed"]}},
+        {"_id": 0},
+    )
+    orphans = await cursor.to_list(100)
+    reconciled = 0
+    for orphan_doc in orphans:
+        result = await reconcile_single_orphan(
+            orphan_collection, receipt_collection, outbox_collection,
+            orphan_doc, suppression_callback=suppression_callback,
+            worker_id=worker_id, now=received_at,
+        )
+        if result == "reconciled":
+            reconciled += 1
+    return reconciled
+
+
+async def recover_pending_orphans(
+    orphan_collection,
+    receipt_collection,
+    outbox_collection,
+    *,
+    suppression_callback=None,
+    worker_id: str = "recovery_worker",
+    now: datetime | None = None,
+    batch_size: int = 50,
+) -> dict[str, int]:
+    """Independent recovery path for pending and failed orphans.
+
+    Callable at startup, periodically via scheduler, or directly from tests.
+    Never sends email or SMS.  Only reconciles stored webhook state.
+    """
+    received_at = now or datetime.now(timezone.utc)
+    timestamp = received_at.astimezone(timezone.utc).isoformat()
+    cursor = orphan_collection.find(
+        {
+            "state": {"$in": ["pending", "failed"]},
+            "next_attempt_at": {"$lte": timestamp},
+            "$or": [
+                {"lease_owner": None},
+                {"lease_expires_at": {"$lt": timestamp}},
+            ],
+        },
+        {"_id": 0},
+    ).sort("next_attempt_at", 1).limit(batch_size)
+    orphans = await cursor.to_list(batch_size)
+    counts = {"reconciled": 0, "not_found": 0, "failed": 0, "skipped": 0, "lease_lost": 0}
+    for orphan_doc in orphans:
+        result = await reconcile_single_orphan(
+            orphan_collection, receipt_collection, outbox_collection,
+            orphan_doc, suppression_callback=suppression_callback,
+            worker_id=worker_id, now=received_at,
+        )
+        counts[result] = counts.get(result, 0) + 1
+    return counts
 
 
 # ---------------------------------------------------------------------------

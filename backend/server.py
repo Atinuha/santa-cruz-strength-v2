@@ -158,9 +158,14 @@ try:
         apply_resend_outbox_event,
         begin_resend_receipt,
         finish_resend_receipt,
+        reconcile_orphans_for_message,
+        reconcile_single_orphan,
+        recover_pending_orphans,
+        store_orphan_event,
         store_unknown_event_receipt,
         store_unmatched_diagnostic,
         verify_resend_webhook,
+        _release_orphan_reconciled,
     )
 except ImportError:
     from .resend_webhook import (
@@ -171,9 +176,14 @@ except ImportError:
         apply_resend_outbox_event,
         begin_resend_receipt,
         finish_resend_receipt,
+        reconcile_orphans_for_message,
+        reconcile_single_orphan,
+        recover_pending_orphans,
+        store_orphan_event,
         store_unknown_event_receipt,
         store_unmatched_diagnostic,
         verify_resend_webhook,
+        _release_orphan_reconciled,
     )
 
 mongo_url = os.environ['MONGO_URL']
@@ -4310,11 +4320,17 @@ async def _apply_verified_resend_suppression(event_type: str, to_addr: str) -> N
 async def resend_webhook(request: Request):
     """Verify a raw Resend event, then persist its minimal receipt and effects.
 
-    Status codes:
-      200 — new event processed, duplicate acknowledged, unknown event stored,
-            unmatched provider ID recorded, or permanent receipt conflict
-      400 — invalid signature, missing headers, malformed body, expired timestamp
-      503 — transient database failure only
+    Response contract (see route-level tests for proof of each branch):
+      400 — missing headers, bad signature, malformed body, stale timestamp.
+            Zero persistence.
+      200 — unsupported event type (diagnostic optional, write failure still 200).
+            Unknown provider email ID (diagnostic optional, write failure still 200).
+            Exact replay of a processed event (idempotent, no second mutation).
+            Receipt conflict acknowledged.
+      200 — supported event with known mapped provider ID, fully processed.
+      503 — supported event with known mapped provider ID when begin-receipt,
+            business-state update, or receipt-completion fails transiently.
+            Resend will retry; the receipt/idempotency layer prevents duplicates.
     """
     if not ALLOW_RESEND_WEBHOOKS:
         raise HTTPException(status_code=503, detail='Resend webhooks are disabled')
@@ -4331,15 +4347,18 @@ async def resend_webhook(request: Request):
 
     received_at = now_utc()
 
-    # Unknown event types: store one minimal receipt and return 200
+    # ── Unsupported event type ── stable 2xx, diagnostic best-effort
     if not event.supported:
         try:
             await store_unknown_event_receipt(db.webhook_receipts, event, received_at)
         except Exception:
             logger.error('resend_webhook_unknown_event_storage_failed')
-            raise HTTPException(status_code=503, detail='Transient storage failure')
         return {'ok': True, 'event_type': event.event_type, 'action': 'unknown_event_stored'}
 
+    # ── Supported event ── receipt + business-state path
+    # begin_resend_receipt, apply_resend_outbox_event, and
+    # finish_resend_receipt failures are transient DB errors on the
+    # critical mapped-event path.  Return 503 so Resend retries.
     try:
         receipt, status = await begin_resend_receipt(db.webhook_receipts, event, received_at)
 
@@ -4354,22 +4373,37 @@ async def resend_webhook(request: Request):
         try:
             await apply_resend_outbox_event(db.lead_outbox, event, received_at)
         except ResendOutboxNotFound:
-            # Provider message ID not in outbox — store diagnostic, return 200
+            # Provider message ID not yet in outbox.  Store a durable orphan
+            # so the event can be reconciled when the mapping arrives.  The
+            # receipt stays pending; the orphan is the deferred-processing
+            # record.  Return 200 only after orphan is persisted; if orphan
+            # storage fails, 503 lets Resend retry.
             logger.warning('resend_webhook_outbox_not_found', extra={'event_key': event.event_key})
-            await store_unmatched_diagnostic(db.webhook_receipts, event, received_at)
+            await store_orphan_event(db.webhook_orphans, event, received_at)
+            # Inline re-check: mapping may have appeared during orphan write
+            try:
+                await apply_resend_outbox_event(db.lead_outbox, event, received_at)
+            except ResendOutboxNotFound:
+                return {'ok': True, 'action': 'orphan_stored'}
+            except Exception:
+                return {'ok': True, 'action': 'orphan_stored'}
+            # Mapping appeared — reconcile inline
+            if event.event_type in SUPPRESSION_EVENTS:
+                for recipient in event.recipients:
+                    await _apply_verified_resend_suppression(event.event_type, recipient)
             await finish_resend_receipt(db.webhook_receipts, event, received_at)
-            return {'ok': True, 'action': 'unmatched_provider_id'}
+            await _release_orphan_reconciled(db.webhook_orphans, event.event_key, received_at)
+            return {'ok': True, 'action': 'orphan_reconciled_inline'}
 
         if event.event_type in SUPPRESSION_EVENTS:
             for recipient in event.recipients:
                 await _apply_verified_resend_suppression(event.event_type, recipient)
 
         await finish_resend_receipt(db.webhook_receipts, event, received_at)
+        return {'ok': True, 'duplicate': False}
     except Exception:
         logger.error('resend_webhook_processing_failed')
         raise HTTPException(status_code=503, detail='Transient storage failure')
-
-    return {'ok': True, 'duplicate': False}
 
 
 @api_router.get('/staff/bounce-log')
@@ -5235,7 +5269,52 @@ async def run_lead_outbox_dispatcher():
         config=runtime['config'],
         adapters=runtime['adapters'],
         worker_id=runtime['worker_id'],
+        orphan_collection=db.webhook_orphans,
+        receipt_collection=db.webhook_receipts,
     )
+
+
+async def run_orphan_recovery_worker():
+    """Single bounded sweep — callable from tests or the lifecycle loop."""
+    counts = await recover_pending_orphans(
+        db.webhook_orphans,
+        db.webhook_receipts,
+        db.lead_outbox,
+        suppression_callback=_apply_verified_resend_suppression,
+        worker_id='orphan_recovery',
+    )
+    total = sum(counts.values())
+    if total > 0:
+        logger.info('[ORPHAN_RECOVERY] %s', counts)
+    return counts
+
+
+async def _orphan_recovery_lifecycle():
+    """Dedicated internal lifecycle task for orphan reconciliation.
+
+    Runs independently of ALLOW_SCHEDULERS.  Started only when
+    ALLOW_RESEND_WEBHOOKS=true and ALLOW_DATABASE_WRITES=true.  Performs
+    database reconciliation only — never calls provider send adapters,
+    never dispatches email/SMS, never writes GymMaster, never emits
+    analytics, never starts any other scheduler job.
+    """
+    # Initial sweep on startup
+    try:
+        await run_orphan_recovery_worker()
+    except Exception:
+        logger.warning('[ORPHAN_RECOVERY] startup sweep failed')
+    # Periodic loop
+    while True:
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            return
+        try:
+            await run_orphan_recovery_worker()
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            logger.warning('[ORPHAN_RECOVERY] periodic sweep failed')
 
 
 @app.on_event('startup')
@@ -5333,6 +5412,10 @@ async def startup():
     await db.corporate_leads.create_index('created_at')
     await db.webhook_receipts.create_index('event_key', unique=True)
     await db.webhook_receipts.create_index('received_at')
+    await db.webhook_orphans.create_index('event_key', unique=True)
+    await db.webhook_orphans.create_index([('provider_message_id', 1), ('state', 1)])
+    await db.webhook_orphans.create_index([('state', 1), ('next_attempt_at', 1)])
+    await db.webhook_orphans.create_index('reconciled_ttl_expires_at', expireAfterSeconds=0)
     await db.lead_lifecycle_events.create_index('event_id', unique=True)
     await db.lead_lifecycle_events.create_index([('lead_id', 1), ('occurred_at', 1)])
     await db.lead_contact_events.create_index('event_id', unique=True)
@@ -5496,9 +5579,25 @@ async def startup():
         logger.info('[STARTUP] Approved schedulers started')
     else:
         logger.info('[SCHEDULER] Disabled by runtime safety controls')
+    # Dedicated orphan recovery lifecycle — independent of ALLOW_SCHEDULERS.
+    # Gated only by ALLOW_RESEND_WEBHOOKS + ALLOW_DATABASE_WRITES.
+    if ALLOW_RESEND_WEBHOOKS and ALLOW_DATABASE_WRITES:
+        app.state.orphan_recovery_task = asyncio.create_task(
+            _orphan_recovery_lifecycle(), name='orphan_recovery')
+        logger.info('[STARTUP] Orphan recovery lifecycle started')
+    else:
+        app.state.orphan_recovery_task = None
 
 @app.on_event('shutdown')
 async def shutdown_db_client():
+    # Cancel and await the dedicated orphan recovery task
+    task = getattr(app.state, 'orphan_recovery_task', None)
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except (asyncio.CancelledError, Exception):
+            pass
     if hasattr(app.state, 'scheduler'):
         app.state.scheduler.shutdown(wait=False)
     client.close()
